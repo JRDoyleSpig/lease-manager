@@ -172,7 +172,8 @@ body{font-family:var(--sans);background:var(--bg);color:var(--text);font-size:14
 .col-picker-row input{cursor:pointer}
 .col-picker-actions{display:flex;gap:6px;padding-top:8px;border-top:1px solid var(--border);margin-top:6px}
 </style>
-<script src="https://alcdn.msauth.net/browser/2.38.3/js/msal-browser.min.js"></script>
+<script src="https://alcdn.msauth.net/browser/2.38.3/js/msal-browser.min.js" crossorigin="anonymous"></script>
+<script src="https://cdn.jsdelivr.net/npm/@azure/msal-browser@2.38.3/lib/msal-browser.min.js" crossorigin="anonymous" onerror="console.error('MSAL CDN2 failed')"></script>
 </head>
 <body>
 <div class="app">
@@ -523,7 +524,18 @@ let notifSettings = {email:'',reviewMonths:6,preDays:90,triggers:{leaseExpiry:tr
 
 // SHAREPOINT + MSAL
 const MSAL_CFG = { auth: { clientId: "d456144c-56d3-469b-8847-4d68d5263562", authority: "https://login.microsoftonline.com/bab151e3-6d5a-4c92-aaaa-fdbb501a398f", redirectUri: window.location.origin + window.location.pathname }, cache: { cacheLocation: "sessionStorage" } };
-const msalApp = new msal.PublicClientApplication(MSAL_CFG);
+let msalApp;
+window.addEventListener('load', function() {
+  if(typeof msal === "undefined") {
+    document.getElementById("stats-row").innerHTML = "<div style='grid-column:span 6;padding:24px;text-align:center;color:var(--danger)'>Error: Could not load Microsoft authentication library. Please check your internet connection and refresh.</div>";
+    return;
+  }
+  msalApp = new msal.PublicClientApplication(MSAL_CFG);
+  msalApp.handleRedirectPromise().catch(e=>console.error(e));
+  loadColPrefs();
+  loadData();
+  loadStaff();
+});
 const SP_SITE = "https://serviceprosgroup.sharepoint.com/sites/PropertyManagement";
 const SP_LIST = "Lease Manager";
 const SP_API = SP_SITE + "/_api/web/lists/getbytitle('Lease%20Manager')/items";
@@ -1372,10 +1384,7 @@ function initScrollMirrors(){
 }
 
 loadColPrefs();
-msalApp.handleRedirectPromise().catch(e=>console.error(e));
-loadColPrefs();
-loadData();
-loadStaff();
+// Init handled by window.load event above
 setTimeout(initScrollMirrors, 100);
 </script>
 

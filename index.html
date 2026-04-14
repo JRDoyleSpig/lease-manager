@@ -1,0 +1,1431 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Lease Manager — 72 Locations</title>
+<!-- v5.1 -->
+<style>
+@import url('https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=DM+Sans:wght@300;400;500;600&display=swap');
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{--bg:#F7F6F2;--surface:#FFFFFF;--surface2:#F0EEE8;--border:#E2DFD6;--text:#1A1916;--muted:#7A7870;--accent:#1D4E3A;--accent-light:#E1F5EE;--accent-mid:#1D9E75;--warn:#BA7517;--warn-light:#FAEEDA;--danger:#A32D2D;--danger-light:#FCEBEB;--info:#185FA5;--info-light:#E6F1FB;--mono:'DM Mono',monospace;--sans:'DM Sans',sans-serif;--radius:10px}
+body{font-family:var(--sans);background:var(--bg);color:var(--text);font-size:14px;min-height:100vh}
+.app{display:flex;flex-direction:column;min-height:100vh}
+.topbar{background:var(--accent);color:#fff;padding:0 16px;height:44px;display:flex;align-items:center;justify-content:space-between;flex-shrink:0;position:sticky;top:0;z-index:50}
+.topbar-title{font-size:15px;font-weight:500;letter-spacing:.02em;display:flex;align-items:center;gap:10px}
+.topbar-logo{width:28px;height:28px;background:rgba(255,255,255,.15);border-radius:6px;display:flex;align-items:center;justify-content:center;font-family:var(--mono);font-size:13px;font-weight:500}
+.topbar-actions{display:flex;gap:8px}
+.topbar-btn{background:rgba(255,255,255,.12);border:1px solid rgba(255,255,255,.2);color:#fff;padding:5px 14px;border-radius:6px;font-size:12px;font-family:var(--sans);cursor:pointer;transition:background .15s}
+.topbar-btn:hover{background:rgba(255,255,255,.22)}
+.topbar-btn.primary{background:var(--accent-mid);border-color:var(--accent-mid)}
+.topbar-btn.primary:hover{background:#17876a}
+.main-body{display:flex;flex:1}
+.sidebar{width:160px;flex-shrink:0;background:var(--surface);border-right:1px solid var(--border);padding:12px 0;position:sticky;top:44px;height:calc(100vh - 44px);overflow-y:auto;transition:width .2s ease}.sidebar.collapsed{width:40px;overflow:hidden}
+.sidebar-section{font-size:9px;font-weight:600;letter-spacing:.1em;color:var(--muted);padding:8px 10px 3px;text-transform:uppercase;white-space:nowrap;overflow:hidden}
+.nav-item{display:flex;align-items:center;gap:7px;padding:6px 10px;cursor:pointer;font-size:12px;color:var(--muted);border-left:2px solid transparent;transition:all .12s;white-space:nowrap;overflow:hidden}
+.nav-item:hover{background:var(--surface2);color:var(--text)}
+.nav-item.active{color:var(--accent);border-left-color:var(--accent);background:var(--accent-light);font-weight:500}.sidebar.collapsed .nav-item span.nav-label{display:none}.sidebar.collapsed .sidebar-section{visibility:hidden}.sidebar.collapsed .nav-item{justify-content:center;padding:8px 0}.sidebar-toggle{position:fixed;bottom:12px;left:0;z-index:99;display:flex;width:160px;justify-content:center;transition:width .2s ease}.sidebar.collapsed~* .sidebar-toggle,.sidebar-toggle{width:160px}.sidebar.collapsed+div .content{margin:0}.sidebar-toggle-btn{background:var(--surface);border:1px solid var(--border);border-radius:4px;color:var(--muted);cursor:pointer;font-size:13px;padding:4px 10px;font-family:var(--sans);box-shadow:0 1px 4px rgba(0,0,0,.08)}.sidebar-toggle-btn:hover{background:var(--surface2);color:var(--accent)}
+.nav-icon{width:16px;height:16px;flex-shrink:0}
+.nav-badge{margin-left:auto;background:var(--danger);color:#fff;font-size:10px;border-radius:10px;padding:1px 6px;font-weight:600}
+.nav-badge.warn{background:var(--warn)}
+.content{flex:1;overflow-y:auto;padding:16px;display:flex;flex-direction:column;gap:16px;min-height:calc(100vh - 44px)}
+.stats-row{display:grid;grid-template-columns:repeat(6,minmax(0,1fr));gap:12px}
+.stat-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:16px}
+.stat-label{font-size:11px;color:var(--muted);letter-spacing:.04em;text-transform:uppercase;margin-bottom:6px}
+.stat-value{font-size:26px;font-weight:600;line-height:1;margin-bottom:4px;font-family:var(--mono)}
+.stat-sub{font-size:11px;color:var(--muted)}
+.stat-card.danger .stat-value{color:var(--danger)}
+.stat-card.warn .stat-value{color:var(--warn)}
+.stat-card.accent .stat-value{color:var(--accent)}
+.section-header{display:flex;align-items:center;justify-content:space-between}
+.section-title{font-size:14px;font-weight:600}
+.section-actions{display:flex;gap:8px;align-items:center}
+.btn{border:1px solid var(--border);background:var(--surface);color:var(--text);padding:6px 14px;border-radius:6px;font-size:12px;font-family:var(--sans);cursor:pointer;transition:all .12s}
+.btn:hover{background:var(--surface2)}
+.btn.primary{background:var(--accent);color:#fff;border-color:var(--accent)}
+.btn.primary:hover{background:#174035}
+.btn.sm{padding:4px 10px;font-size:11px}
+.search-box{border:1px solid var(--border);background:var(--surface);border-radius:6px;padding:6px 10px;font-size:12px;font-family:var(--sans);color:var(--text)}
+.search-box:focus{outline:none;border-color:var(--accent-mid)}
+.alerts-panel{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);overflow:hidden}
+.alerts-header{padding:12px 16px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between}
+.alerts-header h3{font-size:13px;font-weight:600}
+.alert-row{display:grid;grid-template-columns:130px 1fr auto auto;align-items:center;gap:12px;padding:10px 16px;border-bottom:1px solid var(--border);font-size:12px}
+.alert-row:last-child{border-bottom:none}
+.alert-row:hover{background:var(--surface2)}
+.alert-pill{display:inline-flex;align-items:center;padding:3px 9px;border-radius:20px;font-size:11px;font-weight:500;white-space:nowrap}
+.pill-danger{background:var(--danger-light);color:var(--danger)}
+.pill-warn{background:var(--warn-light);color:var(--warn)}
+.pill-info{background:var(--info-light);color:var(--info)}
+.alert-date{font-family:var(--mono);font-size:11px;color:var(--muted)}
+.alert-days{font-family:var(--mono);font-size:11px;font-weight:500}
+.days-red{color:var(--danger)}
+.days-warn{color:var(--warn)}
+.days-ok{color:var(--accent)}
+.table-wrap{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);overflow-x:auto;overflow-y:visible}
+.table-wrap::-webkit-scrollbar{height:12px;display:block}
+.table-wrap::-webkit-scrollbar-track{background:var(--surface2)}
+.table-wrap::-webkit-scrollbar-thumb{background:#aaa;border-radius:6px;border:2px solid var(--surface2)}
+.table-wrap::-webkit-scrollbar-thumb:hover{background:#888}
+* { scrollbar-width:thin; scrollbar-color:#aaa var(--surface2); }
+.lease-table{width:100%;border-collapse:collapse;font-size:12px}
+.lease-table th{background:var(--surface2);padding:6px 8px;text-align:left;font-size:11px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.05em;border-bottom:1px solid var(--border);white-space:nowrap}
+.lease-table td{padding:6px 8px;border-bottom:1px solid var(--border);vertical-align:middle;white-space:nowrap}
+.lease-table tr:last-child td{border-bottom:none}
+.lease-table tr:hover td{background:var(--surface2)}
+.status-dot{display:inline-block;width:7px;height:7px;border-radius:50%;margin-right:6px}
+.dot-green{background:var(--accent-mid)}
+.dot-warn{background:var(--warn)}
+.dot-red{background:var(--danger)}
+.dot-gray{background:#bbb}
+.row-actions{display:flex;gap:5px}
+.modal-backdrop{display:none;position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:200;align-items:flex-start;justify-content:center;padding-top:40px;overflow-y:auto}
+.modal-backdrop.open{display:flex}
+.modal{background:var(--surface);border-radius:12px;width:660px;max-height:88vh;overflow-y:auto;border:1px solid var(--border);margin-bottom:40px}
+.modal-header{padding:20px 24px 16px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;background:var(--surface);z-index:1}
+.modal-title{font-size:16px;font-weight:600}
+.modal-close{background:none;border:none;font-size:22px;color:var(--muted);cursor:pointer;line-height:1;padding:0 4px}
+.modal-body{padding:20px 24px;display:flex;flex-direction:column;gap:16px}
+.modal-footer{padding:14px 24px;border-top:1px solid var(--border);display:flex;justify-content:flex-end;gap:8px;position:sticky;bottom:0;background:var(--surface)}
+.form-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.form-group{display:flex;flex-direction:column;gap:5px}
+.form-group.full{grid-column:span 2}
+.form-label{font-size:11px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.04em}
+.form-input{border:1px solid var(--border);background:var(--surface);border-radius:6px;padding:8px 10px;font-size:13px;font-family:var(--sans);color:var(--text);width:100%}
+.form-input:focus{outline:none;border-color:var(--accent-mid)}
+.form-section{font-size:12px;font-weight:600;color:var(--accent);text-transform:uppercase;letter-spacing:.07em;padding-bottom:6px;border-bottom:1px solid var(--accent-light)}
+.notif-config{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:20px;display:flex;flex-direction:column;gap:16px}
+.notif-row{display:flex;align-items:center;justify-content:space-between;padding:10px 0;border-bottom:1px solid var(--border)}
+.notif-row:last-child{border-bottom:none}
+.notif-label{font-size:13px;font-weight:500}
+.notif-sub{font-size:11px;color:var(--muted);margin-top:2px}
+.toggle{position:relative;width:36px;height:20px;flex-shrink:0}
+.toggle input{opacity:0;width:0;height:0}
+.toggle-slider{position:absolute;inset:0;background:var(--border);border-radius:20px;cursor:pointer;transition:.2s}
+.toggle input:checked+.toggle-slider{background:var(--accent-mid)}
+.toggle-slider::before{content:'';position:absolute;width:14px;height:14px;left:3px;top:3px;background:#fff;border-radius:50%;transition:.2s}
+.toggle input:checked+.toggle-slider::before{transform:translateX(16px)}
+.hidden{display:none!important}
+.empty{text-align:center;padding:40px;color:var(--muted);font-size:13px}
+.locnum-badge{display:inline-block;background:var(--surface2);border:1px solid var(--border);color:var(--text);font-family:var(--mono);font-size:11px;padding:2px 7px;border-radius:4px;font-weight:500;min-width:28px;text-align:center}
+
+.sf-badge{display:inline-block;background:var(--accent-light);color:var(--accent);font-family:var(--mono);font-size:10px;padding:2px 6px;border-radius:4px;font-weight:500}
+.sf-badge.opex{background:var(--info-light);color:var(--info)}
+/* SORTABLE HEADERS */
+.lease-table th.sortable{cursor:pointer}
+.lease-table th.sortable:hover{color:var(--text);background:var(--border)}
+.lease-table th.sort-asc::after{content:' ↑';color:var(--accent)}
+.lease-table th.sort-desc::after{content:' ↓';color:var(--accent)}
+.lease-table th.sort-asc,.lease-table th.sort-desc{color:var(--accent)}
+
+.tabs{display:flex;border-bottom:1px solid var(--border);margin-bottom:16px}
+.tab{padding:8px 16px;font-size:13px;cursor:pointer;color:var(--muted);border-bottom:2px solid transparent;margin-bottom:-1px;transition:all .12s}
+.tab.active{color:var(--accent);border-bottom-color:var(--accent);font-weight:500}
+.info-box{background:var(--info-light);border:1px solid var(--border);border-radius:8px;padding:12px 16px;font-size:12px;color:var(--info)}
+
+.lease-table th.sortable{cursor:pointer}
+.lease-table th.sortable:hover{color:var(--text);background:var(--border)}
+.lease-table th.sort-asc::after{content:' ↑';color:var(--accent)}
+.lease-table th.sort-desc::after{content:' ↓';color:var(--accent)}
+.lease-table th.sort-asc,.lease-table th.sort-desc{color:var(--accent)}
+
+.staff-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:12px 14px;margin-bottom:8px;display:flex;align-items:center;justify-content:space-between;gap:12px}
+.staff-card:hover{background:var(--surface2)}
+.staff-avatar{width:36px;height:36px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-weight:600;font-size:13px;flex-shrink:0}
+.staff-avatar.director{background:var(--accent-light);color:var(--accent)}
+.staff-avatar.rom{background:var(--info-light);color:var(--info)}
+.staff-info{flex:1;min-width:0}
+.staff-name{font-size:13px;font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.staff-email{font-size:11px;color:var(--info);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.staff-phone{font-size:11px;color:var(--muted)}
+.staff-leases{font-size:10px;color:var(--muted);margin-top:2px}
+
+/* Frozen columns */
+.lease-table th.frozen, .lease-table td.frozen {
+  position:sticky;
+  background:var(--surface2);
+  z-index:2;
+}
+.lease-table td.frozen {
+  background:var(--surface);
+}
+.lease-table tr:hover td.frozen {
+  background:var(--surface2);
+}
+/* Column positions - status(28px), #(62px), location(140px) */
+.col-status { left:0; width:28px; min-width:28px; }
+.col-num    { left:28px; width:62px; min-width:62px; border-right:none; }
+.col-loc    { left:90px; min-width:140px; border-right:2px solid var(--border); }
+
+.scroll-mirror-wrap { overflow-x:auto; overflow-y:hidden; height:14px; border:1px solid var(--border); border-bottom:none; border-radius:var(--radius) var(--radius) 0 0; background:var(--surface2); position:sticky; top:0; z-index:10; }
+.scroll-mirror-wrap::-webkit-scrollbar { height:14px; display:block; }
+.scroll-mirror-wrap::-webkit-scrollbar-track { background:var(--surface2); }
+.scroll-mirror-wrap::-webkit-scrollbar-thumb { background:#999; border-radius:6px; border:2px solid var(--surface2); }
+.scroll-mirror-wrap::-webkit-scrollbar-thumb:hover { background:#555; }
+.scroll-mirror-inner { height:1px; }
+
+.col-toggle-btn{background:var(--surface);border:1px solid var(--border);border-radius:6px;padding:5px 12px;font-size:12px;font-family:var(--sans);cursor:pointer;color:var(--text)}
+.col-toggle-btn:hover{background:var(--surface2)}
+.col-picker{display:none;position:absolute;top:36px;right:0;background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:12px;z-index:50;box-shadow:0 4px 16px rgba(0,0,0,.12);min-width:220px;max-height:400px;overflow-y:auto}
+.col-picker.open{display:block}
+.col-picker-row{display:flex;align-items:center;gap:8px;padding:4px 0;font-size:12px;cursor:pointer;user-select:none}
+.col-picker-row input{cursor:pointer}
+.col-picker-actions{display:flex;gap:6px;padding-top:8px;border-top:1px solid var(--border);margin-top:6px}
+</style>
+<script src="https://alcdn.msauth.net/browser/2.38.3/js/msal-browser.min.js"></script>
+</head>
+<body>
+<div class="app">
+
+<div class="topbar">
+  <div class="topbar-title">
+    <div class="topbar-logo">LM</div>
+    Lease Manager — 72 Locations
+  </div>
+  <div class="topbar-actions">
+    <button class="topbar-btn" onclick="exportCSV()">Export CSV</button>
+    <button class="topbar-btn" onclick="showView('notifications',document.querySelector('[data-view=notifications]'))">⚙ Settings</button>
+    <button class="topbar-btn primary" onclick="openAddModal()">+ Add Lease</button>
+  </div>
+</div>
+
+<div class="main-body">
+
+<div class="sidebar">
+  <div class="sidebar-section">Views</div>
+  <div class="nav-item active" data-view="dashboard" onclick="showView('dashboard',this)">
+    <svg class="nav-icon" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 16 16"><rect x="1" y="1" width="6" height="6" rx="1"/><rect x="9" y="1" width="6" height="6" rx="1"/><rect x="1" y="9" width="6" height="6" rx="1"/><rect x="9" y="9" width="6" height="6" rx="1"/></svg>
+    <span class="nav-label"> Dashboard</span>
+  </div>
+  <div class="nav-item" data-view="leases" onclick="showView('leases',this)">
+    <svg class="nav-icon" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 16 16"><rect x="2" y="1" width="12" height="14" rx="1"/><line x1="5" y1="5" x2="11" y2="5"/><line x1="5" y1="8" x2="11" y2="8"/><line x1="5" y1="11" x2="9" y2="11"/></svg>
+    <span class="nav-label"> All Leases</span>
+  </div>
+  <div class="nav-item" data-view="alerts" onclick="showView('alerts',this)">
+    <svg class="nav-icon" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 16 16"><path d="M8 1a5 5 0 015 5v3l1.5 2.5H1.5L3 9V6a5 5 0 015-5z"/><path d="M6.5 13.5a1.5 1.5 0 003 0"/></svg>
+    <span class="nav-label"> Alerts</span> <span class="nav-badge" id="alert-badge">0</span>
+  </div>
+  <div class="nav-item" data-view="expiring" onclick="showView('expiring',this)">
+    <svg class="nav-icon" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 16 16"><circle cx="8" cy="8" r="6"/><path d="M8 4v4l3 2"/></svg>
+    <span class="nav-label"> By Expiry</span>
+  </div>
+  <div class="sidebar-section">By Company</div>
+  <div class="nav-item" onclick="showCompany('spig',this)">
+    <svg class="nav-icon" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 16 16"><rect x="1" y="3" width="14" height="10" rx="1"/><path d="M5 3V2a1 1 0 011-1h4a1 1 0 011 1v1"/></svg>
+    <span class="nav-label"> SPIG Leases</span>
+  </div>
+  <div class="nav-item" onclick="showCompany('pft',this)">
+    <svg class="nav-icon" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 16 16"><rect x="1" y="3" width="14" height="10" rx="1"/><path d="M5 3V2a1 1 0 011-1h4a1 1 0 011 1v1"/></svg>
+    <span class="nav-label"> PF&amp;T Leases</span>
+  </div>
+  <div class="nav-item" onclick="showCompany('erx',this)">
+    <svg class="nav-icon" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 16 16"><rect x="1" y="3" width="14" height="10" rx="1"/><path d="M5 3V2a1 1 0 011-1h4a1 1 0 011 1v1"/></svg>
+    <span class="nav-label"> ERX Leases</span>
+  </div>
+  <div class="sidebar-section">Settings</div>
+  <div class="nav-item" data-view="staff" onclick="showView('staff',this)">
+    <svg class="nav-icon" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 16 16"><circle cx="6" cy="5" r="3"/><path d="M1 14c0-3 2-5 5-5s5 2 5 5"/><circle cx="12" cy="5" r="2"/><path d="M12 10c2 0 3 1 3 3"/></svg>
+    <span class="nav-label"> Staff Roster</span>
+  </div>
+  <div class="nav-item" data-view="notifications" onclick="showView('notifications',this)">
+    <svg class="nav-icon" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 16 16"><path d="M2 4h12v8a1 1 0 01-1 1H3a1 1 0 01-1-1V4z"/><path d="M2 4l6 5 6-5"/></svg>
+    <span class="nav-label"> Notifications</span>
+  </div>
+  <div class="sidebar-toggle"><button class="sidebar-toggle-btn" onclick="toggleSidebar()" id="sidebar-toggle-btn">◀</button></div>
+</div>
+
+<div class="content">
+
+<!-- DASHBOARD -->
+<div id="view-dashboard">
+  <div class="stats-row" id="stats-row"></div>
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-top:4px">
+    <div>
+      <div class="section-header" style="margin-bottom:10px">
+        <span class="section-title">Active Alerts</span>
+        <button class="btn sm" onclick="showView('alerts',document.querySelector('[data-view=alerts]'))">View all</button>
+      </div>
+      <div class="alerts-panel" id="dashboard-alerts"></div>
+    </div>
+    <div>
+      <div class="section-header" style="margin-bottom:10px">
+        <span class="section-title">Soonest Expiring</span>
+        <button class="btn sm" onclick="showView('expiring',document.querySelector('[data-view=expiring]'))">View all</button>
+      </div>
+      <div class="table-wrap"><table class="lease-table" id="recent-table"></table></div>
+    </div>
+  </div>
+</div>
+
+<!-- ALL LEASES -->
+<div id="view-leases" class="hidden">
+  <div class="section-header">
+    <span class="section-title">All Leases</span>
+    <div class="section-actions">
+      <input class="search-box" placeholder="Search location, address, landlord..." id="search-input" oninput="renderLeaseTable()" style="width:220px">
+      <select class="search-box" id="filter-status" onchange="renderLeaseTable()">
+        <option value="">All statuses</option>
+        <option value="critical">Critical</option>
+        <option value="warning">Warning</option>
+        <option value="ok">OK</option>
+        <option value="mtm">Month-to-Month</option>
+      </select>
+      <select class="search-box" id="filter-director" onchange="renderLeaseTable()" style="max-width:160px">
+        <option value="">All Directors</option>
+      </select>
+      <select class="search-box" id="filter-rom" onchange="renderLeaseTable()" style="max-width:140px">
+        <option value="">All ROMs</option>
+      </select>
+      <div style="position:relative">
+        <button class="col-toggle-btn" onclick="toggleColPicker()">⊞ Columns</button>
+        <div class="col-picker" id="col-picker"></div>
+      </div>
+      <button class="btn primary" onclick="openAddModal()">+ Add Lease</button>
+    </div>
+  </div>
+  <div style="font-size:11px;color:var(--muted);margin-top:8px;margin-bottom:4px">Click any column header to sort. Click again to reverse.</div>
+  <div class="scroll-mirror-wrap" id="mirror-full"><div class="scroll-mirror-inner"></div></div>
+  <div class="table-wrap" style="margin-top:0;border-radius:0 0 var(--radius) var(--radius)">
+    <table class="lease-table" id="full-table"></table>
+  </div>
+</div>
+
+<!-- ALERTS -->
+<div id="view-alerts" class="hidden">
+  <div class="section-header">
+    <span class="section-title">Active Alerts</span>
+    <div class="section-actions">
+      <button class="btn primary" onclick="sendAlertEmail()">Send email digest via Outlook</button>
+    </div>
+  </div>
+  <div style="margin-top:12px" id="all-alerts-list"></div>
+</div>
+
+<!-- BY EXPIRY -->
+<div id="view-expiring" class="hidden">
+  <div class="section-header" style="margin-bottom:12px">
+    <span class="section-title">Leases by Expiration Year</span>
+    <select class="search-box" id="expiry-year" onchange="renderExpiryView()">
+      <option value="">All years</option>
+      <option value="2026">2026</option>
+      <option value="2027">2027</option>
+      <option value="2028">2028</option>
+      <option value="2029">2029</option>
+      <option value="2030">2030</option>
+      <option value="MTM">Month-to-Month</option>
+    </select>
+  </div>
+  <div id="expiry-content"></div>
+</div>
+
+<!-- NOTIFICATIONS -->
+<div id="view-company" class="hidden">
+  <div class="section-header" style="margin-bottom:6px">
+    <span class="section-title" id="company-view-title">SPIG Leases</span>
+    <div class="section-actions">
+      <input class="search-box" placeholder="Search..." id="company-search-input" oninput="renderCompanyTable()" style="width:200px">
+      <select class="search-box" id="company-filter-status" onchange="renderCompanyTable()">
+        <option value="">All statuses</option>
+        <option value="critical">Critical</option>
+        <option value="warning">Warning</option>
+        <option value="ok">OK</option>
+        <option value="mtm">Month-to-Month</option>
+      </select>
+    </div>
+  </div>
+  <div style="font-size:11px;color:var(--muted);margin-bottom:4px">Click any column header to sort.</div>
+  <div class="scroll-mirror-wrap" id="mirror-company"><div class="scroll-mirror-inner"></div></div>
+  <div class="table-wrap" style="border-radius:0 0 var(--radius) var(--radius)"><table class="lease-table" id="company-table"></table></div>
+</div>
+
+<div id="view-staff" class="hidden">
+  <div class="section-header" style="margin-bottom:16px">
+    <span class="section-title">Staff Roster</span>
+    <button class="btn primary" onclick="openStaffModal()">+ Add Person</button>
+  </div>
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px">
+    <div>
+      <div style="font-size:12px;font-weight:600;color:var(--accent);text-transform:uppercase;letter-spacing:.07em;padding-bottom:8px;border-bottom:1px solid var(--accent-light);margin-bottom:10px">Directors</div>
+      <div id="directors-list"></div>
+    </div>
+    <div>
+      <div style="font-size:12px;font-weight:600;color:var(--info);text-transform:uppercase;letter-spacing:.07em;padding-bottom:8px;border-bottom:1px solid var(--info-light);margin-bottom:10px">ROMs</div>
+      <div id="roms-list"></div>
+    </div>
+  </div>
+</div>
+
+<div id="view-notifications" class="hidden">
+  <div class="section-header" style="margin-bottom:12px">
+    <span class="section-title">Email Notification Settings</span>
+  </div>
+  <div class="notif-config">
+    <div class="form-group">
+      <label class="form-label">Your Outlook Email Address</label>
+      <input class="form-input" id="notif-email" placeholder="you@company.com" style="max-width:360px">
+    </div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;max-width:500px">
+      <div class="form-group">
+        <label class="form-label">Review window (months before expiry)</label>
+        <input class="form-input" type="number" id="notif-review" value="6" min="1" max="12">
+      </div>
+      <div class="form-group">
+        <label class="form-label">Alert window (days before key dates)</label>
+        <input class="form-input" type="number" id="notif-pre" value="90" min="7" max="365">
+      </div>
+    </div>
+    <div class="form-section">Alert Triggers</div>
+    <div id="notif-toggles"></div>
+    <div class="info-box">
+      <strong>How Outlook email works:</strong> Click "Send email digest via Outlook" on the Alerts page. It opens a pre-composed email in Outlook with all active alerts ready to send to yourself. For automatic <em>daily</em> emails, save this file to a shared drive and ask your IT team to set up a Windows Scheduled Task that opens it each morning — it will auto-check alerts on load.
+    </div>
+    <div style="display:flex;gap:8px;padding-top:4px">
+      <button class="btn primary" onclick="saveNotifSettings()">Save settings</button>
+      <button class="btn" onclick="exportCSV()">Export all data as CSV</button>
+    </div>
+  </div>
+</div>
+
+</div><!-- /content -->
+</div><!-- /main-body -->
+</div><!-- /app -->
+
+<!-- ADD/EDIT MODAL -->
+<div class="modal-backdrop" id="modal" onclick="if(event.target===this)closeModal()">
+<div class="modal">
+  <div class="modal-header">
+    <span class="modal-title" id="modal-title">Add New Lease</span>
+    <button class="modal-close" onclick="closeModal()">×</button>
+  </div>
+  <div class="modal-body">
+    <div class="form-section">Property</div>
+    <div class="form-grid">
+      <div class="form-group"><label class="form-label">Workroom # (Location ID)</label><input class="form-input" id="f-locnum" placeholder="e.g. 52 or 6.1 or PFT-R"></div>
+      <div class="form-group"><label class="form-label">Location Name</label><input class="form-input" id="f-location" placeholder="e.g. Buffalo"></div>
+      <div class="form-group"><label class="form-label">Street Address</label><input class="form-input" id="f-address"></div>
+      <div class="form-group"><label class="form-label">City</label><input class="form-input" id="f-city"></div>
+      <div class="form-group"><label class="form-label">State</label><input class="form-input" id="f-state" maxlength="2"></div>
+      <div class="form-group"><label class="form-label">Zip</label><input class="form-input" id="f-zip"></div>
+      <div class="form-group"><label class="form-label">Square Footage</label><input class="form-input" type="number" id="f-sqft"></div>
+    </div>
+    <div class="form-section">Financial</div>
+    <div class="form-grid">
+      <div class="form-group"><label class="form-label">Base Rent (monthly $)</label><input class="form-input" type="number" id="f-base-rent" step="0.01"></div>
+      <div class="form-group"><label class="form-label">CAM / OpEx (monthly $)</label><input class="form-input" type="number" id="f-cam" step="0.01"></div>
+      <div class="form-group"><label class="form-label">Base Rent Increase Date</label><input class="form-input" type="date" id="f-rent-inc"></div>
+      <div class="form-group"><label class="form-label">New Base Rent After Increase ($)</label><input class="form-input" type="number" id="f-rent-inc-amt" step="0.01"></div>
+      <div class="form-group"><label class="form-label">CAM / OpEx Increase Date</label><input class="form-input" type="date" id="f-opex-inc"></div>
+      <div class="form-group"><label class="form-label">New CAM / OpEx After Increase ($)</label><input class="form-input" type="number" id="f-opex-inc-amt" step="0.01"></div>
+    </div>
+    <div class="form-section">Lease Dates</div>
+    <div class="form-grid">
+      <div class="form-group"><label class="form-label">Lease Expiration</label><input class="form-input" type="date" id="f-expiry"></div>
+      <div class="form-group"><label class="form-label">Notify Landlord By</label><input class="form-input" type="date" id="f-notify"></div>
+      <div class="form-group"><label class="form-label">Renewal Option / Terms</label><input class="form-input" id="f-renewal" placeholder="e.g. 5-year option, 90-day notice"></div>
+      <div class="form-group"><label class="form-label">Renewal Notification Date</label><input class="form-input" type="date" id="f-renewal-notify"></div>
+    </div>
+    <div class="form-section">Landlord</div>
+    <div class="form-grid">
+      <div class="form-group full"><label class="form-label">Landlord / Management Co.</label><input class="form-input" id="f-landlord"></div>
+    </div>
+    <div class="form-section">Staff</div>
+    <div class="form-grid">
+      <div class="form-group full"><label class="form-label">Director</label>
+        <select class="form-input" id="f-director-select" onchange="applyStaffSelect('director')">
+          <option value="">— Select Director —</option>
+        </select>
+      </div>
+      <div class="form-group"><label class="form-label">Director Name</label><input class="form-input" id="f-director" placeholder="Auto-filled or type manually"></div>
+      <div class="form-group"><label class="form-label">Director Email</label><input class="form-input" type="email" id="f-director-email" placeholder="Auto-filled"></div>
+      <div class="form-group full"><label class="form-label">ROM</label>
+        <select class="form-input" id="f-rom-select" onchange="applyStaffSelect('rom')">
+          <option value="">— Select ROM —</option>
+        </select>
+      </div>
+      <div class="form-group"><label class="form-label">ROM Name</label><input class="form-input" id="f-rom" placeholder="Auto-filled or type manually"></div>
+      <div class="form-group"><label class="form-label">ROM Email</label><input class="form-input" type="email" id="f-rom-email" placeholder="Auto-filled"></div>
+      <div class="form-group full"><label class="form-label">Notes</label><textarea class="form-input" id="f-notes" rows="3" style="resize:vertical"></textarea></div>
+    </div>
+  </div>
+  <div class="modal-footer">
+    <button class="btn" onclick="closeModal()">Cancel</button>
+    <button class="btn primary" onclick="saveLease()">Save Lease</button>
+  </div>
+</div>
+</div>
+
+<script>
+// ── SEED DATA (72 locations from your spreadsheets) ──────────────────────────
+const SEED = [{"id":1,"location":"Buffalo","address":"3240 Clinton Street","city":"West Seneca","state":"NY","zip":"14224","expiryDate":"2026-06-30","notifyDate":"2026-03-31","landlord":"3240 Clinton Road, LLC","sqft":6080,"baseRent":4950,"cam":0,"rentIncDate":null,"rentIncAmount":"","notes":"","renewal":"","renewalNotifyDate":null,"locNum":"52"},{"id":2,"location":"Austin","address":"2116 Picadilly Drive","city":"Round Rock","state":"TX","zip":"78664","expiryDate":"2026-06-30","notifyDate":"2026-12-31","landlord":"Picadilly 2006, GP","sqft":5000,"baseRent":5506.55,"cam":151.18,"rentIncDate":null,"rentIncAmount":"","notes":"","renewal":"","renewalNotifyDate":null,"locNum":"43"},{"id":3,"location":"Roanoke","address":"1715 Granby Street Suite D","city":"Roanoke","state":"VA","zip":"24012","expiryDate":"2026-07-31","notifyDate":"2026-04-30","landlord":"Poe & Cronk Real Estate Group","sqft":0,"baseRent":3204.8,"cam":0,"rentIncDate":null,"rentIncAmount":"","notes":"","renewal":"","renewalNotifyDate":null,"locNum":"7"},{"id":4,"location":"Gulfport","address":"1485 34th Street","city":"Gulfport","state":"MS","zip":"39501","expiryDate":"2026-07-31","notifyDate":"2026-04-30","landlord":"McGehee Family Trust","sqft":8750,"baseRent":2600,"cam":0,"rentIncDate":null,"rentIncAmount":"","notes":"3/19 - Talked to Stephen - wants out due to location and homelessness. Need NN breakdown for the $800.","renewal":"","renewalNotifyDate":null,"locNum":"75"},{"id":5,"location":"Fort Walton","address":"658-B Lovejoy Road NW","city":"Fort Walton Beach","state":"FL","zip":"32548","expiryDate":"2026-08-31","notifyDate":"2026-05-31","landlord":"M. Keith Sims","sqft":0,"baseRent":2950,"cam":0,"rentIncDate":null,"rentIncAmount":"","notes":"Rent increase effective 9/01/19 to $2400. Sales tax increase $149.","renewal":"","renewalNotifyDate":null,"locNum":"21"},{"id":6,"location":"Abilene","address":"498 S. Access Road","city":"Tye","state":"TX","zip":"79563","expiryDate":"2026-08-31","notifyDate":"2026-05-31","landlord":"JLDS Properties, LLC","sqft":2400,"baseRent":1350,"cam":200,"rentIncDate":null,"rentIncAmount":"","notes":"Aug rent free, September rent prepaid in July, 9/1/21 CAM remains at $200","renewal":"","renewalNotifyDate":null,"locNum":"69"},{"id":7,"location":"Bluefield","address":"707 Industrial Park Road","city":"Beaver","state":"WV","zip":"25813","expiryDate":"2026-08-31","notifyDate":"2026-05-31","landlord":"Turnison LLC","sqft":4000,"baseRent":2678,"cam":0,"rentIncDate":null,"rentIncAmount":"","notes":"Lease starts 9/10/20","renewal":"","renewalNotifyDate":null,"locNum":"50"},{"id":8,"location":"Bossier City","address":"4708 Viking Drive, Building C","city":"Bossier City","state":"LA","zip":"70518","expiryDate":"2026-08-31","notifyDate":"2026-05-31","landlord":"CWL Properties Limited Partnership","sqft":3000,"baseRent":2375,"cam":50,"rentIncDate":null,"rentIncAmount":"","notes":"","renewal":"","renewalNotifyDate":null,"locNum":"70"},{"id":9,"location":"Waynesboro","address":"52 Lodge Lane","city":"Verona","state":"VA","zip":"24482","expiryDate":"2026-10-31","notifyDate":"2026-07-31","landlord":"South River Partners","sqft":1700,"baseRent":794,"cam":0,"rentIncDate":null,"rentIncAmount":"","notes":"Effective 7/01/19 rent $794","renewal":"","renewalNotifyDate":null,"locNum":""},{"id":10,"location":"Grand Forks","address":"3140 Gateway Drive, Suite C","city":"Grand Forks","state":"ND","zip":"58203","expiryDate":"2026-10-31","notifyDate":"2026-07-31","landlord":"Countryside Properties, LLC (Clarence Dawes)","sqft":0,"baseRent":2100,"cam":0,"rentIncDate":null,"rentIncAmount":"","notes":"","renewal":"","renewalNotifyDate":null,"locNum":"39"},{"id":11,"location":"Hickory","address":"1722 Tate Blvd SE","city":"Hickory","state":"NC","zip":"28602","expiryDate":"2026-11-30","notifyDate":"2026-06-30","landlord":"BHIC (Boyd & Hassell I-C, Inc.)","sqft":0,"baseRent":4614.92,"cam":0,"rentIncDate":null,"rentIncAmount":"","notes":"","renewal":"","renewalNotifyDate":null,"locNum":"3"},{"id":12,"location":"Chattanooga","address":"53 South Commerce Drive","city":"Ringgold","state":"GA","zip":"30736","expiryDate":"2026-11-30","notifyDate":"2026-08-31","landlord":"The Hawk Group-Calhoun Properties","sqft":0,"baseRent":2300,"cam":0,"rentIncDate":null,"rentIncAmount":"","notes":"","renewal":"","renewalNotifyDate":null,"locNum":"11"},{"id":13,"location":"Franklin","address":"64 Sloan Industrial Park","city":"Franklin","state":"NC","zip":"28734","expiryDate":"2026-12-31","notifyDate":null,"landlord":"Mountain View Storage","sqft":0,"baseRent":1274,"cam":0,"rentIncDate":null,"rentIncAmount":"","notes":"Can get out of lease with 60 day notice","renewal":"","renewalNotifyDate":null,"locNum":"8"},{"id":14,"location":"Lubbock","address":"12104 US Highway 87, Suite 6001","city":"Lubbock","state":"TX","zip":"79423","expiryDate":"2026-12-31","notifyDate":null,"landlord":"Discount RV & Shop Rentals, Inc.","sqft":0,"baseRent":1062,"cam":0,"rentIncDate":null,"rentIncAmount":"1104","notes":"","renewal":"","renewalNotifyDate":null,"locNum":""},{"id":15,"location":"Myrtle Beach","address":"4315 Magnum Street, Unit B&C","city":"Little River","state":"SC","zip":"29566","expiryDate":"2026-12-31","notifyDate":"2026-09-30","landlord":"Whitehall Investors, LLC","sqft":0,"baseRent":3660.1,"cam":0,"rentIncDate":null,"rentIncAmount":"","notes":"","renewal":"","renewalNotifyDate":null,"locNum":"30"},{"id":16,"location":"Fargo","address":"2323 16th Avenue South, Suite 101","city":"Moorhead","state":"MN","zip":"56560","expiryDate":"2027-02-28","notifyDate":null,"landlord":"412 Properties LLC","sqft":2250,"baseRent":2198,"cam":0,"rentIncDate":null,"rentIncAmount":"","notes":"","renewal":"","renewalNotifyDate":null,"locNum":"46"},{"id":17,"location":"PFT - Raleigh","address":"3215 Wellington Court, Suite 101","city":"Raleigh","state":"NC","zip":"27615","expiryDate":"2027-03-15","notifyDate":null,"landlord":"","sqft":0,"baseRent":0,"cam":0,"rentIncDate":null,"rentIncAmount":"","notes":"","renewal":"","renewalNotifyDate":null,"locNum":"PFT-R"},{"id":18,"location":"Pensacola","address":"9900 Old Palafox Street, Suite F","city":"Pensacola","state":"FL","zip":"32514","expiryDate":"2027-03-31","notifyDate":"2025-12-31","landlord":"Luker Investments","sqft":0,"baseRent":2995.56,"cam":0,"rentIncDate":null,"rentIncAmount":"","notes":"","renewal":"","renewalNotifyDate":null,"locNum":"14"},{"id":19,"location":"Clarksville","address":"621-B Providence Blvd","city":"Clarksville","state":"TN","zip":"37042","expiryDate":"2027-03-31","notifyDate":null,"landlord":"Spectrum Renovations","sqft":3000,"baseRent":1975,"cam":0,"rentIncDate":null,"rentIncAmount":"","notes":"","renewal":"","renewalNotifyDate":null,"locNum":""},{"id":20,"location":"Bismarck","address":"1347 S. 22nd Street, Suite 30","city":"Bismarck","state":"ND","zip":"58504","expiryDate":"2027-03-31","notifyDate":null,"landlord":"F&D Office, LLC","sqft":3150,"baseRent":2365,"cam":35,"rentIncDate":null,"rentIncAmount":"","notes":"","renewal":"","renewalNotifyDate":null,"locNum":"47"},{"id":21,"location":"Mobile","address":"5775 I-10 Industrial Parkway North","city":"Theodore","state":"AL","zip":"36582","expiryDate":"2027-03-31","notifyDate":null,"landlord":"C&R Partners","sqft":0,"baseRent":4763.75,"cam":0,"rentIncDate":null,"rentIncAmount":"","notes":"Option to renew year-to-year with 30-day notice","renewal":"Year-to-year option with 30-day notice","renewalNotifyDate":null,"locNum":"15"},{"id":22,"location":"Fredericksburg","address":"230 Industrial Drive, Suite M&N","city":"Spotsylvania","state":"VA","zip":"22408","expiryDate":"2027-03-31","notifyDate":null,"landlord":"Longwood Owner LLC","sqft":0,"baseRent":4403.61,"cam":510,"rentIncDate":null,"rentIncAmount":"","notes":"CAM decrease to $510 from $715 starting Feb 1, 2021","renewal":"","renewalNotifyDate":null,"locNum":"25"},{"id":23,"location":"Norcross","address":"3170 Reps Miller Road","city":"Norcross","state":"GA","zip":"30071","expiryDate":"2027-03-31","notifyDate":null,"landlord":"GA 3170 Reps Miller (DE) LLC","sqft":0,"baseRent":20115.72,"cam":2730.94,"rentIncDate":"2027-03-01","rentIncAmount":"20920.35","notes":"","renewal":"","renewalNotifyDate":null,"locNum":""},{"id":24,"location":"Jacksonville","address":"1404 Piney Green Road","city":"Jacksonville","state":"NC","zip":"28546","expiryDate":"2027-04-01","notifyDate":null,"landlord":"WR Willis Family Group PG, LLC","sqft":0,"baseRent":4000,"cam":0,"rentIncDate":null,"rentIncAmount":"","notes":"","renewal":"","renewalNotifyDate":null,"locNum":"32"},{"id":25,"location":"Baton Rouge","address":"10142 Patriot Drive","city":"Baton Rouge","state":"LA","zip":"70816","expiryDate":"2027-07-31","notifyDate":null,"landlord":"GSD Investments, LLC","sqft":3542,"baseRent":3247,"cam":0,"rentIncDate":null,"rentIncAmount":"","notes":"","renewal":"","renewalNotifyDate":null,"locNum":"73"},{"id":26,"location":"Lafayette","address":"205 Jared Drive","city":"Broussard","state":"LA","zip":"70518","expiryDate":"2027-07-31","notifyDate":null,"landlord":"Land Hawk Properties, LLC","sqft":4000,"baseRent":2800,"cam":0,"rentIncDate":null,"rentIncAmount":"","notes":"","renewal":"","renewalNotifyDate":null,"locNum":"71"},{"id":27,"location":"Hattiesburg","address":"2001 Country Club Road","city":"Hattiesburg","state":"MS","zip":"39401","expiryDate":"2027-07-31","notifyDate":null,"landlord":"Olive Dollar, LLC","sqft":3000,"baseRent":1650,"cam":0,"rentIncDate":null,"rentIncAmount":"","notes":"","renewal":"","renewalNotifyDate":null,"locNum":"76"},{"id":28,"location":"Twin Cities","address":"99 5th Ave NW","city":"New Brighton","state":"MN","zip":"55112","expiryDate":"2027-07-31","notifyDate":null,"landlord":"GV 10th Ave Property, LLC","sqft":0,"baseRent":3455.83,"cam":898.52,"rentIncDate":null,"rentIncAmount":"","notes":"Annual rent increases on 7/01 per lease schedule","renewal":"","renewalNotifyDate":null,"locNum":"34"},{"id":29,"location":"DFW","address":"2005 108th Street, Suite 501","city":"Grand Prairie","state":"TX","zip":"75050","expiryDate":"2027-07-31","notifyDate":null,"landlord":"SL Industrial, LP","sqft":0,"baseRent":9912.72,"cam":1276.64,"rentIncDate":"2026-08-01","rentIncAmount":"10309.23","notes":"","renewal":"","renewalNotifyDate":null,"locNum":""},{"id":30,"location":"Odessa","address":"1716 & 1718 E. 2nd Street","city":"Odessa","state":"TX","zip":"76761","expiryDate":"2027-08-31","notifyDate":null,"landlord":"Clay Rodriguez","sqft":4900,"baseRent":5308.33,"cam":0,"rentIncDate":"2026-09-01","rentIncAmount":"","notes":"","renewal":"","renewalNotifyDate":null,"locNum":"68"},{"id":31,"location":"Lexington","address":"1033 Trotwood Drive","city":"Lexington","state":"KY","zip":"40511","expiryDate":"2027-08-31","notifyDate":null,"landlord":"Space Center Storage / 1183 Brock LLC","sqft":0,"baseRent":5062.5,"cam":843.75,"rentIncDate":null,"rentIncAmount":"","notes":"","renewal":"","renewalNotifyDate":null,"locNum":"37"},{"id":32,"location":"Jackson, TN","address":"123 Ragland Road, Building F, Unit 5-6","city":"Jackson","state":"TN","zip":"38305","expiryDate":"2027-09-30","notifyDate":null,"landlord":"123 Ragland LLC","sqft":0,"baseRent":3000,"cam":0,"rentIncDate":null,"rentIncAmount":"","notes":"Last month rent prepaid at beginning of lease","renewal":"","renewalNotifyDate":null,"locNum":"48"},{"id":33,"location":"PFT - Tampa","address":"207 Kelsey Lane, Suite A","city":"Tampa","state":"FL","zip":"33619","expiryDate":"2027-10-31","notifyDate":null,"landlord":"","sqft":0,"baseRent":0,"cam":0,"rentIncDate":null,"rentIncAmount":"","notes":"","renewal":"","renewalNotifyDate":null,"locNum":"PFT-T"},{"id":34,"location":"San Antonio","address":"210 Lanark Drive","city":"San Antonio","state":"TX","zip":"78218","expiryDate":"2027-11-30","notifyDate":null,"landlord":"Central Texas Infill Investors, LLC","sqft":0,"baseRent":5750.35,"cam":563,"rentIncDate":"2026-12-01","rentIncAmount":"5984.16","notes":"","renewal":"","renewalNotifyDate":null,"locNum":""},{"id":35,"location":"Asheville","address":"504 Elk Park Drive","city":"Asheville","state":"NC","zip":"28804","expiryDate":"2027-12-31","notifyDate":null,"landlord":"Elk Mountain","sqft":0,"baseRent":3150,"cam":0,"rentIncDate":null,"rentIncAmount":"","notes":"Begin looking in January","renewal":"","renewalNotifyDate":null,"locNum":"2"},{"id":36,"location":"Greenville","address":"65 Concourse Way","city":"Greer","state":"SC","zip":"29650","expiryDate":"2027-12-31","notifyDate":null,"landlord":"65 Concourse Way LLC","sqft":0,"baseRent":5620.89,"cam":1223.96,"rentIncDate":"2027-01-01","rentIncAmount":"5757.98","notes":"","renewal":"","renewalNotifyDate":null,"locNum":"6"},{"id":37,"location":"Weslaco","address":"1504 Industrial Drive","city":"Weslaco","state":"TX","zip":"78596","expiryDate":"2028-02-09","notifyDate":null,"landlord":"Cascade Oak Investments RE, LLC","sqft":0,"baseRent":2500,"cam":0,"rentIncDate":null,"rentIncAmount":"2625","notes":"","renewal":"","renewalNotifyDate":null,"locNum":""},{"id":38,"location":"Knoxville","address":"2718 John Deere Drive, Suite 101","city":"Knoxville","state":"TN","zip":"37917","expiryDate":"2028-02-28","notifyDate":null,"landlord":"DFS Properties, LP","sqft":0,"baseRent":3660,"cam":0,"rentIncDate":null,"rentIncAmount":"","notes":"","renewal":"","renewalNotifyDate":null,"locNum":"5"},{"id":39,"location":"Meridian - New","address":"910 Carter Ave","city":"Philadelphia","state":"MS","zip":"39350","expiryDate":"2028-02-28","notifyDate":null,"landlord":"","sqft":0,"baseRent":0,"cam":0,"rentIncDate":null,"rentIncAmount":"","notes":"","renewal":"","renewalNotifyDate":null,"locNum":"77"},{"id":40,"location":"College Station","address":"12903 State Highway 30, Suite 400","city":"College Station","state":"TX","zip":"77845","expiryDate":"2028-02-29","notifyDate":null,"landlord":"Deike and David Holdings, LLC","sqft":2100,"baseRent":2300,"cam":0,"rentIncDate":null,"rentIncAmount":"","notes":"","renewal":"","renewalNotifyDate":null,"locNum":"44"},{"id":41,"location":"Texarkana","address":"7117 Alumax Road, Suite C","city":"Nash","state":"TX","zip":"75569","expiryDate":"2028-02-29","notifyDate":null,"landlord":"DB-RE Investments, LLC","sqft":1500,"baseRent":1875,"cam":0,"rentIncDate":null,"rentIncAmount":"","notes":"","renewal":"","renewalNotifyDate":null,"locNum":"41"},{"id":42,"location":"Tri-Cities","address":"2045 Brookside Lane, Suite A","city":"Kingsport","state":"TN","zip":"37660","expiryDate":"2028-03-31","notifyDate":null,"landlord":"Cozart Warehouses Inc.","sqft":0,"baseRent":2600,"cam":0,"rentIncDate":null,"rentIncAmount":"","notes":"","renewal":"","renewalNotifyDate":null,"locNum":"18"},{"id":43,"location":"Memphis","address":"3092 Connahbrook Drive","city":"Memphis","state":"TN","zip":"38116","expiryDate":"2028-04-30","notifyDate":null,"landlord":"Olymbec USA LLC","sqft":0,"baseRent":2511,"cam":975,"rentIncDate":"2026-05-01","rentIncAmount":"2573.78","notes":"","renewal":"","renewalNotifyDate":null,"locNum":""},{"id":44,"location":"Corpus Christi","address":"3758-B Wow Road","city":"Corpus Christi","state":"TX","zip":"78413","expiryDate":"2028-04-30","notifyDate":null,"landlord":"44 Cameron Real Estate, LLC","sqft":0,"baseRent":1928.5,"cam":523.46,"rentIncDate":"2026-05-01","rentIncAmount":"1983.6","notes":"","renewal":"","renewalNotifyDate":null,"locNum":""},{"id":45,"location":"PFT - Jacksonville FL","address":"6370 US 1 North, Unit 5","city":"St. Augustine","state":"FL","zip":"32095","expiryDate":"2028-05-31","notifyDate":null,"landlord":"","sqft":0,"baseRent":0,"cam":0,"rentIncDate":null,"rentIncAmount":"","notes":"Old ERX Lease that PFT took over","renewal":"","renewalNotifyDate":null,"locNum":"PFT-J"},{"id":46,"location":"Rochester","address":"1128 Lexington Ave Bldg 4","city":"Rochester","state":"NY","zip":"14606","expiryDate":"2028-06-30","notifyDate":null,"landlord":"Despatch Properties","sqft":0,"baseRent":2500,"cam":0,"rentIncDate":null,"rentIncAmount":"","notes":"","renewal":"","renewalNotifyDate":null,"locNum":"20.1"},{"id":47,"location":"PFT - Phoenix","address":"3210 East Roeser Road, Suite 17","city":"Phoenix","state":"AZ","zip":"85040","expiryDate":"2028-06-30","notifyDate":null,"landlord":"","sqft":0,"baseRent":0,"cam":0,"rentIncDate":null,"rentIncAmount":"","notes":"","renewal":"","renewalNotifyDate":null,"locNum":"PFT-P"},{"id":48,"location":"New Orleans","address":"2215 Engineers Road, Suite G","city":"Belle Chasse","state":"LA","zip":"70037","expiryDate":"2028-09-30","notifyDate":null,"landlord":"Southern Specialty Investments LLC","sqft":6000,"baseRent":3650,"cam":0,"rentIncDate":null,"rentIncAmount":"","notes":"","renewal":"","renewalNotifyDate":null,"locNum":"72"},{"id":49,"location":"Houston","address":"331-335 Garden Oaks Blvd","city":"Houston","state":"TX","zip":"77018","expiryDate":"2028-11-30","notifyDate":null,"landlord":"ProLogis Texas III LLC","sqft":0,"baseRent":7272.57,"cam":1755.73,"rentIncDate":"2026-11-01","rentIncAmount":"7563.47","notes":"","renewal":"","renewalNotifyDate":null,"locNum":""},{"id":50,"location":"Lindale","address":"4548 Cantina Drive","city":"Tyler","state":"TX","zip":"75708","expiryDate":"2028-12-31","notifyDate":null,"landlord":"LBA Holdings LLC","sqft":0,"baseRent":2750,"cam":0,"rentIncDate":"2027-01-01","rentIncAmount":"3511.35","notes":"","renewal":"","renewalNotifyDate":null,"locNum":"40"},{"id":51,"location":"Chantilly","address":"7699 Limestone Drive, Suite 120","city":"Gainesville","state":"VA","zip":"20155","expiryDate":"2028-12-31","notifyDate":null,"landlord":"7699 Limestone Drive, LLC","sqft":0,"baseRent":5365.37,"cam":1832.99,"rentIncDate":"2027-01-01","rentIncAmount":"5579.98","notes":"","renewal":"","renewalNotifyDate":null,"locNum":"9"},{"id":52,"location":"Temple","address":"5570 Kegley Lane, Suite 101","city":"Temple","state":"TX","zip":"76502","expiryDate":"2029-02-28","notifyDate":null,"landlord":"SD Wright Properties UE, LLC","sqft":2358,"baseRent":3028,"cam":0,"rentIncDate":"2027-03-01","rentIncAmount":"3092","notes":"","renewal":"","renewalNotifyDate":null,"locNum":"45"},{"id":53,"location":"Charlotte","address":"1921 Freedom Drive","city":"Charlotte","state":"NC","zip":"28208","expiryDate":"2029-02-28","notifyDate":null,"landlord":"Stophel Commercial","sqft":51000,"baseRent":15550,"cam":0,"rentIncDate":null,"rentIncAmount":"","notes":"One check $15,000.00","renewal":"","renewalNotifyDate":null,"locNum":"1"},{"id":54,"location":"ERX - Boone","address":"199 Jefferson Road, Suite C","city":"Boone","state":"NC","zip":"28607","expiryDate":"2029-03-28","notifyDate":null,"landlord":"Bill and Bob Brown Apartments","sqft":0,"baseRent":2500,"cam":0,"rentIncDate":null,"rentIncAmount":"","notes":"","renewal":"","renewalNotifyDate":null,"locNum":"ERX-B"},{"id":55,"location":"Hagerstown","address":"10312 Governor Lane Blvd","city":"Williamsport","state":"MD","zip":"21795","expiryDate":"2029-04-30","notifyDate":null,"landlord":"Bowman 2000 LLC / 920 Eldridge Drive, LLC","sqft":5000,"baseRent":2111.58,"cam":120.83,"rentIncDate":null,"rentIncAmount":"2% annual increase","notes":"2% Annual increase eff 11/01/19. Prop tax $249.34 eff July 2020.","renewal":"","renewalNotifyDate":null,"locNum":"23"},{"id":56,"location":"Charleston","address":"1410 Bigley Ave","city":"Charleston","state":"WV","zip":"25302","expiryDate":"2029-05-31","notifyDate":null,"landlord":"General Corporation","sqft":5056,"baseRent":2740,"cam":0,"rentIncDate":"2026-06-01","rentIncAmount":"2845","notes":"","renewal":"","renewalNotifyDate":null,"locNum":"54"},{"id":57,"location":"Amarillo","address":"8101 S. Soncy Road #300","city":"Amarillo","state":"TX","zip":"79119","expiryDate":"2029-05-31","notifyDate":null,"landlord":"Indian Hill Investments, LLC","sqft":6750,"baseRent":3481.88,"cam":0,"rentIncDate":"2026-06-01","rentIncAmount":"","notes":"","renewal":"","renewalNotifyDate":null,"locNum":"67"},{"id":58,"location":"Beaumont","address":"105 W. Highway 365, Suite 300","city":"Port Arthur","state":"TX","zip":"77640","expiryDate":"2029-06-30","notifyDate":null,"landlord":"2TIM47 Investments LLC","sqft":2600,"baseRent":1950,"cam":0,"rentIncDate":null,"rentIncAmount":"","notes":"","renewal":"","renewalNotifyDate":null,"locNum":"64"},{"id":59,"location":"Wilmington","address":"","city":"Wilmington","state":"NC","zip":"28405","expiryDate":"2029-06-30","notifyDate":null,"landlord":"BDW Property","sqft":0,"baseRent":2500,"cam":0,"rentIncDate":"2026-07-01","rentIncAmount":"2850","notes":"","renewal":"","renewalNotifyDate":null,"locNum":"31"},{"id":60,"location":"Paducah","address":"116 Main Street","city":"Paducah","state":"KY","zip":"42001","expiryDate":"2029-06-30","notifyDate":"2026-03-31","landlord":"F & F Leasing, Inc.","sqft":6000,"baseRent":3410,"cam":0,"rentIncDate":"2026-07-01","rentIncAmount":"3751","notes":"","renewal":"","renewalNotifyDate":null,"locNum":"57"},{"id":61,"location":"Jackson, MS","address":"305 Babbin Wells Road, Suite B","city":"Pearl","state":"MS","zip":"39208","expiryDate":"2029-07-31","notifyDate":null,"landlord":"","sqft":0,"baseRent":0,"cam":0,"rentIncDate":null,"rentIncAmount":"","notes":"","renewal":"","renewalNotifyDate":null,"locNum":"74"},{"id":62,"location":"Nashville","address":"600 Airpark Center Drive, Suite 606","city":"Nashville","state":"TN","zip":"37217","expiryDate":"2030-06-30","notifyDate":"2029-12-31","landlord":"SL Management Group TN, LLC / SL Airpark LLC","sqft":9602,"baseRent":10362.16,"cam":1377.3,"rentIncDate":"2026-07-01","rentIncAmount":"10778.25","notes":"CAM = $704.15 + $304.06 mgmt fee = $1,008.21","renewal":"","renewalNotifyDate":null,"locNum":"56"},{"id":63,"location":"Richmond","address":"5320 S. Laburnum Ave","city":"Henrico","state":"VA","zip":"23231","expiryDate":"2030-07-31","notifyDate":null,"landlord":"SL 5300 S Laburnum Ave LLC","sqft":7424,"baseRent":7529.17,"cam":1621.76,"rentIncDate":"2026-08-01","rentIncAmount":"8259.2","notes":"Lease starts 7/1/20","renewal":"","renewalNotifyDate":null,"locNum":"49"},{"id":64,"location":"Waldorf","address":"3480 Rockefeller Court, Suite F-H","city":"Waldorf","state":"MD","zip":"20602","expiryDate":"2030-07-31","notifyDate":null,"landlord":"NAI The Michael Companies / Fleming Property","sqft":6000,"baseRent":5176.25,"cam":250,"rentIncDate":"2026-08-01","rentIncAmount":"5330","notes":"Renewal: 5-yr option @ $7.50/sf ($3,750/mo), no increases. 90-day written notice required.","renewal":"5-year renewal option, 90-day written notice, rate $3,750/mo flat","renewalNotifyDate":null,"locNum":"10"},{"id":65,"location":"Syracuse","address":"209 Wavel Street","city":"Syracuse","state":"NY","zip":"13206","expiryDate":"2030-07-31","notifyDate":null,"landlord":"Daniel L. Canino (prev. TJMG Properties)","sqft":0,"baseRent":2500,"cam":0,"rentIncDate":"2026-05-01","rentIncAmount":"4133.73","notes":"Payments direct to Daniel Canino eff 3/01/20","renewal":"","renewalNotifyDate":null,"locNum":"19"},{"id":66,"location":"Baltimore","address":"1540 Caton Center Drive, Suite A-C","city":"Baltimore","state":"MD","zip":"21227","expiryDate":"2030-09-30","notifyDate":null,"landlord":"St. John Properties, Inc.","sqft":7200,"baseRent":7050,"cam":1092,"rentIncDate":"2026-10-01","rentIncAmount":"7296.75","notes":"Lease start 10/1, first 3 months free","renewal":"","renewalNotifyDate":null,"locNum":"51"},{"id":67,"location":"Center","address":"296 County Road 1548","city":"Center","state":"TX","zip":"75935","expiryDate":"Month to Month","notifyDate":null,"landlord":"Darrell Flanagan","sqft":960,"baseRent":1923.2,"cam":0,"rentIncDate":null,"rentIncAmount":"","notes":"","renewal":"","renewalNotifyDate":null,"locNum":"78"},{"id":68,"location":"Lynchburg","address":"1067 Old Courthouse Road, #1-3","city":"Appomattox","state":"VA","zip":"24522","expiryDate":"Month to Month","notifyDate":null,"landlord":"Jones Family Irrevocable Trust","sqft":1108,"baseRent":1500,"cam":0,"rentIncDate":null,"rentIncAmount":"","notes":"","renewal":"Pay amounts shown with discount","renewalNotifyDate":null,"locNum":"33"},{"id":69,"location":"Cookeville","address":"1225 Shag Rag Road","city":"Cookeville","state":"TN","zip":"38506","expiryDate":"Month to Month","notifyDate":null,"landlord":"Spectrum Renovations","sqft":2000,"baseRent":850,"cam":0,"rentIncDate":null,"rentIncAmount":"","notes":"2/26 - Continuously looking for new space","renewal":"","renewalNotifyDate":null,"locNum":""},{"id":70,"location":"San Angelo","address":"5973A Knickerbocker Road","city":"San Angelo","state":"TX","zip":"76904","expiryDate":"Month to Month","notifyDate":null,"landlord":"The Jenkins Organization / Red Bluff Storage","sqft":0,"baseRent":581,"cam":0,"rentIncDate":null,"rentIncAmount":"","notes":"","renewal":"","renewalNotifyDate":null,"locNum":""},{"id":71,"location":"Clovis","address":"1001 Mitchell Street, Unit 7","city":"Clovis","state":"NM","zip":"88102","expiryDate":"Month to Month","notifyDate":null,"landlord":"Everlasting Investments","sqft":0,"baseRent":450,"cam":0,"rentIncDate":null,"rentIncAmount":"","notes":"","renewal":"","renewalNotifyDate":null,"locNum":""},{"id":72,"location":"ERX - Greensboro","address":"742 Park Lawn Court, Unit A","city":"Kernersville","state":"NC","zip":"27284","expiryDate":"Month to Month","notifyDate":null,"landlord":"","sqft":0,"baseRent":0,"cam":0,"rentIncDate":null,"rentIncAmount":"","notes":"","renewal":"","renewalNotifyDate":null,"locNum":"ERX-G"}];
+
+// ── STATE ────────────────────────────────────────────────────────────────────
+let leases = [];
+let editingId = null;
+let sortCol = 'expiryDate', sortDir = 1;
+
+const ALL_COLS = [
+  {id:'status',   label:'Status Dot',    def:true},
+  {id:'locNum',   label:'#',             def:true},
+  {id:'location', label:'Location',      def:true},
+  {id:'address',  label:'Address',       def:true},
+  {id:'landlord', label:'Landlord',      def:true},
+  {id:'sqft',     label:'Sq Ft',         def:true},
+  {id:'baseRent', label:'Base Rent',     def:true},
+  {id:'cam',      label:'CAM/OpEx',      def:true},
+  {id:'rentSF',   label:'Rent $/SF',     def:true},
+  {id:'opexSF',   label:'OpEx $/SF',     def:true},
+  {id:'totalRent',label:'Total Rent',    def:true},
+  {id:'totalSF',  label:'Total $/SF',    def:true},
+  {id:'expires',  label:'Expires',       def:true},
+  {id:'notifyBy', label:'Notify By',     def:true},
+  {id:'rentInc',  label:'Base Rent Inc', def:true},
+  {id:'newRent',  label:'New Base Rent', def:true},
+  {id:'opexInc',  label:'OpEx Inc',      def:true},
+  {id:'newOpex',  label:'New OpEx',      def:true},
+  {id:'director', label:'Director',      def:true},
+  {id:'rom',      label:'ROM',           def:true},
+  {id:'actions',  label:'Edit/Delete',   def:true},
+];
+let visibleCols = {};
+function loadColPrefs(){
+  try{
+    const s=localStorage.getItem('lm_cols');
+    if(s) visibleCols=JSON.parse(s);
+    else { ALL_COLS.forEach(c=>visibleCols[c.id]=c.def); }
+  }catch(e){ ALL_COLS.forEach(c=>visibleCols[c.id]=c.def); }
+}
+function saveColPrefs(){ try{localStorage.setItem('lm_cols',JSON.stringify(visibleCols));}catch(e){} }
+function col(id){ return visibleCols[id]!==false; }
+function toggleColPicker(){
+  const p=document.getElementById('col-picker');
+  if(!p) return;
+  p.classList.toggle('open');
+  if(p.classList.contains('open')) renderColPicker();
+}
+function renderColPicker(){
+  const p=document.getElementById('col-picker');
+  if(!p) return;
+  p.innerHTML=ALL_COLS.map(c=>`<label class="col-picker-row"><input type="checkbox" ${col(c.id)?'checked':''} onchange="toggleCol('${c.id}',this.checked)"> ${c.label}</label>`).join('')
+    +'<div class="col-picker-actions"><button class="btn sm" onclick="setAllCols(true)">Show all</button><button class="btn sm" onclick="setAllCols(false)">Hide all</button></div>';
+}
+function toggleCol(id,val){
+  visibleCols[id]=val; saveColPrefs(); renderLeaseTable();
+}
+function setAllCols(val){
+  ALL_COLS.forEach(c=>visibleCols[c.id]=val); saveColPrefs(); renderColPicker(); renderLeaseTable();
+}
+document.addEventListener('click',e=>{
+  const p=document.getElementById('col-picker');
+  if(p&&p.classList.contains('open')&&!p.contains(e.target)&&!e.target.classList.contains('col-toggle-btn'))
+    p.classList.remove('open');
+});
+let notifSettings = {email:'',reviewMonths:6,preDays:90,triggers:{leaseExpiry:true,notifyLandlord:true,rentIncrease:true,renewal:true}};
+
+// SHAREPOINT + MSAL
+const MSAL_CFG = { auth: { clientId: "d456144c-56d3-469b-8847-4d68d5263562", authority: "https://login.microsoftonline.com/bab151e3-6d5a-4c92-aaaa-fdbb501a398f", redirectUri: window.location.origin + window.location.pathname }, cache: { cacheLocation: "sessionStorage" } };
+const msalApp = new msal.PublicClientApplication(MSAL_CFG);
+const SP_SITE = "https://serviceprosgroup.sharepoint.com/sites/PropertyManagement";
+const SP_LIST = "Lease Manager";
+const SP_API = SP_SITE + "/_api/web/lists/getbytitle('Lease%20Manager')/items";
+const OWNER = "john.doyle@serviceprosig.com".toLowerCase();
+const SP_SCOPES = ["https://serviceprosgroup.sharepoint.com/AllSites.Write"];
+let _token = null, _isOwner = false;
+
+async function getToken() {
+  if(_token) return _token;
+  let accounts = msalApp.getAllAccounts();
+  if(!accounts.length) { await msalApp.loginPopup({scopes:SP_SCOPES}); accounts = msalApp.getAllAccounts(); }
+  _isOwner = accounts[0].username.toLowerCase() === OWNER;
+  const r = await msalApp.acquireTokenSilent({scopes:SP_SCOPES, account:accounts[0]});
+  _token = r.accessToken;
+  updateEditControls();
+  return _token;
+}
+
+function updateEditControls() {
+  document.querySelectorAll(".row-actions, .btn.primary[onclick*=openAddModal]").forEach(el => el.style.display = _isOwner ? "" : "none");
+}
+
+function leaseToSP(l) {
+  return {
+    "__metadata": {"type":"SP.Data.Lease_x0020_ManagerListItem"},
+    "Title": l.location||"", "Location": l.location||"", "Address": l.address||"",
+    "City": l.city||"", "State": l.state||"", "Zip": l.zip||"", "LocNum": l.locNum||"",
+    "SqFt": l.sqft||null, "BaseRent": l.baseRent||null, "CAM": l.cam||null,
+    "ExpiryDate": (l.expiryDate&&l.expiryDate!=="Month to Month")?l.expiryDate+"T00:00:00Z":null,
+    "NotifyDate": l.notifyDate?l.notifyDate+"T00:00:00Z":null,
+    "Landlord": l.landlord||"", "Renewal": l.renewal||"",
+    "RentIncDate": l.rentIncDate?l.rentIncDate+"T00:00:00Z":null, "RentIncAmount": l.rentIncAmount||"",
+    "OpexIncDate": l.opexIncDate?l.opexIncDate+"T00:00:00Z":null, "OpexIncAmount": l.opexIncAmount||"",
+    "Director": l.director||"", "DirectorEmail": l.directorEmail||"",
+    "ROM": l.rom||"", "ROMEmail": l.romEmail||"",
+    "Notes": l.notes||"", "Company": getCompany(l)
+  };
+}
+
+function spToLease(item) {
+  function d(v){return v?v.substring(0,10):null;}
+  return { id:item.Id, _spId:item.Id, location:item.Location||item.Title||"",
+    address:item.Address||"", city:item.City||"", state:item.State||"",
+    zip:item.Zip||"", locNum:item.LocNum||"", sqft:item.SqFt||0,
+    baseRent:item.BaseRent||0, cam:item.CAM||0,
+    expiryDate:item.ExpiryDate==="Month to Month"?"Month to Month":d(item.ExpiryDate),
+    notifyDate:d(item.NotifyDate), landlord:item.Landlord||"", renewal:item.Renewal||"",
+    rentIncDate:d(item.RentIncDate), rentIncAmount:item.RentIncAmount||"",
+    opexIncDate:d(item.OpexIncDate), opexIncAmount:item.OpexIncAmount||"",
+    director:item.Director||"", directorEmail:item.DirectorEmail||"",
+    rom:item.ROM||"", romEmail:item.ROMEmail||"", notes:item.Notes||"" };
+}
+
+async function loadData() {
+  const sr = document.getElementById("stats-row");
+  if(sr) sr.innerHTML = "<div style='grid-column:span 6;padding:24px;text-align:center;color:var(--muted)'>Signing in to Microsoft...</div>";
+  try {
+    const token = await getToken();
+    if(sr) sr.innerHTML = "<div style='grid-column:span 6;padding:24px;text-align:center;color:var(--muted)'>Loading lease data...</div>";
+    let url = SP_API + "?$select=*&$top=500&$orderby=Id";
+    let all = [];
+    while(url) {
+      const res = await fetch(url, {headers:{"Accept":"application/json;odata=verbose","Authorization":"Bearer "+token}});
+      if(!res.ok) throw new Error("HTTP "+res.status);
+      const data = await res.json();
+      all = all.concat(data.d.results);
+      url = data.d.__next||null;
+    }
+    if(all.length === 0) {
+      if(!_isOwner) { if(sr) sr.innerHTML="<div style='grid-column:span 6;padding:24px;text-align:center'>No data found.</div>"; return; }
+      if(sr) sr.innerHTML="<div style='grid-column:span 6;padding:24px;text-align:center;color:var(--muted)'>First run - loading 72 locations...</div>";
+      let count=0;
+      for(const l of SEED) {
+        const body=leaseToSP(l);
+        const r2=await fetch(SP_API,{method:"POST",headers:{"Accept":"application/json;odata=verbose","Content-Type":"application/json;odata=verbose","Authorization":"Bearer "+token},body:JSON.stringify(body)});
+        const rd=await r2.json(); l._spId=rd.d.Id; l.id=rd.d.Id; count++;
+        if(sr) sr.innerHTML="<div style='grid-column:span 6;padding:24px;text-align:center;color:var(--muted)'>Loading "+count+"/72...</div>";
+      }
+      leases = SEED.map(l=>Object.assign({},l));
+    } else {
+      leases = all.map(spToLease);
+    }
+    try{ const nk=["lm_notif","lm_notif_v2"]; for(const k of nk){const n=localStorage.getItem(k);if(n){Object.assign(notifSettings,JSON.parse(n));break;}} }catch(e){}
+    renderAll();
+  } catch(err) {
+    console.error("SP error:",err);
+    if(sr) sr.innerHTML="<div style='grid-column:span 6;padding:24px;text-align:center;color:var(--danger)'>Sign-in failed: "+err.message+"</div>";
+  }
+}
+
+function saveData() {
+  try{localStorage.setItem("lm_notif",JSON.stringify(notifSettings));}catch(e){}
+}
+
+async function spSaveLease(l) {
+  try {
+    const token = await getToken();
+    const body = leaseToSP(l);
+    const spId = l._spId||l.id;
+    if(spId && typeof spId==="number") {
+      await fetch(SP_API+"("+spId+")",{method:"POST",headers:{"Accept":"application/json;odata=verbose","Content-Type":"application/json;odata=verbose","Authorization":"Bearer "+token,"X-HTTP-Method":"MERGE","IF-MATCH":"*"},body:JSON.stringify(body)});
+    } else {
+      const r=await fetch(SP_API,{method:"POST",headers:{"Accept":"application/json;odata=verbose","Content-Type":"application/json;odata=verbose","Authorization":"Bearer "+token},body:JSON.stringify(body)});
+      const rd=await r.json(); l._spId=rd.d.Id; l.id=rd.d.Id;
+    }
+  } catch(e) { alert("Save error: "+e.message); }
+}
+
+async function spDeleteLease(l) {
+  try {
+    const token = await getToken();
+    const spId = l._spId||l.id;
+    if(!spId) return;
+    await fetch(SP_API+"("+spId+")",{method:"POST",headers:{"Accept":"application/json;odata=verbose","Content-Type":"application/json;odata=verbose","Authorization":"Bearer "+token,"X-HTTP-Method":"DELETE","IF-MATCH":"*"}});
+  } catch(e) { alert("Delete error: "+e.message); }
+}
+
+
+// ── HELPERS ──────────────────────────────────────────────────────────────────
+function getDays(d){ if(!d||d==='Month to Month')return null; return Math.round((new Date(d)-new Date())/86400000); }
+function fmtDate(d){ if(!d||d==='Month to Month')return d||'—'; const[y,m,day]=d.split('-'); return`${m}/${day}/${y}`; }
+function fmtMoney(n){ if(!n&&n!==0)return'—'; return'$'+Number(n).toLocaleString('en-US',{minimumFractionDigits:0,maximumFractionDigits:0}); }
+function fmtSFRent(l){ return l.sqft&&l.baseRent?'$'+(l.baseRent*12/l.sqft).toFixed(2)+'/sf':'—'; }
+
+function rentSF(l){return l.sqft&&l.baseRent?+(l.baseRent*12/l.sqft).toFixed(2):null;}
+function opexSF(l){return l.sqft&&l.cam?+(l.cam*12/l.sqft).toFixed(2):null;}
+function totalRent(l){return (l.baseRent||0)+(l.cam||0);}
+function totalSF(l){const t=totalRent(l);return l.sqft&&t?+(t*12/l.sqft).toFixed(2):null;}
+function fmtSF(v){return v!==null?'$'+v.toFixed(2):'—';}
+
+const SORT_KEYS={
+  locNum:l=>{
+  const s=(l.locNum||'').trim();
+  if(!s) return 9000000000;
+  const parts=s.split('.');
+  const whole=parseInt(parts[0]);
+  const sub=parseInt(parts[1]||'0');
+  if(!isNaN(whole)) return whole*10000+sub;
+  return 8000000000;
+},
+  location:l=>(l.location||l.city||'').toLowerCase(),
+  address:l=>(l.address||'').toLowerCase(),
+  state:l=>(l.state||'').toLowerCase(),
+  landlord:l=>(l.landlord||'').toLowerCase(),
+  director:l=>(l.director||'').toLowerCase(),
+  rom:l=>(l.rom||'').toLowerCase(),
+  sqft:l=>l.sqft||0,
+  totalRent:l=>(l.baseRent||0)+(l.cam||0),
+  totalSF:l=>l.sqft?((l.baseRent||0)+(l.cam||0))*12/l.sqft:0,
+  baseRent:l=>l.baseRent||0,
+  cam:l=>l.cam||0,
+  rentSF:l=>rentSF(l)||0,
+  opexSF:l=>opexSF(l)||0,
+  expiryDate:l=>l.expiryDate==='Month to Month'?'9999-12-31':(l.expiryDate||'9999-12-31'),
+  notifyDate:l=>l.notifyDate||'9999-12-31',
+  rentIncDate:l=>l.rentIncDate||'9999-12-31',
+  opexIncDate:l=>l.opexIncDate||'9999-12-31',
+  status:l=>({critical:0,warning:1,ok:2,mtm:3,expired:4}[getStatus(l)]||0),
+};
+function sortLeases(rows){
+  const fn=SORT_KEYS[sortCol]||SORT_KEYS.expiryDate;
+  return[...rows].sort((a,b)=>{const av=fn(a),bv=fn(b);if(av<bv)return-sortDir;if(av>bv)return sortDir;return 0;});
+}
+function setSortCol(col){
+  if(sortCol===col)sortDir*=-1;else{sortCol=col;sortDir=1;}
+  renderLeaseTable();
+}
+function setSortColC(col){
+  if(sortCol===col)sortDir*=-1;else{sortCol=col;sortDir=1;}
+  renderCompanyTable();
+}
+function thSort(col,label){
+  const active=sortCol===col;
+  const cls=active?(sortDir===1?'sort-asc':'sort-desc'):'';
+  return'<th class="sortable '+cls+'" onclick="setSortCol(\''+col+'\')" style="cursor:pointer">'+label+'</th>';
+}
+function thSortC(col,label){
+  const active=sortCol===col;
+  const cls=active?(sortDir===1?'sort-asc':'sort-desc'):'';
+  return'<th class="sortable '+cls+'" onclick="setSortColC(\''+col+'\')" style="cursor:pointer">'+label+'</th>';
+}
+
+function getStatus(l){
+  if(l.expiryDate==='Month to Month')return'mtm';
+  const ex=getDays(l.expiryDate),no=getDays(l.notifyDate),rd=notifSettings.reviewMonths*30,pd=notifSettings.preDays;
+  if((ex!==null&&ex>=0&&ex<=90)||(no!==null&&no>=0&&no<=30))return'critical';
+  if((ex!==null&&ex>=0&&ex<=rd)||(no!==null&&no>=0&&no<=pd))return'warning';
+  if(ex!==null&&ex<0)return'expired';
+  return'ok';
+}
+
+function getAlerts(l){
+  const a=[],pd=notifSettings.preDays,rd=notifSettings.reviewMonths*30;
+  const ex=getDays(l.expiryDate),no=getDays(l.notifyDate),ri=getDays(l.rentIncDate),rn=getDays(l.renewalNotifyDate);
+  if(notifSettings.triggers.leaseExpiry&&ex!==null&&ex>=0&&ex<=rd)
+    a.push({type:ex<=30?'danger':ex<=90?'warn':'info',label:'Lease Expiry',date:l.expiryDate,days:ex});
+  if(notifSettings.triggers.notifyLandlord&&no!==null&&no>=0&&no<=pd)
+    a.push({type:no<=14?'danger':'warn',label:'Notify Landlord',date:l.notifyDate,days:no});
+  if(notifSettings.triggers.rentIncrease&&ri!==null&&ri>=0&&ri<=pd)
+    a.push({type:ri<=30?'warn':'info',label:'Base Rent Increase',date:l.rentIncDate,days:ri});
+  const oi=getDays(l.opexIncDate);
+  if(notifSettings.triggers.rentIncrease&&oi!==null&&oi>=0&&oi<=pd)
+    a.push({type:oi<=30?'warn':'info',label:'OpEx Increase',date:l.opexIncDate,days:oi});
+  if(notifSettings.triggers.renewal&&rn!==null&&rn>=0&&rn<=pd)
+    a.push({type:rn<=30?'warn':'info',label:'Renewal Notify',date:l.renewalNotifyDate,days:rn});
+  return a;
+}
+
+// ── RENDER FUNCTIONS ─────────────────────────────────────────────────────────
+function renderStats(){
+  const crit=leases.filter(l=>getStatus(l)==='critical').length;
+  const warn=leases.filter(l=>getStatus(l)==='warning').length;
+  const mtm=leases.filter(l=>l.expiryDate==='Month to Month').length;
+  const spigCount=leases.filter(l=>getCompany(l)==='spig').length;
+  const pftCount=leases.filter(l=>getCompany(l)==='pft').length;
+  const erxCount=leases.filter(l=>getCompany(l)==='erx').length;
+
+  // Per-company rent totals
+  const companies = ['spig','pft','erx'];
+  const labels = {spig:'SPIG', pft:'PF&T', erx:'ERX'};
+  function companyRent(co, field){ return leases.filter(l=>getCompany(l)===co).reduce((s,l)=>s+(Number(l[field])||0),0); }
+  function fmt(n){ return n>=1000?'$'+Math.round(n/1000)+'k':'$'+Math.round(n); }
+
+  const baseRows = companies.map(co=>`<div style="display:flex;justify-content:space-between;font-size:11px;padding:2px 0"><span style="color:var(--muted)">${labels[co]}</span><span style="font-family:var(--mono);font-weight:500">${fmt(companyRent(co,'baseRent'))}</span></div>`).join('');
+  const camRows  = companies.map(co=>`<div style="display:flex;justify-content:space-between;font-size:11px;padding:2px 0"><span style="color:var(--muted)">${labels[co]}</span><span style="font-family:var(--mono);font-weight:500">${fmt(companyRent(co,'cam'))}</span></div>`).join('');
+  const totRows  = companies.map(co=>`<div style="display:flex;justify-content:space-between;font-size:11px;padding:2px 0"><span style="color:var(--muted)">${labels[co]}</span><span style="font-family:var(--mono);font-weight:500">${fmt(companyRent(co,'baseRent')+companyRent(co,'cam'))}</span></div>`).join('');
+
+  document.getElementById('stats-row').innerHTML=`
+    <div class="stat-card"><div class="stat-label">Total Locations</div><div class="stat-value">${leases.length}</div><div class="stat-sub">${spigCount} SPIG · ${pftCount} PF&T · ${erxCount} ERX</div></div>
+    <div class="stat-card danger"><div class="stat-label">Critical</div><div class="stat-value">${crit}</div><div class="stat-sub">Need immediate action</div></div>
+    <div class="stat-card warn"><div class="stat-label">Upcoming</div><div class="stat-value">${warn}</div><div class="stat-sub">In review window</div></div>
+    <div class="stat-card"><div class="stat-label">Monthly Base Rent</div>${baseRows}</div>
+    <div class="stat-card"><div class="stat-label">Monthly CAM / OpEx</div>${camRows}</div>
+    <div class="stat-card accent"><div class="stat-label">Monthly Total Rent</div>${totRows}</div>`;
+  const allA=leases.flatMap(l=>getAlerts(l).map(a=>({...a,lease:l})));
+  const badge=document.getElementById('alert-badge');
+  badge.textContent=allA.length;
+  badge.className='nav-badge'+(allA.some(a=>a.type==='danger')?'':' warn');
+}
+
+function renderDashboardAlerts(){
+  const el=document.getElementById('dashboard-alerts');
+  const all=leases.flatMap(l=>getAlerts(l).map(a=>({...a,lease:l}))).sort((a,b)=>a.days-b.days).slice(0,8);
+  if(!all.length){el.innerHTML='<div class="empty">No active alerts</div>';return;}
+  el.innerHTML=all.map(a=>`<div class="alert-row">
+    <span class="alert-pill pill-${a.type}">${a.label}</span>
+    <span>${a.lease.location||a.lease.city}, ${a.lease.state}</span>
+    <span class="alert-date">${fmtDate(a.date)}</span>
+    <span class="alert-days ${a.days<=30?'days-red':a.days<=60?'days-warn':'days-ok'}">${a.days}d</span>
+  </div>`).join('');
+}
+
+function renderRecentTable(){
+  const el=document.getElementById('recent-table');
+  const rows=[...leases].filter(l=>l.expiryDate&&l.expiryDate!=='Month to Month').sort((a,b)=>new Date(a.expiryDate)-new Date(b.expiryDate)).slice(0,8);
+  el.innerHTML='<thead><tr><th></th><th>Location</th><th>Expires</th><th>Base Rent</th></tr></thead><tbody>'+rows.map(l=>{
+    const s=getStatus(l),ex=getDays(l.expiryDate);
+    return`<tr><td><span class="status-dot dot-${s==='critical'?'red':s==='warning'?'warn':'green'}"></span></td>
+    <td style="font-weight:500">${l.location||l.city}<br><span style="font-size:11px;color:var(--muted);font-weight:400">${l.city}, ${l.state}</span></td>
+    <td style="font-family:var(--mono);font-size:11px;color:${ex!==null&&ex<90?'var(--danger)':ex!==null&&ex<180?'var(--warn)':'inherit'}">${fmtDate(l.expiryDate)}</td>
+    <td style="font-family:var(--mono)">${fmtMoney(l.baseRent)}</td></tr>`;
+  }).join('')+'</tbody>';
+}
+
+function renderLeaseTable(){
+  const el=document.getElementById('full-table');
+  const search=(document.getElementById('search-input')||{value:''}).value.toLowerCase();
+  const fs=(document.getElementById('filter-status')||{value:''}).value;
+  const fd=(document.getElementById('filter-director')||{value:''}).value;
+  const fr=(document.getElementById('filter-rom')||{value:''}).value;
+
+  // Populate director/rom dropdowns dynamically
+  const dSel=document.getElementById('filter-director');
+  const rSel=document.getElementById('filter-rom');
+  if(dSel){
+    const directors=[...new Set(leases.map(l=>l.director||'').filter(Boolean))].sort();
+    const curD=dSel.value;
+    dSel.innerHTML='<option value="">All Directors</option>'+directors.map(d=>`<option value="${d}" ${d===curD?'selected':''}>${d}</option>`).join('');
+  }
+  if(rSel){
+    const roms=[...new Set(leases.map(l=>l.rom||'').filter(Boolean))].sort();
+    const curR=rSel.value;
+    rSel.innerHTML='<option value="">All ROMs</option>'+roms.map(r=>`<option value="${r}" ${r===curR?'selected':''}>${r}</option>`).join('');
+  }
+
+  let rows=leases.filter(l=>{
+    if(search&&!`${l.locNum||''} ${l.location} ${l.address} ${l.city} ${l.state} ${l.landlord} ${l.director||''} ${l.rom||''}`.toLowerCase().includes(search))return false;
+    if(fs&&getStatus(l)!==fs)return false;
+    if(fd&&(l.director||'')!==fd)return false;
+    if(fr&&(l.rom||'')!==fr)return false;
+    return true;
+  });
+  rows=sortLeases(rows);
+  el.innerHTML='<thead><tr>'
+    +(col('status')?'<th class="sortable frozen col-status" onclick="setSortCol(\'status\')"></th>':'')
+    +(col('locNum')?'<th class="sortable frozen col-num" onclick="setSortCol(\'locNum\')">#</th>':'')
+    +(col('location')?'<th class="sortable frozen col-loc" onclick="setSortCol(\'location\')">Location</th>':'')
+    +(col('address')?thSort('address','Address'):'')
+    +(col('landlord')?thSort('landlord','Landlord'):'')
+    +(col('sqft')?thSort('sqft','Sq Ft'):'')
+    +(col('baseRent')?thSort('baseRent','Base Rent'):'')
+    +(col('cam')?thSort('cam','CAM/OpEx'):'')
+    +(col('rentSF')?thSort('rentSF','Rent $/SF'):'')
+    +(col('opexSF')?thSort('opexSF','OpEx $/SF'):'')
+    +(col('totalRent')?thSort('totalRent','Total Rent'):'')
+    +(col('totalSF')?thSort('totalSF','Total $/SF'):'')
+    +(col('expires')?thSort('expiryDate','Expires'):'')
+    +(col('notifyBy')?thSort('notifyDate','Notify By'):'')
+    +(col('rentInc')?thSort('rentIncDate','Base Rent Inc'):'')
+    +(col('newRent')?'<th>New Base Rent</th>':'')
+    +(col('opexInc')?thSort('opexIncDate','OpEx Inc'):'')
+    +(col('newOpex')?'<th>New OpEx</th>':'')
+    +(col('director')?thSort('director','Director'):'')
+    +(col('rom')?thSort('rom','ROM'):'')
+    +(col('actions')?'<th></th>':'')
+    +'</tr></thead><tbody>'+
+  rows.map(l=>{
+    const s=getStatus(l),ex=getDays(l.expiryDate),rsf=rentSF(l),osf=opexSF(l);
+    const dotCls = s==='critical'?'red':s==='warning'?'warn':s==='mtm'?'gray':'green';
+    const locNumHtml = l.locNum ? '<span class="locnum-badge">'+l.locNum+'</span>' : '<span style="color:var(--muted);font-size:11px">—</span>';
+    const dirHtml = l.director ? '<span style="font-weight:500">'+l.director+'</span>'+(l.directorEmail?'<br><span style="font-size:10px;color:var(--info)">'+l.directorEmail+'</span>':'') : '—';
+    const romHtml = l.rom ? '<span style="font-weight:500">'+l.rom+'</span>'+(l.romEmail?'<br><span style="font-size:10px;color:var(--info)">'+l.romEmail+'</span>':'') : '—';
+    const rsfHtml = rsf!==null ? '<span class="sf-badge">$'+rsf.toFixed(2)+'</span>' : '<span style="color:var(--muted);font-size:11px">—</span>';
+    const osfHtml = osf!==null ? '<span class="sf-badge opex">$'+osf.toFixed(2)+'</span>' : '<span style="color:var(--muted);font-size:11px">—</span>';
+    const expColor = ex!==null&&ex<90?'var(--danger)':ex!==null&&ex<180?'var(--warn)':'inherit';
+    const expVal = l.expiryDate==='Month to Month'?'MTM':fmtDate(l.expiryDate);
+    return '<tr>'
+      +(col('status')?'<td class="frozen col-status"><span class="status-dot dot-'+dotCls+'"></span></td>':'')
+      +(col('locNum')?'<td class="frozen col-num" style="white-space:nowrap">'+locNumHtml+'</td>':'')
+      +(col('location')?'<td class="frozen col-loc" style="font-weight:500;min-width:140px;white-space:nowrap">'+( l.location||'—')+'<br><span style="font-size:10px;color:var(--muted);font-weight:400">'+l.city+', '+l.state+'</span></td>':'')
+      +(col('address')?'<td style="font-size:11px;min-width:130px;max-width:170px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+(l.address||'—')+'</td>':'')
+      +(col('landlord')?'<td style="font-size:11px;min-width:110px;max-width:150px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+(l.landlord||'—')+'</td>':'')
+      +(col('sqft')?'<td style="font-family:var(--mono);white-space:nowrap">'+(l.sqft?l.sqft.toLocaleString():'—')+'</td>':'')
+      +(col('baseRent')?'<td style="font-family:var(--mono);white-space:nowrap">'+fmtMoney(l.baseRent)+'</td>':'')
+      +(col('cam')?'<td style="font-family:var(--mono);white-space:nowrap">'+(l.cam?fmtMoney(l.cam):'—')+'</td>':'')
+      +(col('rentSF')?'<td style="white-space:nowrap">'+rsfHtml+'</td>':'')
+      +(col('opexSF')?'<td style="white-space:nowrap">'+osfHtml+'</td>':'')
+      +(col('totalRent')?'<td style="font-family:var(--mono);white-space:nowrap;font-weight:500">'+fmtMoney(totalRent(l))+'</td>':'')
+      +(col('totalSF')?'<td style="white-space:nowrap">'+(totalSF(l)!==null?'<span class="sf-badge" style="background:var(--warn-light);color:var(--warn)">$'+totalSF(l).toFixed(2)+'</span>':'<span style="color:var(--muted);font-size:11px">—</span>')+'</td>':'')
+      +(col('expires')?'<td style="font-family:var(--mono);font-size:11px;white-space:nowrap;color:'+expColor+'">'+expVal+'</td>':'')
+      +(col('notifyBy')?'<td style="font-family:var(--mono);font-size:11px;white-space:nowrap">'+(l.notifyDate?fmtDate(l.notifyDate):'—')+'</td>':'')
+      +(col('rentInc')?'<td style="font-family:var(--mono);font-size:11px;white-space:nowrap">'+(l.rentIncDate?fmtDate(l.rentIncDate):'—')+'</td>':'')
+      +(col('newRent')?'<td style="font-family:var(--mono);font-size:11px;white-space:nowrap">'+(l.rentIncAmount?'$'+l.rentIncAmount:'—')+'</td>':'')
+      +(col('opexInc')?'<td style="font-family:var(--mono);font-size:11px;white-space:nowrap">'+(l.opexIncDate?fmtDate(l.opexIncDate):'—')+'</td>':'')
+      +(col('newOpex')?'<td style="font-family:var(--mono);font-size:11px;white-space:nowrap">'+(l.opexIncAmount?'$'+l.opexIncAmount:'—')+'</td>':'')
+      +(col('director')?'<td style="font-size:11px;min-width:100px;max-width:130px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+dirHtml+'</td>':'')
+      +(col('rom')?'<td style="font-size:11px;min-width:100px;max-width:130px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+romHtml+'</td>':'')
+      +(col('actions')?'<td><div class="row-actions"><button class="btn sm" onclick="openEditModal('+l.id+')">Edit</button><button class="btn sm" style="color:var(--danger)" onclick="deleteLease('+l.id+')">Del</button></div></td>':'')
+      +'</tr>';
+  }).join('')+'</tbody>';
+  if(!rows.length)el.innerHTML+='<tr><td colspan="21" class="empty">No leases match</td></tr>';
+}
+
+function renderAllAlerts(){
+  const el=document.getElementById('all-alerts-list');
+  const all=leases.flatMap(l=>getAlerts(l).map(a=>({...a,lease:l}))).sort((a,b)=>a.days-b.days);
+  if(!all.length){el.innerHTML='<div class="alerts-panel"><div class="empty">No active alerts — all clear!</div></div>';return;}
+  const byLease={};
+  all.forEach(a=>{const k=a.lease.id;if(!byLease[k])byLease[k]=[];byLease[k].push(a);});
+  el.innerHTML=Object.entries(byLease).map(([id,alerts])=>{
+    const l=alerts[0].lease;
+    return`<div class="alerts-panel" style="margin-bottom:12px">
+      <div class="alerts-header">
+        <h3>${l.location||l.city}, ${l.state} <span style="font-weight:400;color:var(--muted);font-size:11px">— ${l.address||''} — ${l.landlord||'No landlord on file'}</span></h3>
+        <button class="btn sm" onclick="openEditModal(${l.id})">Edit</button>
+      </div>
+      ${alerts.map(a=>`<div class="alert-row">
+        <span class="alert-pill pill-${a.type}">${a.label}</span>
+        <span>${a.type==='danger'?'Immediate action required':a.type==='warn'?'Action needed soon':'Plan ahead'}</span>
+        <span class="alert-date">${fmtDate(a.date)}</span>
+        <span class="alert-days ${a.days<=30?'days-red':a.days<=60?'days-warn':'days-ok'}">${a.days} days away</span>
+      </div>`).join('')}
+      ${l.notes?`<div style="padding:8px 16px;font-size:11px;color:var(--muted);border-top:1px solid var(--border)">Note: ${l.notes}</div>`:''}
+    </div>`;
+  }).join('');
+}
+
+function renderExpiryView(){
+  const yr=(document.getElementById('expiry-year')||{value:''}).value;
+  const groups={};
+  leases.forEach(l=>{
+    const key=l.expiryDate==='Month to Month'?'MTM':(l.expiryDate?l.expiryDate.substr(0,4):'Unknown');
+    if(yr&&key!==yr)return;
+    if(!groups[key])groups[key]=[];
+    groups[key].push(l);
+  });
+  const el=document.getElementById('expiry-content');
+  const sorted=Object.keys(groups).sort((a,b)=>a==='MTM'?1:b==='MTM'?-1:a.localeCompare(b));
+  if(!sorted.length){el.innerHTML='<div class="empty">No leases found</div>';return;}
+  el.innerHTML=sorted.map(y=>{
+    const rows=groups[y].sort((a,b)=>a.expiryDate==='Month to Month'?0:new Date(a.expiryDate)-new Date(b.expiryDate));
+    return`<div style="margin-bottom:20px">
+      <div style="font-size:13px;font-weight:600;color:var(--accent);padding:8px 0;border-bottom:1px solid var(--accent-light);margin-bottom:8px">${y==='MTM'?'Month-to-Month':y} — ${rows.length} location${rows.length!==1?'s':''}</div>
+      <div class="table-wrap"><table class="lease-table">
+        <thead><tr><th></th><th>Location</th><th>Address</th><th>Expires</th><th>Notify By</th><th>Base Rent</th><th>CAM</th><th>Rent Inc Date</th><th>Landlord</th><th>Notes</th><th></th></tr></thead>
+        <tbody>${rows.map(l=>{const s=getStatus(l);return`<tr>
+          <td><span class="status-dot dot-${s==='critical'?'red':s==='warning'?'warn':s==='mtm'?'gray':'green'}"></span></td>
+          <td style="font-weight:500">${l.location||'—'}<br><span style="font-size:10px;color:var(--muted);font-weight:400">${l.city}, ${l.state}</span></td>
+          <td style="font-size:11px;max-width:160px;overflow:hidden;text-overflow:ellipsis">${l.address||'—'}</td>
+          <td style="font-family:var(--mono);font-size:11px">${l.expiryDate==='Month to Month'?'MTM':fmtDate(l.expiryDate)}</td>
+          <td style="font-family:var(--mono);font-size:11px">${l.notifyDate?fmtDate(l.notifyDate):'—'}</td>
+          <td style="font-family:var(--mono)">${fmtMoney(l.baseRent)}</td>
+          <td style="font-family:var(--mono)">${l.cam?fmtMoney(l.cam):'—'}</td>
+          <td style="font-family:var(--mono);font-size:11px">${l.rentIncDate?fmtDate(l.rentIncDate)+(l.rentIncAmount?' → $'+l.rentIncAmount:''):'—'}</td>
+          <td style="font-size:11px;max-width:140px;overflow:hidden;text-overflow:ellipsis">${l.landlord||'—'}</td>
+          <td style="font-size:11px;max-width:180px;overflow:hidden;text-overflow:ellipsis;color:var(--muted)" title="${(l.notes||'').replace(/"/g,'&quot;')}">${l.notes||'—'}</td>
+          <td><button class="btn sm" onclick="openEditModal(${l.id})">Edit</button></td>
+        </tr>`;}).join('')}</tbody>
+      </table></div>
+    </div>`;
+  }).join('');
+}
+
+function renderNotifSettings(){
+  document.getElementById('notif-email').value=notifSettings.email||'';
+  document.getElementById('notif-review').value=notifSettings.reviewMonths;
+  document.getElementById('notif-pre').value=notifSettings.preDays;
+  const labs={leaseExpiry:{l:'Lease expiration alerts',s:'Alert as lease expiry approaches review window'},notifyLandlord:{l:'Notify landlord deadline',s:'Alert before landlord notification due date'},rentIncrease:{l:'Rent increase dates',s:'Alert before base rent increases'},renewal:{l:'Renewal notification dates',s:'Alert before renewal option deadlines'}};
+  document.getElementById('notif-toggles').innerHTML=Object.entries(labs).map(([k,v])=>`
+    <div class="notif-row">
+      <div><div class="notif-label">${v.l}</div><div class="notif-sub">${v.s}</div></div>
+      <label class="toggle"><input type="checkbox" ${notifSettings.triggers[k]?'checked':''} onchange="notifSettings.triggers['${k}']=this.checked"><span class="toggle-slider"></span></label>
+    </div>`).join('');
+}
+
+// ── ACTIONS ──────────────────────────────────────────────────────────────────
+function saveNotifSettings(){
+  notifSettings.email=document.getElementById('notif-email').value;
+  notifSettings.reviewMonths=parseInt(document.getElementById('notif-review').value)||6;
+  notifSettings.preDays=parseInt(document.getElementById('notif-pre').value)||90;
+  saveData(); renderAll();
+  const b=event.target; b.textContent='Saved!'; setTimeout(()=>b.textContent='Save settings',1800);
+}
+
+function sendAlertEmail(){
+  const email=notifSettings.email;
+  if(!email){alert('Please set your email address in Notification Settings first.');return;}
+  const all=leases.flatMap(l=>getAlerts(l).map(a=>({...a,lease:l}))).sort((a,b)=>a.days-b.days);
+  if(!all.length){alert('No active alerts to send!');return;}
+
+  // Build CC list from Director + ROM emails on affected leases
+  const ccEmails=[];
+  all.forEach(a=>{
+    if(a.lease.directorEmail&&!ccEmails.includes(a.lease.directorEmail))ccEmails.push(a.lease.directorEmail);
+    if(a.lease.romEmail&&!ccEmails.includes(a.lease.romEmail))ccEmails.push(a.lease.romEmail);
+  });
+
+  // Group alerts by lease for cleaner email
+  const byLease={};
+  all.forEach(a=>{const k=a.lease.id;if(!byLease[k])byLease[k]=[];byLease[k].push(a);});
+
+  const subj=`Lease Manager — ${all.length} Action Item(s) — ${new Date().toLocaleDateString()}`;
+
+  let body='LEASE MANAGER — ACTION REQUIRED\n'+'='.repeat(65)+'\n';
+  body+='Generated: '+new Date().toLocaleString()+'\n';
+  body+='Total alerts: '+all.length+'\n';
+  body+='='.repeat(65)+'\n\n';
+
+  Object.values(byLease).forEach(alerts=>{
+    const l=alerts[0].lease;
+    body+='LOCATION: '+(l.location||l.city)+', '+l.state+(l.locNum?' (WR #'+l.locNum+')':'')+'\n';
+    body+='-'.repeat(55)+'\n';
+    body+='Address:         '+(l.address||'N/A')+', '+(l.city||'')+', '+(l.state||'')+' '+(l.zip||'')+'\n';
+    body+='Landlord:        '+(l.landlord||'N/A')+'\n';
+    if(l.director) body+='Director:        '+l.director+(l.directorEmail?' <'+l.directorEmail+'>':'')+'\n';
+    if(l.rom)      body+='ROM:             '+l.rom+(l.romEmail?' <'+l.romEmail+'>':'')+'\n';
+    body+='\n';
+    body+='--- LEASE DETAILS ---\n';
+    if(l.sqft)       body+='Square Footage:  '+Number(l.sqft).toLocaleString()+' SF\n';
+    if(l.baseRent)   body+='Base Rent:       $'+Number(l.baseRent).toLocaleString()+'/mo';
+    if(l.sqft&&l.baseRent) body+='  ($'+(l.baseRent*12/l.sqft).toFixed(2)+'/SF/yr)';
+    if(l.baseRent)   body+='\n';
+    if(l.cam)        body+='CAM / OpEx:      $'+Number(l.cam).toLocaleString()+'/mo';
+    if(l.sqft&&l.cam) body+='  ($'+(l.cam*12/l.sqft).toFixed(2)+'/SF/yr)';
+    if(l.cam)        body+='\n';
+    if(l.expiryDate) body+='Lease Expires:   '+fmtDate(l.expiryDate)+'\n';
+    if(l.notifyDate) body+='Notify Landlord: '+fmtDate(l.notifyDate)+'\n';
+    if(l.renewal)    body+='Renewal Option:  '+l.renewal+'\n';
+    if(l.rentIncDate)body+='Rent Increase:   '+fmtDate(l.rentIncDate)+(l.rentIncAmount?' → $'+l.rentIncAmount+'/mo':'')+'\n';
+    if(l.notes)      body+='Notes:           '+l.notes+'\n';
+    body+='\n--- ALERTS ---\n';
+    alerts.forEach(a=>{
+      const urgency=a.type==='danger'?'*** URGENT ***':a.type==='warn'?'** ACTION NEEDED **':'* UPCOMING *';
+      body+=urgency+' '+a.label.toUpperCase()+': '+fmtDate(a.date)+' ('+a.days+' days away)\n';
+    });
+    body+='\n'+'='.repeat(65)+'\n\n';
+  });
+
+  body+='This notification was generated by Lease Manager.\n';
+  body+='Reply to this email or log into Lease Manager to update records.';
+
+  const ccParam=ccEmails.length?'&cc='+encodeURIComponent(ccEmails.join(',')):'';
+  window.location.href=`mailto:${email}?subject=${encodeURIComponent(subj)}${ccParam}&body=${encodeURIComponent(body)}`;
+}
+
+function exportCSV(){
+  const fields=['id','location','address','city','state','zip','landlord','sqft','baseRent','cam','expiryDate','notifyDate','rentIncDate','rentIncAmount','renewalNotifyDate','renewal','notes'];
+  const rows=leases.map(l=>fields.map(f=>JSON.stringify(l[f]===null?'':l[f])).join(','));
+  const csv=fields.join(',')+'\n'+rows.join('\n');
+  const a=document.createElement('a');
+  a.href='data:text/csv;charset=utf-8,'+encodeURIComponent(csv);
+  a.download='leases_export_'+new Date().toISOString().split('T')[0]+'.csv';
+  a.click();
+}
+
+function openAddModal(){
+  editingId=null;
+  document.getElementById('modal-title').textContent='Add New Lease';
+  ['f-location','f-address','f-city','f-state','f-zip','f-sqft','f-base-rent','f-cam','f-rent-inc','f-rent-inc-amt','f-opex-inc','f-opex-inc-amt','f-expiry','f-notify','f-renewal','f-renewal-notify','f-landlord','f-director','f-director-email','f-rom','f-rom-email','f-notes'].forEach(id=>{
+    const e=document.getElementById(id); if(e)e.value='';
+  });
+  populateStaffDropdowns();
+  document.getElementById('modal').classList.add('open');
+}
+
+function openEditModal(id){
+  editingId=id;
+  const l=leases.find(x=>x.id===id); if(!l)return;
+  document.getElementById('modal-title').textContent='Edit — '+l.location;
+  const map={'f-location':'location','f-address':'address','f-city':'city','f-state':'state','f-zip':'zip','f-sqft':'sqft','f-base-rent':'baseRent','f-cam':'cam','f-rent-inc':'rentIncDate','f-rent-inc-amt':'rentIncAmount','f-opex-inc':'opexIncDate','f-opex-inc-amt':'opexIncAmount','f-expiry':'expiryDate','f-notify':'notifyDate','f-renewal':'renewal','f-renewal-notify':'renewalNotifyDate','f-landlord':'landlord','f-director':'director','f-director-email':'directorEmail','f-rom':'rom','f-rom-email':'romEmail','f-notes':'notes'};
+  Object.entries(map).forEach(([fid,k])=>{
+    const e=document.getElementById(fid); if(!e)return;
+    e.value=(l[k]===null||l[k]==='Month to Month')?'':l[k];
+  });
+  populateStaffDropdowns();
+  document.getElementById('modal').classList.add('open');
+}
+
+function closeModal(){ document.getElementById('modal').classList.remove('open'); }
+
+function saveLease(){
+  const g=id=>document.getElementById(id)?.value||'';
+  const obj={
+    locNum:g('f-locnum'),
+    location:g('f-location'),address:g('f-address'),city:g('f-city'),state:g('f-state'),zip:g('f-zip'),
+    sqft:parseFloat(g('f-sqft'))||0, baseRent:parseFloat(g('f-base-rent'))||0, cam:parseFloat(g('f-cam'))||0,
+    rentIncDate:g('f-rent-inc')||null, rentIncAmount:g('f-rent-inc-amt'),
+    opexIncDate:g('f-opex-inc')||null, opexIncAmount:g('f-opex-inc-amt'),
+    expiryDate:g('f-expiry')||null, notifyDate:g('f-notify')||null,
+    renewal:g('f-renewal'), renewalNotifyDate:g('f-renewal-notify')||null,
+    landlord:g('f-landlord'),
+    director:g('f-director'), directorEmail:g('f-director-email'),
+    rom:g('f-rom'), romEmail:g('f-rom-email'),
+    notes:g('f-notes'),
+  };
+  if(editingId){ const i=leases.findIndex(x=>x.id===editingId); if(i>=0)leases[i]={...leases[i],...obj}; }
+  else{ obj.id=Date.now(); leases.push(obj); }
+  const saved = editingId ? leases.find(x=>x.id===editingId) : leases[leases.length-1];
+  saveData();
+  spSaveLease(saved).then(()=>{ renderAll(); updateEditControls(); });
+  closeModal();
+}
+
+async function deleteLease(id){
+  if(!confirm("Delete this lease record?"))return;
+  const l=leases.find(x=>x.id===id);
+  await spDeleteLease(l);
+  leases=leases.filter(x=>x.id!==id); saveData(); renderAll();
+}
+
+function showView(name, el){
+  ['dashboard','leases','alerts','expiring','staff','notifications','company'].forEach(v=>{
+    document.getElementById('view-'+v).classList.toggle('hidden',v!==name);
+  });
+  document.querySelectorAll('.nav-item').forEach(n=>n.classList.remove('active'));
+  if(el)el.classList.add('active');
+  if(name==='notifications')renderNotifSettings();
+  setTimeout(initScrollMirrors,50);
+  if(name==='staff'){renderStaffView();}
+  if(name==='alerts')renderAllAlerts();
+  if(name==='leases')renderLeaseTable();
+  if(name==='expiring')renderExpiryView();
+}
+
+function renderAll(){
+  renderStats(); renderDashboardAlerts(); renderRecentTable();
+  const lv=document.getElementById('view-leases'); if(lv&&!lv.classList.contains('hidden'))renderLeaseTable();
+  const av=document.getElementById('view-alerts'); if(av&&!av.classList.contains('hidden'))renderAllAlerts();
+  const ev=document.getElementById('view-expiring'); if(ev&&!ev.classList.contains('hidden'))renderExpiryView();
+}
+
+
+// ── STAFF ROSTER ──────────────────────────────────────────────────────────────
+let staff = [];
+let editingStaffId = null;
+
+function loadStaff(){
+  try{ const d=localStorage.getItem('lm_staff'); if(d) staff=JSON.parse(d); }catch(e){}
+}
+function saveStaff(){
+  try{ localStorage.setItem('lm_staff', JSON.stringify(staff)); }catch(e){}
+}
+
+function renderStaffView(){
+  const directors = staff.filter(s=>s.role==='Director').sort((a,b)=>a.name.localeCompare(b.name));
+  const roms = staff.filter(s=>s.role==='ROM').sort((a,b)=>a.name.localeCompare(b.name));
+
+  function staffCard(s){
+    const initials = s.name.split(' ').map(w=>w[0]).join('').toUpperCase().slice(0,2);
+    const role = s.role.toLowerCase();
+    const leaseCount = leases.filter(l=>l.director===s.name||l.rom===s.name).length;
+    return `<div class="staff-card">
+      <div class="staff-avatar ${role}">${initials}</div>
+      <div class="staff-info">
+        <div class="staff-name">${s.name}</div>
+        <div class="staff-email">${s.email||'No email'}</div>
+        ${s.phone?`<div class="staff-phone">${s.phone}</div>`:''}
+        <div class="staff-leases">${leaseCount} lease${leaseCount!==1?'s':''} assigned</div>
+      </div>
+      <div class="row-actions">
+        <button class="btn sm" onclick="openStaffModal(${s.id})">Edit</button>
+        <button class="btn sm" style="color:var(--danger)" onclick="deleteStaff(${s.id})">Del</button>
+      </div>
+    </div>`;
+  }
+
+  const dEl = document.getElementById('directors-list');
+  const rEl = document.getElementById('roms-list');
+  if(dEl) dEl.innerHTML = directors.length ? directors.map(staffCard).join('') : '<div class="empty" style="padding:20px">No directors added yet</div>';
+  if(rEl) rEl.innerHTML = roms.length ? roms.map(staffCard).join('') : '<div class="empty" style="padding:20px">No ROMs added yet</div>';
+}
+
+function populateStaffDropdowns(){
+  const directors = staff.filter(s=>s.role==='Director').sort((a,b)=>a.name.localeCompare(b.name));
+  const roms = staff.filter(s=>s.role==='ROM').sort((a,b)=>a.name.localeCompare(b.name));
+  const dSel = document.getElementById('f-director-select');
+  const rSel = document.getElementById('f-rom-select');
+  if(dSel){
+    const cur = document.getElementById('f-director')?.value||'';
+    dSel.innerHTML = '<option value="">— Select Director —</option>' +
+      directors.map(s=>`<option value="${s.id}" ${s.name===cur?'selected':''}>${s.name} — ${s.email||'no email'}</option>`).join('') +
+      '<option value="__manual__">✏ Enter manually</option>';
+  }
+  if(rSel){
+    const cur = document.getElementById('f-rom')?.value||'';
+    rSel.innerHTML = '<option value="">— Select ROM —</option>' +
+      roms.map(s=>`<option value="${s.id}" ${s.name===cur?'selected':''}>${s.name} — ${s.email||'no email'}</option>`).join('') +
+      '<option value="__manual__">✏ Enter manually</option>';
+  }
+}
+
+function applyStaffSelect(role){
+  const selId = role==='director' ? 'f-director-select' : 'f-rom-select';
+  const nameId = role==='director' ? 'f-director' : 'f-rom';
+  const emailId = role==='director' ? 'f-director-email' : 'f-rom-email';
+  const val = document.getElementById(selId)?.value;
+  if(!val||val==='__manual__'){
+    document.getElementById(nameId).value='';
+    document.getElementById(emailId).value='';
+    return;
+  }
+  const person = staff.find(s=>s.id===parseInt(val));
+  if(person){
+    document.getElementById(nameId).value = person.name;
+    document.getElementById(emailId).value = person.email||'';
+  }
+}
+
+function openStaffModal(id){
+  editingStaffId = id||null;
+  document.getElementById('staff-modal-title').textContent = id ? 'Edit Staff Member' : 'Add Staff Member';
+  if(id){
+    const s = staff.find(x=>x.id===id);
+    if(s){
+      document.getElementById('sf-role').value = s.role;
+      document.getElementById('sf-name').value = s.name;
+      document.getElementById('sf-email').value = s.email||'';
+      document.getElementById('sf-phone').value = s.phone||'';
+    }
+  } else {
+    ['sf-name','sf-email','sf-phone'].forEach(i=>{const e=document.getElementById(i);if(e)e.value='';});
+    document.getElementById('sf-role').value='Director';
+  }
+  document.getElementById('staff-modal').classList.add('open');
+}
+
+function closeStaffModal(){
+  document.getElementById('staff-modal').classList.remove('open');
+}
+
+function saveStaffMember(){
+  const obj = {
+    role: document.getElementById('sf-role').value,
+    name: document.getElementById('sf-name').value.trim(),
+    email: document.getElementById('sf-email').value.trim(),
+    phone: document.getElementById('sf-phone').value.trim(),
+  };
+  if(!obj.name){ alert('Please enter a name.'); return; }
+  if(editingStaffId){
+    const i = staff.findIndex(x=>x.id===editingStaffId);
+    if(i>=0) staff[i]={...staff[i],...obj};
+  } else {
+    obj.id = Date.now();
+    staff.push(obj);
+  }
+  saveStaff();
+  closeStaffModal();
+  renderStaffView();
+  populateStaffDropdowns();
+}
+
+function deleteStaff(id){
+  const s = staff.find(x=>x.id===id);
+  if(!s) return;
+  const assigned = leases.filter(l=>l.director===s.name||l.rom===s.name).length;
+  if(assigned && !confirm(`${s.name} is assigned to ${assigned} lease(s). Delete anyway?`)) return;
+  staff = staff.filter(x=>x.id!==id);
+  saveStaff();
+  renderStaffView();
+}
+
+
+let currentCompany = 'spig';
+
+function getCompany(l){
+  const n = (l.locNum||'').trim();
+  if(n.startsWith('PFT')) return 'pft';
+  if(n.startsWith('ERX')) return 'erx';
+  // Also catch by name for unassigned PFT/ERX locations
+  const loc = (l.location||'').toLowerCase();
+  if(loc.includes('pft')) return 'pft';
+  if(loc.includes('erx')) return 'erx';
+  return 'spig';
+}
+
+function showCompany(company, el){
+  currentCompany = company;
+  showView('company', el);
+  const titles = {spig:'SPIG Leases', pft:'PF&T Leases', erx:'ERX Leases'};
+  document.getElementById('company-view-title').textContent = titles[company];
+  renderCompanyTable();
+}
+
+function renderCompanyTable(){
+  const el = document.getElementById('company-table');
+  if(!el) return;
+  const search = (document.getElementById('company-search-input')||{value:''}).value.toLowerCase();
+  const fs = (document.getElementById('company-filter-status')||{value:''}).value;
+
+  let rows = leases.filter(l=>{
+    if(getCompany(l) !== currentCompany) return false;
+    if(search && !`${l.locNum||''} ${l.location} ${l.address} ${l.city} ${l.state} ${l.landlord} ${l.director||''} ${l.rom||''}`.toLowerCase().includes(search)) return false;
+    if(fs && getStatus(l) !== fs) return false;
+    return true;
+  });
+  rows = sortLeases(rows);
+
+  el.innerHTML = '<thead><tr>'
+    +'<th class="sortable frozen col-status" onclick="setSortColC(\'status\')"></th>'
+    +'<th class="sortable frozen col-num" onclick="setSortColC(\'locNum\')">#</th>'
+    +'<th class="sortable frozen col-loc" onclick="setSortColC(\'location\')">Location</th>'
+    +thSortC('address','Address')
+    +thSortC('landlord','Landlord')
+    +thSortC('sqft','Sq Ft')
+    +thSortC('baseRent','Base Rent')
+    +thSortC('cam','CAM/OpEx')
+    +thSortC('rentSF','Rent $/SF')
+    +thSortC('opexSF','OpEx $/SF')
+    +thSortC('totalRent','Total Rent')
+    +thSortC('totalSF','Total $/SF')
+    +thSortC('expiryDate','Expires')
+    +thSortC('notifyDate','Notify By')
+    +thSortC('rentIncDate','Base Rent Inc')
+    +'<th>New Base Rent</th>'
+    +thSortC('opexIncDate','OpEx Inc')
+    +'<th>New OpEx</th>'
+    +thSortC('director','Director')
+    +thSortC('rom','ROM')
+    +'<th></th></tr></thead><tbody>' +
+  rows.map(l=>{
+    const s=getStatus(l),ex=getDays(l.expiryDate),rsf=rentSF(l),osf=opexSF(l);
+    const dotCls = s==='critical'?'red':s==='warning'?'warn':s==='mtm'?'gray':'green';
+    const locNumHtml = l.locNum ? '<span class="locnum-badge">'+l.locNum+'</span>' : '<span style="color:var(--muted);font-size:11px">—</span>';
+    const dirHtml = l.director ? '<span style="font-weight:500">'+l.director+'</span>'+(l.directorEmail?'<br><span style="font-size:10px;color:var(--info)">'+l.directorEmail+'</span>':'') : '—';
+    const romHtml = l.rom ? '<span style="font-weight:500">'+l.rom+'</span>'+(l.romEmail?'<br><span style="font-size:10px;color:var(--info)">'+l.romEmail+'</span>':'') : '—';
+    const rsfHtml = rsf!==null ? '<span class="sf-badge">$'+rsf.toFixed(2)+'</span>' : '<span style="color:var(--muted);font-size:11px">—</span>';
+    const osfHtml = osf!==null ? '<span class="sf-badge opex">$'+osf.toFixed(2)+'</span>' : '<span style="color:var(--muted);font-size:11px">—</span>';
+    const expColor = ex!==null&&ex<90?'var(--danger)':ex!==null&&ex<180?'var(--warn)':'inherit';
+    const expVal = l.expiryDate==='Month to Month'?'MTM':fmtDate(l.expiryDate);
+    return '<tr>'
+      +'<td class="frozen col-status"><span class="status-dot dot-'+dotCls+'"></span></td>'
+      +'<td class="frozen col-num" style="white-space:nowrap">'+locNumHtml+'</td>'
+      +'<td class="frozen col-loc" style="font-weight:500;min-width:110px;white-space:nowrap">'+(l.location||'—')+'<br><span style="font-size:10px;color:var(--muted);font-weight:400">'+l.city+', '+l.state+'</span></td>'
+      +'<td style="font-size:11px;min-width:130px;max-width:170px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+(l.address||'—')+'</td>'
+      +'<td style="font-size:11px;min-width:110px;max-width:150px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+(l.landlord||'—')+'</td>'
+      +'<td style="font-family:var(--mono);white-space:nowrap">'+(l.sqft?l.sqft.toLocaleString():'—')+'</td>'
+      +'<td style="font-family:var(--mono);white-space:nowrap">'+fmtMoney(l.baseRent)+'</td>'
+      +'<td style="font-family:var(--mono);white-space:nowrap">'+(l.cam?fmtMoney(l.cam):'—')+'</td>'
+      +'<td style="white-space:nowrap">'+rsfHtml+'</td>'
+      +'<td style="white-space:nowrap">'+osfHtml+'</td>'
+      +'<td style="font-family:var(--mono);white-space:nowrap;font-weight:500">'+fmtMoney(totalRent(l))+'</td>'
+      +'<td style="white-space:nowrap">'+(totalSF(l)!==null?'<span class="sf-badge" style="background:var(--warn-light);color:var(--warn)">$'+totalSF(l).toFixed(2)+'</span>':'<span style="color:var(--muted);font-size:11px">—</span>')+'</td>'
+      +'<td style="font-family:var(--mono);font-size:11px;white-space:nowrap;color:'+expColor+'">'+expVal+'</td>'
+      +'<td style="font-family:var(--mono);font-size:11px;white-space:nowrap">'+(l.notifyDate?fmtDate(l.notifyDate):'—')+'</td>'
+      +'<td style="font-family:var(--mono);font-size:11px;white-space:nowrap">'+(l.rentIncDate?fmtDate(l.rentIncDate):'—')+'</td>'
+      +'<td style="font-family:var(--mono);font-size:11px;white-space:nowrap">'+(l.rentIncAmount?'$'+l.rentIncAmount:'—')+'</td>'
+      +'<td style="font-family:var(--mono);font-size:11px;white-space:nowrap">'+(l.opexIncDate?fmtDate(l.opexIncDate):'—')+'</td>'
+      +'<td style="font-family:var(--mono);font-size:11px;white-space:nowrap">'+(l.opexIncAmount?'$'+l.opexIncAmount:'—')+'</td>'
+      +'<td style="font-size:11px;min-width:100px;max-width:130px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+dirHtml+'</td>'
+      +'<td style="font-size:11px;min-width:100px;max-width:130px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+romHtml+'</td>'
+      +'<td><div class="row-actions"><button class="btn sm" onclick="openEditModal('+l.id+')">Edit</button><button class="btn sm" style="color:var(--danger)" onclick="deleteLease('+l.id+')">Del</button></div></td>'
+      +'</tr>';
+  }).join('') + '</tbody>';
+  if(!rows.length) el.innerHTML += '<tr><td colspan="21" class="empty">No leases found for this company</td></tr>';
+}
+
+function toggleSidebar(){
+  const sb = document.querySelector('.sidebar');
+  const btn = document.getElementById('sidebar-toggle-btn');
+  const tog = document.querySelector('.sidebar-toggle');
+  sb.classList.toggle('collapsed');
+  const collapsed = sb.classList.contains('collapsed');
+  btn.textContent = collapsed ? '▶' : '◀';
+  tog.style.width = collapsed ? '40px' : '160px';
+}
+
+
+function initScrollMirrors(){
+  document.querySelectorAll('.table-wrap').forEach(wrap => {
+    const mirror = wrap.previousElementSibling;
+    if(!mirror || !mirror.classList.contains('scroll-mirror-wrap')) return;
+    const inner = mirror.querySelector('.scroll-mirror-inner');
+    
+    function syncWidth(){
+      inner.style.width = wrap.scrollWidth + 'px';
+    }
+    syncWidth();
+    
+    let syncing = false;
+    mirror.addEventListener('scroll', () => {
+      if(syncing) return;
+      syncing = true;
+      wrap.scrollLeft = mirror.scrollLeft;
+      syncing = false;
+    });
+    wrap.addEventListener('scroll', () => {
+      if(syncing) return;
+      syncing = true;
+      mirror.scrollLeft = wrap.scrollLeft;
+      syncing = false;
+    });
+
+    // Re-sync width when table content changes
+    new MutationObserver(syncWidth).observe(wrap, {childList:true, subtree:true});
+  });
+}
+
+loadColPrefs();
+msalApp.handleRedirectPromise().catch(e=>console.error(e));
+loadColPrefs();
+loadData();
+loadStaff();
+setTimeout(initScrollMirrors, 100);
+</script>
+
+<script>
+// Patch locNum into seed data
+const LOC_NUMS = {"1":"52","2":"43","3":"7","4":"75","5":"21","6":"69","7":"50","8":"70","9":"","10":"39","11":"3","12":"11","13":"8","14":"","15":"30","16":"46","17":"PFT-R","18":"14","19":"","20":"47","21":"15","22":"25","23":"","24":"32","25":"73","26":"71","27":"76","28":"34","29":"","30":"68","31":"37","32":"48","33":"PFT-T","34":"","35":"2","36":"6","37":"","38":"5","39":"77","40":"44","41":"41","42":"18","43":"","44":"","45":"PFT-J","46":"20.1","47":"PFT-P","48":"72","49":"","50":"40","51":"9","52":"45","53":"1","54":"ERX-B","55":"23","56":"54","57":"67","58":"64","59":"31","60":"57","61":"74","62":"56","63":"49","64":"10","65":"19","66":"51","67":"78","68":"33","69":"","70":"","71":"","72":"ERX-G"};
+(function patchLocNums(){
+  const stored = localStorage.getItem('lm_leases_v5');
+  if(stored){
+    try{
+      const arr = JSON.parse(stored);
+      arr.forEach(l => { if(LOC_NUMS[String(l.id)] !== undefined && !l.locNum) l.locNum = LOC_NUMS[String(l.id)]; });
+      localStorage.setItem('lm_leases_v5', JSON.stringify(arr));
+    }catch(e){}
+  }
+})();
+</script>
+
+<!-- STAFF MODAL -->
+<div class="modal-backdrop" id="staff-modal" onclick="if(event.target===this)closeStaffModal()">
+<div class="modal" style="width:480px">
+  <div class="modal-header">
+    <span class="modal-title" id="staff-modal-title">Add Staff Member</span>
+    <button class="modal-close" onclick="closeStaffModal()">×</button>
+  </div>
+  <div class="modal-body">
+    <div class="form-grid">
+      <div class="form-group"><label class="form-label">Role</label>
+        <select class="form-input" id="sf-role">
+          <option value="Director">Director</option>
+          <option value="ROM">ROM</option>
+        </select>
+      </div>
+      <div class="form-group"><label class="form-label">Full Name</label>
+        <input class="form-input" id="sf-name" placeholder="e.g. Jane Smith">
+      </div>
+      <div class="form-group full"><label class="form-label">Email Address</label>
+        <input class="form-input" type="email" id="sf-email" placeholder="jane@company.com">
+      </div>
+      <div class="form-group full"><label class="form-label">Phone (optional)</label>
+        <input class="form-input" id="sf-phone" placeholder="555-555-5555">
+      </div>
+    </div>
+  </div>
+  <div class="modal-footer">
+    <button class="btn" onclick="closeStaffModal()">Cancel</button>
+    <button class="btn primary" onclick="saveStaffMember()">Save</button>
+  </div>
+</div>
+</div>
+
+</body>
+</html>

@@ -564,11 +564,11 @@ function leaseToSP(l) {
     "Title": l.location||"", "Location": l.location||"", "Address": l.address||"",
     "City": l.city||"", "State": l.state||"", "Zip": l.zip||"", "LocNum": l.locNum||"",
     "SqFt": l.sqft||null, "BaseRent": l.baseRent||null, "CAM": l.cam||null,
-    "ExpiryDate": (l.expiryDate&&l.expiryDate!=="Month to Month")?l.expiryDate+"T00:00:00Z":null,
-    "NotifyDate": l.notifyDate?l.notifyDate+"T00:00:00Z":null,
+    "ExpiryDate": (l.expiryDate&&l.expiryDate!=="Month to Month")?l.expiryDate+"T12:00:00Z":null,
+    "NotifyDate": l.notifyDate?l.notifyDate+"T12:00:00Z":null,
     "Landlord": l.landlord||"", "Renewal": l.renewal||"",
-    "RentIncDate": l.rentIncDate?l.rentIncDate+"T00:00:00Z":null, "RentIncAmount": l.rentIncAmount||"",
-    "OpexIncDate": l.opexIncDate?l.opexIncDate+"T00:00:00Z":null, "OpexIncAmount": l.opexIncAmount||"",
+    "RentIncDate": l.rentIncDate?l.rentIncDate+"T12:00:00Z":null, "RentIncAmount": l.rentIncAmount||"",
+    "OpexIncDate": l.opexIncDate?l.opexIncDate+"T12:00:00Z":null, "OpexIncAmount": l.opexIncAmount||"",
     "Director": l.director||"", "DirectorEmail": l.directorEmail||"",
     "ROM": l.rom||"", "ROMEmail": l.romEmail||"",
     "Notes": l.notes||"", "Company": getCompany(l)
@@ -1388,20 +1388,7 @@ loadColPrefs();
 setTimeout(initScrollMirrors, 100);
 </script>
 
-<script>
-// Patch locNum into seed data
-const LOC_NUMS = {"1":"52","2":"43","3":"7","4":"75","5":"21","6":"69","7":"50","8":"70","9":"","10":"39","11":"3","12":"11","13":"8","14":"","15":"30","16":"46","17":"PFT-R","18":"14","19":"","20":"47","21":"15","22":"25","23":"","24":"32","25":"73","26":"71","27":"76","28":"34","29":"","30":"68","31":"37","32":"48","33":"PFT-T","34":"","35":"2","36":"6","37":"","38":"5","39":"77","40":"44","41":"41","42":"18","43":"","44":"","45":"PFT-J","46":"20.1","47":"PFT-P","48":"72","49":"","50":"40","51":"9","52":"45","53":"1","54":"ERX-B","55":"23","56":"54","57":"67","58":"64","59":"31","60":"57","61":"74","62":"56","63":"49","64":"10","65":"19","66":"51","67":"78","68":"33","69":"","70":"","71":"","72":"ERX-G"};
-(function patchLocNums(){
-  const stored = localStorage.getItem('lm_leases_v5');
-  if(stored){
-    try{
-      const arr = JSON.parse(stored);
-      arr.forEach(l => { if(LOC_NUMS[String(l.id)] !== undefined && !l.locNum) l.locNum = LOC_NUMS[String(l.id)]; });
-      localStorage.setItem('lm_leases_v5', JSON.stringify(arr));
-    }catch(e){}
-  }
-})();
-</script>
+
 
 <!-- STAFF MODAL -->
 <div class="modal-backdrop" id="staff-modal" onclick="if(event.target===this)closeStaffModal()">

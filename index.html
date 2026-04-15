@@ -1025,7 +1025,7 @@ function renderLeaseTable(){
     const osfHtml = osf!==null ? '<span class="sf-badge opex">$'+osf.toFixed(2)+'</span>' : '<span style="color:var(--muted);font-size:11px">—</span>';
     const expColor = ex!==null&&ex<90?'var(--danger)':ex!==null&&ex<180?'var(--warn)':'inherit';
     const expVal = l.expiryDate==='Month to Month'?'MTM':fmtDate(l.expiryDate);
-    return '<tr>'
+    return '<tr ondblclick="openEditModal('+l.id+')" style="cursor:pointer">'
       +(col('status')?'<td class="frozen col-status"><span class="status-dot dot-'+dotCls+'"></span></td>':'')
       +(col('locNum')?'<td class="frozen col-num" style="white-space:nowrap">'+locNumHtml+'</td>':'')
       +(col('location')?'<td class="frozen col-loc" style="font-weight:500;min-width:140px;white-space:nowrap">'+( l.location||'—')+'<br><span style="font-size:10px;color:var(--muted);font-weight:400">'+l.city+', '+l.state+'</span></td>':'')
@@ -1496,7 +1496,7 @@ function renderCompanyTable(){
     const osfHtml = osf!==null ? '<span class="sf-badge opex">$'+osf.toFixed(2)+'</span>' : '<span style="color:var(--muted);font-size:11px">—</span>';
     const expColor = ex!==null&&ex<90?'var(--danger)':ex!==null&&ex<180?'var(--warn)':'inherit';
     const expVal = l.expiryDate==='Month to Month'?'MTM':fmtDate(l.expiryDate);
-    return '<tr>'
+    return '<tr ondblclick="openEditModal('+l.id+')" style="cursor:pointer">'
       +'<td class="frozen col-status"><span class="status-dot dot-'+dotCls+'"></span></td>'
       +'<td class="frozen col-num" style="white-space:nowrap">'+locNumHtml+'</td>'
       +'<td class="frozen col-loc" style="font-weight:500;min-width:110px;white-space:nowrap">'+(l.location||'—')+'<br><span style="font-size:10px;color:var(--muted);font-weight:400">'+l.city+', '+l.state+'</span></td>'

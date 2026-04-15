@@ -628,40 +628,6 @@ function spToLease(item) {
     rom:item.ROM||"", romEmail:item.ROMEmail||"", notes:item.Notes||"" };
 }
 
-async function migrateCamToDetail(){
-  // One-time migration: write existing CAM values into CAMDetail in SharePoint
-  try {
-    const token = await getToken();
-    const toMigrate = leases.filter(l => !l.camDetail && l.cam > 0);
-    if(toMigrate.length === 0) return;
-    console.log(`Migrating CAM to CAMDetail for ${toMigrate.length} leases...`);
-    for(const l of toMigrate){
-      const spId = l._spId || l.id;
-      if(!spId) continue;
-      const body = {
-        '__metadata': {'type':'SP.Data.Lease_x0020_ManagerListItem'},
-        'CAMDetail': l.cam
-      };
-      await fetch(SP_API+'('+spId+')',{
-        method:'POST', credentials:'include',
-        headers:{
-          'Accept':'application/json;odata=verbose',
-          'Content-Type':'application/json;odata=verbose',
-          'Authorization':'Bearer '+token,
-          'X-HTTP-Method':'MERGE',
-          'IF-MATCH':'*'
-        },
-        body:JSON.stringify(body)
-      });
-      // Update local lease object
-      l.camDetail = l.cam;
-    }
-    console.log('CAM migration complete!');
-  } catch(e) {
-    console.error('Migration error:', e);
-  }
-}
-
 async function loadData() {
   const sr = document.getElementById("stats-row");
   if(sr) sr.innerHTML = "<div style='grid-column:span 6;padding:24px;text-align:center;color:var(--muted)'>Signing in to Microsoft...</div>";
@@ -692,7 +658,6 @@ async function loadData() {
       leases = all.map(spToLease);
     }
     try{ const nk=["lm_notif","lm_notif_v2"]; for(const k of nk){const n=localStorage.getItem(k);if(n){Object.assign(notifSettings,JSON.parse(n));break;}} }catch(e){}
-    await migrateCamToDetail();
     renderAll();
   } catch(err) {
     console.error("SP error:",err);

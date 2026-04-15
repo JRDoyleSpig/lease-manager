@@ -468,7 +468,12 @@ body{font-family:var(--sans);background:var(--bg);color:var(--text);font-size:14
     </div>
     <div class="form-section">Lease Documents</div>
     <div id="lease-docs-list" style="display:flex;flex-direction:column;gap:8px;margin-bottom:8px"></div>
-    <button type="button" class="btn sm" onclick="addLeaseDoc()" style="align-self:flex-start">+ Add Document</button>
+    <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
+      <button type="button" class="btn sm primary" onclick="uploadLeaseDoc()" style="align-self:flex-start">⬆ Upload PDF</button>
+      <button type="button" class="btn sm" onclick="addLeaseDocLink()" style="align-self:flex-start">🔗 Paste Link</button>
+      <input type="file" id="lease-doc-file-input" accept=".pdf" style="display:none" onchange="handleLeaseDocFile(this)">
+      <span id="lease-doc-upload-status" style="font-size:11px;color:var(--muted)"></span>
+    </div>
     <div class="form-grid" style="display:none">
     </div>
     
@@ -546,13 +551,69 @@ function renderDocsList(){
   `).join('');
 }
 
-function addLeaseDoc(){
+function uploadLeaseDoc(){
+  document.getElementById('lease-doc-file-input').click();
+}
+
+function addLeaseDocLink(){
   const label = prompt('Document label (e.g. "Original Lease", "Renewal 1"):');
   if(!label) return;
   const url = prompt('Paste the SharePoint/OneDrive link to the PDF:');
   if(!url) return;
   currentDocs.push({label, url});
   renderDocsList();
+}
+
+async function handleLeaseDocFile(input){
+  const file = input.files[0];
+  if(!file) return;
+  const label = prompt('Document label (e.g. "Original Lease", "Renewal 1"):', file.name.replace(/\.pdf$/i,''));
+  if(!label){ input.value=''; return; }
+
+  const status = document.getElementById('lease-doc-upload-status');
+  status.textContent = 'Uploading...';
+  status.style.color = 'var(--muted)';
+
+  try {
+    const token = await getToken();
+    // Get the location name for the subfolder
+    const locationName = (document.getElementById('f-location')?.value || 'Unknown').replace(/[/\\:*?"<>|]/g,'_');
+    const SP_DRIVE = "https://serviceprosgroup.sharepoint.com/sites/PropertyManagement";
+    const folderPath = "Shared Documents/Lease Documents/" + locationName;
+
+    // Ensure folder exists
+    const folderUrl = SP_DRIVE + "/_api/web/folders";
+    await fetch(folderUrl, {
+      method:"POST",
+      headers:{"Accept":"application/json;odata=verbose","Content-Type":"application/json;odata=verbose","Authorization":"Bearer "+token},
+      body:JSON.stringify({"__metadata":{"type":"SP.Folder"},"ServerRelativeUrl":"/sites/PropertyManagement/Shared Documents/Lease Documents/"+locationName})
+    });
+
+    // Upload the file
+    const fileName = file.name.replace(/[#%&{}\\<>*?/$!\'":@+`|=]/g,'_');
+    const uploadUrl = SP_DRIVE + "/_api/web/GetFolderByServerRelativeUrl('/sites/PropertyManagement/"+folderPath+"')/Files/add(url='"+encodeURIComponent(fileName)+"',overwrite=true)";
+    const arrayBuffer = await file.arrayBuffer();
+    const uploadRes = await fetch(uploadUrl, {
+      method:"POST",
+      headers:{"Accept":"application/json;odata=verbose","Content-Type":"application/octet-stream","Authorization":"Bearer "+token},
+      body:arrayBuffer
+    });
+    if(!uploadRes.ok) throw new Error("Upload failed: "+uploadRes.status);
+    const uploadData = await uploadRes.json();
+    const serverPath = uploadData.d.ServerRelativeUrl;
+    const fileUrl = "https://serviceprosgroup.sharepoint.com" + serverPath;
+
+    currentDocs.push({label, url: fileUrl});
+    renderDocsList();
+    status.textContent = '✓ Uploaded';
+    status.style.color = 'var(--accent-mid)';
+    setTimeout(()=>status.textContent='', 3000);
+  } catch(e) {
+    console.error("Upload error:", e);
+    status.textContent = '✗ Upload failed: ' + e.message;
+    status.style.color = 'var(--danger)';
+  }
+  input.value = '';
 }
 
 function removeLeaseDoc(i){

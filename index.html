@@ -171,6 +171,14 @@ body{font-family:var(--sans);background:var(--bg);color:var(--text);font-size:14
 .col-picker-row{display:flex;align-items:center;gap:8px;padding:4px 0;font-size:12px;cursor:pointer;user-select:none}
 .col-picker-row input{cursor:pointer}
 .col-picker-actions{display:flex;gap:6px;padding-top:8px;border-top:1px solid var(--border);margin-top:6px}
+
+.doc-row{display:flex;gap:8px;align-items:center}
+.doc-row input{flex:1}
+.doc-btn{background:none;border:1px solid var(--border);border-radius:4px;padding:4px 8px;cursor:pointer;font-size:12px;color:var(--muted)}
+.doc-btn:hover{background:var(--surface2)}
+.docs-popup{position:absolute;background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:10px;box-shadow:0 4px 16px rgba(0,0,0,.12);z-index:50;min-width:220px;max-width:320px}
+.docs-popup a{display:block;padding:6px 8px;font-size:12px;color:var(--accent);text-decoration:none;border-radius:4px}
+.docs-popup a:hover{background:var(--surface2)}
 </style>
 <script src="https://cdn.jsdelivr.net/npm/@azure/msal-browser@2.38.3/lib/msal-browser.min.js" crossorigin="anonymous"></script>
 </head>
@@ -458,6 +466,16 @@ body{font-family:var(--sans);background:var(--bg);color:var(--text);font-size:14
       <div class="form-group"><label class="form-label">ROM Email</label><input class="form-input" type="email" id="f-rom-email" placeholder="Auto-filled"></div>
       <div class="form-group full"><label class="form-label">Notes</label><textarea class="form-input" id="f-notes" rows="3" style="resize:vertical"></textarea></div>
     </div>
+    <div class="form-section">Lease Documents</div>
+    <div id="lease-docs-list" style="display:flex;flex-direction:column;gap:8px;margin-bottom:8px"></div>
+    <button type="button" class="btn sm" onclick="addLeaseDoc()" style="align-self:flex-start">+ Add Document</button>
+    <div class="form-grid" style="display:none">
+    </div>
+    <div class="form-section">Lease Documents</div>
+    <div id="lease-docs-editor" style="display:flex;flex-direction:column;gap:8px"></div>
+    <button type="button" class="btn sm" style="margin-top:8px;align-self:flex-start" onclick="addLeaseDoc()">+ Add Document</button>
+    
+    </div>
   </div>
   <div class="modal-footer">
     <button class="btn" onclick="closeModal()">Cancel</button>
@@ -473,6 +491,7 @@ const SEED = [{"id":1,"location":"Buffalo","address":"3240 Clinton Street","city
 // ── STATE ────────────────────────────────────────────────────────────────────
 let leases = [];
 let editingId = null;
+let currentDocs = [];
 let sortCol = 'expiryDate', sortDir = 1;
 
 const ALL_COLS = [
@@ -508,6 +527,63 @@ function loadColPrefs(){
 }
 function saveColPrefs(){ try{localStorage.setItem('lm_cols',JSON.stringify(visibleCols));}catch(e){} }
 function col(id){ return visibleCols[id]!==false; }
+// ── LEASE DOCUMENTS ──────────────────────────────────────────────────────────
+
+function renderDocsList(){
+  const container = document.getElementById('lease-docs-list');
+  if(!container) return;
+  if(currentDocs.length === 0){
+    container.innerHTML = '<div style="font-size:12px;color:var(--muted)">No documents added yet.</div>';
+    return;
+  }
+  container.innerHTML = currentDocs.map((doc, i) => `
+    <div style="display:flex;gap:8px;align-items:center;background:var(--surface2);border:1px solid var(--border);border-radius:6px;padding:8px 10px">
+      <div style="flex:1;min-width:0">
+        <div style="font-size:12px;font-weight:500">${doc.label||'Untitled'}</div>
+        <div style="font-size:11px;color:var(--info);overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${doc.url||'No URL'}</div>
+      </div>
+      <a href="${doc.url}" target="_blank" class="btn sm" style="white-space:nowrap">Open</a>
+      <button class="btn sm" style="color:var(--danger)" onclick="removeLeaseDoc(${i})">Remove</button>
+    </div>
+  `).join('');
+}
+
+function addLeaseDoc(){
+  const label = prompt('Document label (e.g. "Original Lease", "Renewal 1"):');
+  if(!label) return;
+  const url = prompt('Paste the SharePoint/OneDrive link to the PDF:');
+  if(!url) return;
+  currentDocs.push({label, url});
+  renderDocsList();
+}
+
+function removeLeaseDoc(i){
+  if(!confirm('Remove this document?')) return;
+  currentDocs.splice(i, 1);
+  renderDocsList();
+}
+
+function openDocsMenu(id, btn){
+  // Close any existing menus
+  document.querySelectorAll('.docs-menu').forEach(m => m.remove());
+  const lease = leases.find(l => l.id === id);
+  if(!lease || !lease.leaseDocs || !lease.leaseDocs.length){
+    alert('No documents attached to this lease.');
+    return;
+  }
+  const menu = document.createElement('div');
+  menu.className = 'docs-menu';
+  menu.style.cssText = 'position:absolute;background:var(--surface);border:1px solid var(--border);border-radius:6px;padding:6px;z-index:200;box-shadow:0 4px 16px rgba(0,0,0,.12);min-width:200px';
+  menu.innerHTML = lease.leaseDocs.map(doc =>
+    `<a href="${doc.url}" target="_blank" style="display:block;padding:6px 10px;font-size:12px;color:var(--text);text-decoration:none;border-radius:4px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis" onmouseover="this.style.background='var(--surface2)'" onmouseout="this.style.background=''">${doc.label||'Document'}</a>`
+  ).join('');
+  const rect = btn.getBoundingClientRect();
+  menu.style.top = (rect.bottom + window.scrollY + 4) + 'px';
+  menu.style.left = (rect.left + window.scrollX) + 'px';
+  document.body.appendChild(menu);
+  setTimeout(() => document.addEventListener('click', () => menu.remove(), {once:true}), 100);
+}
+
 function updateCamTotal(){
   const tax   = parseFloat(document.getElementById('f-prop-tax')?.value)||0;
   const ins   = parseFloat(document.getElementById('f-prop-insurance')?.value)||0;
@@ -517,6 +593,27 @@ function updateCamTotal(){
   const total = tax + ins + cam + util + other;
   const el = document.getElementById('f-cam');
   if(el) el.value = total > 0 ? total.toFixed(2) : '';
+}
+
+
+
+
+
+function showLeaseDocs(id, btn){
+  // Remove any existing popup
+  document.querySelectorAll('.docs-popup').forEach(p=>p.remove());
+  const l = leases.find(x=>x.id===id);
+  if(!l||!l.leaseDocs||!l.leaseDocs.length) return;
+  const popup = document.createElement('div');
+  popup.className = 'docs-popup';
+  popup.innerHTML = '<div style="font-size:11px;font-weight:600;color:var(--muted);margin-bottom:6px;text-transform:uppercase">Lease Documents</div>' +
+    l.leaseDocs.map(d=>'<a href="'+(d.url||'#')+'" target="_blank">'+(d.label||'Document')+'</a>').join('');
+  btn.style.position = 'relative';
+  btn.appendChild(popup);
+  // Close on outside click
+  setTimeout(()=>document.addEventListener('click', function h(e){
+    if(!popup.contains(e.target)){popup.remove();document.removeEventListener('click',h);}
+  }), 10);
 }
 
 function toggleColPicker(){
@@ -598,7 +695,8 @@ function leaseToSP(l) {
     "PropInsurance": l.propInsurance||null,
     "CAMDetail":     l.camDetail||null,
     "Utilities":     l.utilities||null,
-    "OpExOther":     l.opExOther||null
+    "OpExOther":     l.opExOther||null,
+    "LeaseDocs":     l.leaseDocs && l.leaseDocs.length ? JSON.stringify(l.leaseDocs) : null
   };
 }
 
@@ -625,7 +723,8 @@ function spToLease(item) {
     rentIncDate:d(item.RentIncDate), rentIncAmount:item.RentIncAmount||"",
     opexIncDate:d(item.OpexIncDate), opexIncAmount:item.OpexIncAmount||"",
     director:item.Director||"", directorEmail:item.DirectorEmail||"",
-    rom:item.ROM||"", romEmail:item.ROMEmail||"", notes:item.Notes||"" };
+    rom:item.ROM||"", romEmail:item.ROMEmail||"", notes:item.Notes||"",
+    leaseDocs: item.LeaseDocs ? (function(){try{return JSON.parse(item.LeaseDocs);}catch(e){return[];}}()) : [] };
 }
 
 async function loadData() {
@@ -922,7 +1021,7 @@ function renderLeaseTable(){
       +(col('newOpex')?'<td style="font-family:var(--mono);font-size:11px;white-space:nowrap">'+(l.opexIncAmount?'$'+l.opexIncAmount:'—')+'</td>':'')
       +(col('director')?'<td style="font-size:11px;min-width:100px;max-width:130px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+dirHtml+'</td>':'')
       +(col('rom')?'<td style="font-size:11px;min-width:100px;max-width:130px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+romHtml+'</td>':'')
-      +(col('actions')?'<td><div class="row-actions"><button class="btn sm" onclick="openEditModal('+l.id+')">Edit</button><button class="btn sm" style="color:var(--danger)" onclick="deleteLease('+l.id+')">Del</button></div></td>':'')
+      +(col('actions')?'<td style="position:relative"><div class="row-actions">'+(l.leaseDocs&&l.leaseDocs.length?'<button class="btn sm" onclick="openDocsMenu('+l.id+',this)" title="Documents">📄 '+l.leaseDocs.length+'</button>':'')+'<button class="btn sm" onclick="openEditModal('+l.id+')">Edit</button><button class="btn sm" style="color:var(--danger)" onclick="deleteLease('+l.id+')">Del</button></div></td>':'')
       +'</tr>';
   }).join('')+'</tbody>';
   if(!rows.length)el.innerHTML+='<tr><td colspan="21" class="empty">No leases match</td></tr>';
@@ -1083,11 +1182,15 @@ function exportCSV(){
 function openAddModal(){
   editingId=null;
   document.getElementById('modal-title').textContent='Add New Lease';
+  currentDocs = [];
+  renderDocsList();
   ['f-location','f-address','f-city','f-state','f-zip','f-sqft','f-base-rent','f-cam','f-prop-tax','f-prop-insurance','f-cam-detail','f-utilities','f-opex-other','f-rent-inc','f-rent-inc-amt','f-opex-inc','f-opex-inc-amt','f-expiry','f-notify','f-renewal','f-renewal-notify','f-landlord','f-director','f-director-email','f-rom','f-rom-email','f-notes'].forEach(id=>{
     const e=document.getElementById(id); if(e)e.value='';
   });
   populateStaffDropdowns();
   updateCamTotal();
+  currentDocs = [];
+  renderDocsList();
   document.getElementById('modal').classList.add('open');
 }
 
@@ -1102,6 +1205,8 @@ function openEditModal(id){
   });
   populateStaffDropdowns();
   updateCamTotal();
+  currentDocs = l.leaseDocs && Array.isArray(l.leaseDocs) ? JSON.parse(JSON.stringify(l.leaseDocs)) : [];
+  renderDocsList();
   document.getElementById('modal').classList.add('open');
 }
 
@@ -1126,6 +1231,8 @@ function saveLease(){
     director:g('f-director'), directorEmail:g('f-director-email'),
     rom:g('f-rom'), romEmail:g('f-rom-email'),
     notes:g('f-notes'),
+    leaseDocs:currentDocs,
+    leaseDocs: currentDocs,
   };
   // Calculate CAM total from breakdown
   obj.cam = (obj.propTax||0) + (obj.propInsurance||0) + (obj.camDetail||0) + (obj.utilities||0) + (obj.opExOther||0);
@@ -1384,7 +1491,7 @@ function renderCompanyTable(){
       +'<td style="font-family:var(--mono);font-size:11px;white-space:nowrap">'+(l.opexIncAmount?'$'+l.opexIncAmount:'—')+'</td>'
       +'<td style="font-size:11px;min-width:100px;max-width:130px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+dirHtml+'</td>'
       +'<td style="font-size:11px;min-width:100px;max-width:130px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+romHtml+'</td>'
-      +'<td><div class="row-actions"><button class="btn sm" onclick="openEditModal('+l.id+')">Edit</button><button class="btn sm" style="color:var(--danger)" onclick="deleteLease('+l.id+')">Del</button></div></td>'
+      +'<td><div class="row-actions">'+(l.leaseDocs&&l.leaseDocs.length?'<button class="btn sm" onclick="showLeaseDocs('+l.id+',this)" title="View Documents">📄</button>':'')+'<button class="btn sm" onclick="openEditModal('+l.id+')">Edit</button><button class="btn sm" style="color:var(--danger)" onclick="deleteLease('+l.id+')">Del</button></div></td>'
       +'</tr>';
   }).join('') + '</tbody>';
   if(!rows.length) el.innerHTML += '<tr><td colspan="21" class="empty">No leases found for this company</td></tr>';

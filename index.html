@@ -412,7 +412,19 @@ body{font-family:var(--sans);background:var(--bg);color:var(--text);font-size:14
     <div class="form-section">Financial</div>
     <div class="form-grid">
       <div class="form-group"><label class="form-label">Base Rent (monthly $)</label><input class="form-input" type="number" id="f-base-rent" step="0.01"></div>
-      <div class="form-group"><label class="form-label">CAM / OpEx (monthly $)</label><input class="form-input" type="number" id="f-cam" step="0.01"></div>
+      <div class="form-group"><label class="form-label">CAM / OpEx Total (auto-calculated)</label><input class="form-input" type="number" id="f-cam" step="0.01" readonly style="background:var(--surface2);color:var(--muted)"></div>
+      <div class="form-group full" style="margin-top:4px">
+        <details>
+          <summary style="cursor:pointer;font-size:11px;font-weight:600;color:var(--accent);text-transform:uppercase;letter-spacing:.04em">+ OpEx Breakdown</summary>
+          <div class="form-grid" style="margin-top:10px">
+            <div class="form-group"><label class="form-label">Property Tax (monthly $)</label><input class="form-input" type="number" id="f-prop-tax" step="0.01" oninput="updateCamTotal()"></div>
+            <div class="form-group"><label class="form-label">Property Insurance (monthly $)</label><input class="form-input" type="number" id="f-prop-insurance" step="0.01" oninput="updateCamTotal()"></div>
+            <div class="form-group"><label class="form-label">CAM (monthly $)</label><input class="form-input" type="number" id="f-cam-detail" step="0.01" oninput="updateCamTotal()"></div>
+            <div class="form-group"><label class="form-label">Utilities (monthly $)</label><input class="form-input" type="number" id="f-utilities" step="0.01" oninput="updateCamTotal()"></div>
+            <div class="form-group"><label class="form-label">Other (monthly $)</label><input class="form-input" type="number" id="f-opex-other" step="0.01" oninput="updateCamTotal()"></div>
+          </div>
+        </details>
+      </div>
       <div class="form-group"><label class="form-label">Base Rent Increase Date</label><input class="form-input" type="date" id="f-rent-inc"></div>
       <div class="form-group"><label class="form-label">New Base Rent After Increase ($)</label><input class="form-input" type="number" id="f-rent-inc-amt" step="0.01"></div>
       <div class="form-group"><label class="form-label">CAM / OpEx Increase Date</label><input class="form-input" type="date" id="f-opex-inc"></div>
@@ -497,6 +509,17 @@ function loadColPrefs(){
 }
 function saveColPrefs(){ try{localStorage.setItem('lm_cols',JSON.stringify(visibleCols));}catch(e){} }
 function col(id){ return visibleCols[id]!==false; }
+function updateCamTotal(){
+  const tax   = parseFloat(document.getElementById('f-prop-tax')?.value)||0;
+  const ins   = parseFloat(document.getElementById('f-prop-insurance')?.value)||0;
+  const cam   = parseFloat(document.getElementById('f-cam-detail')?.value)||0;
+  const util  = parseFloat(document.getElementById('f-utilities')?.value)||0;
+  const other = parseFloat(document.getElementById('f-opex-other')?.value)||0;
+  const total = tax + ins + cam + util + other;
+  const el = document.getElementById('f-cam');
+  if(el) el.value = total > 0 ? total.toFixed(2) : '';
+}
+
 function toggleColPicker(){
   const p=document.getElementById('col-picker');
   if(!p) return;
@@ -571,22 +594,73 @@ function leaseToSP(l) {
     "OpexIncDate": l.opexIncDate?l.opexIncDate+"T12:00:00Z":null, "OpexIncAmount": l.opexIncAmount||"",
     "Director": l.director||"", "DirectorEmail": l.directorEmail||"",
     "ROM": l.rom||"", "ROMEmail": l.romEmail||"",
-    "Notes": l.notes||"", "Company": getCompany(l)
+    "Notes": l.notes||"", "Company": getCompany(l),
+    "PropTax":       l.propTax||null,
+    "PropInsurance": l.propInsurance||null,
+    "CAMDetail":     l.camDetail||null,
+    "Utilities":     l.utilities||null,
+    "OpExOther":     l.opExOther||null
   };
 }
 
 function spToLease(item) {
   function d(v){return v?v.substring(0,10):null;}
+  const propTax       = item.PropTax||0;
+  const propInsurance = item.PropInsurance||0;
+  const camDetail     = item.CAMDetail||0;
+  const utilities     = item.Utilities||0;
+  const opExOther     = item.OpExOther||0;
+  const breakdown     = propTax + propInsurance + camDetail + utilities + opExOther;
+  // If no breakdown entered yet, use existing CAM value and migrate it to camDetail
+  const existingCAM   = item.CAM||0;
+  const finalCamDetail = camDetail || (breakdown === 0 ? existingCAM : 0);
+  const finalCam       = breakdown > 0 ? breakdown : existingCAM;
   return { id:item.Id, _spId:item.Id, location:item.Location||item.Title||"",
     address:item.Address||"", city:item.City||"", state:item.State||"",
     zip:item.Zip||"", locNum:item.LocNum||"", sqft:item.SqFt||0,
-    baseRent:item.BaseRent||0, cam:item.CAM||0,
+    baseRent:item.BaseRent||0, cam:finalCam,
+    propTax:propTax, propInsurance:propInsurance, camDetail:finalCamDetail,
+    utilities:utilities, opExOther:opExOther,
     expiryDate:item.ExpiryDate==="Month to Month"?"Month to Month":d(item.ExpiryDate),
     notifyDate:d(item.NotifyDate), landlord:item.Landlord||"", renewal:item.Renewal||"",
     rentIncDate:d(item.RentIncDate), rentIncAmount:item.RentIncAmount||"",
     opexIncDate:d(item.OpexIncDate), opexIncAmount:item.OpexIncAmount||"",
     director:item.Director||"", directorEmail:item.DirectorEmail||"",
     rom:item.ROM||"", romEmail:item.ROMEmail||"", notes:item.Notes||"" };
+}
+
+async function migrateCamToDetail(){
+  // One-time migration: write existing CAM values into CAMDetail in SharePoint
+  try {
+    const token = await getToken();
+    const toMigrate = leases.filter(l => !l.camDetail && l.cam > 0);
+    if(toMigrate.length === 0) return;
+    console.log(`Migrating CAM to CAMDetail for ${toMigrate.length} leases...`);
+    for(const l of toMigrate){
+      const spId = l._spId || l.id;
+      if(!spId) continue;
+      const body = {
+        '__metadata': {'type':'SP.Data.Lease_x0020_ManagerListItem'},
+        'CAMDetail': l.cam
+      };
+      await fetch(SP_API+'('+spId+')',{
+        method:'POST', credentials:'include',
+        headers:{
+          'Accept':'application/json;odata=verbose',
+          'Content-Type':'application/json;odata=verbose',
+          'Authorization':'Bearer '+token,
+          'X-HTTP-Method':'MERGE',
+          'IF-MATCH':'*'
+        },
+        body:JSON.stringify(body)
+      });
+      // Update local lease object
+      l.camDetail = l.cam;
+    }
+    console.log('CAM migration complete!');
+  } catch(e) {
+    console.error('Migration error:', e);
+  }
 }
 
 async function loadData() {
@@ -619,6 +693,7 @@ async function loadData() {
       leases = all.map(spToLease);
     }
     try{ const nk=["lm_notif","lm_notif_v2"]; for(const k of nk){const n=localStorage.getItem(k);if(n){Object.assign(notifSettings,JSON.parse(n));break;}} }catch(e){}
+    await migrateCamToDetail();
     renderAll();
   } catch(err) {
     console.error("SP error:",err);
@@ -1044,10 +1119,11 @@ function exportCSV(){
 function openAddModal(){
   editingId=null;
   document.getElementById('modal-title').textContent='Add New Lease';
-  ['f-location','f-address','f-city','f-state','f-zip','f-sqft','f-base-rent','f-cam','f-rent-inc','f-rent-inc-amt','f-opex-inc','f-opex-inc-amt','f-expiry','f-notify','f-renewal','f-renewal-notify','f-landlord','f-director','f-director-email','f-rom','f-rom-email','f-notes'].forEach(id=>{
+  ['f-location','f-address','f-city','f-state','f-zip','f-sqft','f-base-rent','f-cam','f-prop-tax','f-prop-insurance','f-cam-detail','f-utilities','f-opex-other','f-rent-inc','f-rent-inc-amt','f-opex-inc','f-opex-inc-amt','f-expiry','f-notify','f-renewal','f-renewal-notify','f-landlord','f-director','f-director-email','f-rom','f-rom-email','f-notes'].forEach(id=>{
     const e=document.getElementById(id); if(e)e.value='';
   });
   populateStaffDropdowns();
+  updateCamTotal();
   document.getElementById('modal').classList.add('open');
 }
 
@@ -1055,12 +1131,13 @@ function openEditModal(id){
   editingId=id;
   const l=leases.find(x=>x.id===id); if(!l)return;
   document.getElementById('modal-title').textContent='Edit — '+l.location;
-  const map={'f-locnum':'locNum','f-location':'location','f-address':'address','f-city':'city','f-state':'state','f-zip':'zip','f-sqft':'sqft','f-base-rent':'baseRent','f-cam':'cam','f-rent-inc':'rentIncDate','f-rent-inc-amt':'rentIncAmount','f-opex-inc':'opexIncDate','f-opex-inc-amt':'opexIncAmount','f-expiry':'expiryDate','f-notify':'notifyDate','f-renewal':'renewal','f-renewal-notify':'renewalNotifyDate','f-landlord':'landlord','f-director':'director','f-director-email':'directorEmail','f-rom':'rom','f-rom-email':'romEmail','f-notes':'notes'};
+  const map={'f-locnum':'locNum','f-prop-tax':'propTax','f-prop-insurance':'propInsurance','f-cam-detail':'camDetail','f-utilities':'utilities','f-opex-other':'opExOther','f-location':'location','f-address':'address','f-city':'city','f-state':'state','f-zip':'zip','f-sqft':'sqft','f-base-rent':'baseRent','f-cam':'cam','f-rent-inc':'rentIncDate','f-rent-inc-amt':'rentIncAmount','f-opex-inc':'opexIncDate','f-opex-inc-amt':'opexIncAmount','f-expiry':'expiryDate','f-notify':'notifyDate','f-renewal':'renewal','f-renewal-notify':'renewalNotifyDate','f-landlord':'landlord','f-director':'director','f-director-email':'directorEmail','f-rom':'rom','f-rom-email':'romEmail','f-notes':'notes'};
   Object.entries(map).forEach(([fid,k])=>{
     const e=document.getElementById(fid); if(!e)return;
     e.value=(l[k]===null||l[k]==='Month to Month')?'':l[k];
   });
   populateStaffDropdowns();
+  updateCamTotal();
   document.getElementById('modal').classList.add('open');
 }
 
@@ -1071,7 +1148,12 @@ function saveLease(){
   const obj={
     locNum:g('f-locnum'),
     location:g('f-location'),address:g('f-address'),city:g('f-city'),state:g('f-state'),zip:g('f-zip'),
-    sqft:parseFloat(g('f-sqft'))||0, baseRent:parseFloat(g('f-base-rent'))||0, cam:parseFloat(g('f-cam'))||0,
+    sqft:parseFloat(g('f-sqft'))||0, baseRent:parseFloat(g('f-base-rent'))||0,
+    propTax:parseFloat(g('f-prop-tax'))||0,
+    propInsurance:parseFloat(g('f-prop-insurance'))||0,
+    camDetail:parseFloat(g('f-cam-detail'))||0,
+    utilities:parseFloat(g('f-utilities'))||0,
+    opExOther:parseFloat(g('f-opex-other'))||0,
     rentIncDate:g('f-rent-inc')||null, rentIncAmount:g('f-rent-inc-amt'),
     opexIncDate:g('f-opex-inc')||null, opexIncAmount:g('f-opex-inc-amt'),
     expiryDate:g('f-expiry')||null, notifyDate:g('f-notify')||null,
@@ -1081,6 +1163,8 @@ function saveLease(){
     rom:g('f-rom'), romEmail:g('f-rom-email'),
     notes:g('f-notes'),
   };
+  // Calculate CAM total from breakdown
+  obj.cam = (obj.propTax||0) + (obj.propInsurance||0) + (obj.camDetail||0) + (obj.utilities||0) + (obj.opExOther||0);
   if(editingId){ const i=leases.findIndex(x=>x.id===editingId); if(i>=0)leases[i]={...leases[i],...obj}; }
   else{ obj.id=Date.now(); leases.push(obj); }
   const saved = editingId ? leases.find(x=>x.id===editingId) : leases[leases.length-1];

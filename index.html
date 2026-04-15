@@ -700,6 +700,8 @@ function leaseToSP(l) {
 
 function spToLease(item) {
   function d(v){return v?v.substring(0,10):null;}
+  // Clean up literal "undefined" strings that may have been saved previously
+  function clean(v){return (!v||v==='undefined')?'':v;}
   const propTax       = item.PropTax||0;
   const propInsurance = item.PropInsurance||0;
   const camDetail     = item.CAMDetail||0;
@@ -720,8 +722,8 @@ function spToLease(item) {
     notifyDate:d(item.NotifyDate), landlord:item.Landlord||"", renewal:item.Renewal||"",
     rentIncDate:d(item.RentIncDate), rentIncAmount:item.RentIncAmount||"",
     opexIncDate:d(item.OpexIncDate), opexIncAmount:item.OpexIncAmount||"",
-    director:item.Director||"", directorEmail:item.DirectorEmail||"",
-    rom:item.ROM||"", romEmail:item.ROMEmail||"", notes:item.Notes||"",
+    director:clean(item.Director), directorEmail:clean(item.DirectorEmail),
+    rom:clean(item.ROM), romEmail:clean(item.ROMEmail), notes:item.Notes||"",
     leaseDocs: item.LeaseDocs ? (function(){try{return JSON.parse(item.LeaseDocs);}catch(e){return[];}}()) : [] };
 }
 
@@ -756,6 +758,8 @@ async function loadData() {
     }
     try{ const nk=["lm_notif","lm_notif_v2"]; for(const k of nk){const n=localStorage.getItem(k);if(n){Object.assign(notifSettings,JSON.parse(n));break;}} }catch(e){}
     renderAll();
+    // One-time cleanup: fix any records with literal "undefined" in staff fields
+    cleanUndefinedStaffFields(token);
   } catch(err) {
     console.error("SP error:",err);
     if(sr) sr.innerHTML="<div style='grid-column:span 6;padding:24px;text-align:center;color:var(--danger)'>Sign-in failed: "+err.message+"</div>";
@@ -764,6 +768,29 @@ async function loadData() {
 
 function saveData() {
   try{localStorage.setItem("lm_notif",JSON.stringify(notifSettings));}catch(e){}
+}
+
+async function cleanUndefinedStaffFields(token) {
+  const fields = ['director','directorEmail','rom','romEmail'];
+  const dirty = leases.filter(l => fields.some(f => l[f] === 'undefined'));
+  if(!dirty.length) return;
+  for(const l of dirty) {
+    fields.forEach(f => { if(l[f]==='undefined') l[f]=''; });
+    try {
+      const spId = l._spId||l.id;
+      const patch = {
+        "__metadata":{"type":"SP.Data.Lease_x0020_ManagerListItem"},
+        "Director": l.director||"", "DirectorEmail": l.directorEmail||"",
+        "ROM": l.rom||"", "ROMEmail": l.romEmail||""
+      };
+      await fetch(SP_API+"("+spId+")", {
+        method:"POST",
+        headers:{"Accept":"application/json;odata=verbose","Content-Type":"application/json;odata=verbose","Authorization":"Bearer "+token,"X-HTTP-Method":"MERGE","IF-MATCH":"*"},
+        body:JSON.stringify(patch)
+      });
+    } catch(e){ console.warn("Cleanup patch failed for",l.location,e); }
+  }
+  console.log("Cleaned undefined staff fields on",dirty.length,"record(s).");
 }
 
 async function spSaveLease(l) {
@@ -1199,7 +1226,8 @@ function openEditModal(id){
   const map={'f-locnum':'locNum','f-prop-tax':'propTax','f-prop-insurance':'propInsurance','f-cam-detail':'camDetail','f-utilities':'utilities','f-opex-other':'opExOther','f-location':'location','f-address':'address','f-city':'city','f-state':'state','f-zip':'zip','f-sqft':'sqft','f-base-rent':'baseRent','f-cam':'cam','f-rent-inc':'rentIncDate','f-rent-inc-amt':'rentIncAmount','f-opex-inc':'opexIncDate','f-opex-inc-amt':'opexIncAmount','f-expiry':'expiryDate','f-notify':'notifyDate','f-renewal':'renewal','f-renewal-notify':'renewalNotifyDate','f-landlord':'landlord','f-director':'director','f-director-email':'directorEmail','f-rom':'rom','f-rom-email':'romEmail','f-notes':'notes'};
   Object.entries(map).forEach(([fid,k])=>{
     const e=document.getElementById(fid); if(!e)return;
-    e.value=(l[k]===null||l[k]==='Month to Month')?'':l[k];
+    const v=l[k];
+    e.value=(v===null||v===undefined||v==='Month to Month'||v==='undefined')?'':v;
   });
   populateStaffDropdowns();
   updateCamTotal();

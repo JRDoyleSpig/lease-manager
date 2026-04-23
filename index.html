@@ -783,7 +783,7 @@ function leaseToSP(l) {
     "CAMDetail": l.camDetail, "Utilities": l.utilities, "OpExOther": l.opExOther
   };
   for (const [key, val] of Object.entries(numFields)) {
-    if (val !== null && val !== undefined && val !== "") {
+    if (val !== null && val !== undefined && val !== "" && val !== 0) {
       payload[key] = val;
     }
   }

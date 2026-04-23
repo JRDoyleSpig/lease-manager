@@ -889,7 +889,7 @@ async function spSaveLease(l) {
   try {
     const token = await getToken();
     const body = leaseToSP(l);
-    const spId = l._spId||l.id;
+    const spId = l._spId; // Only use _spId — l.id can be a local timestamp, not a real SP ID
     if(spId && typeof spId==="number") {
       await fetch(SP_API+"("+spId+")",{method:"POST",headers:{"Accept":"application/json;odata=verbose","Content-Type":"application/json;odata=verbose","Authorization":"Bearer "+token,"X-HTTP-Method":"MERGE","IF-MATCH":"*"},body:JSON.stringify(body)});
     } else {

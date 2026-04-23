@@ -762,11 +762,10 @@ function updateEditControls() {
 }
 
 function leaseToSP(l) {
-  return {
+  const payload = {
     "__metadata": {"type":"SP.Data.Lease_x0020_ManagerListItem"},
     "Title": l.location||"", "Location": l.location||"", "Address": l.address||"",
     "City": l.city||"", "State": l.state||"", "Zip": l.zip||"", "LocNum": l.locNum||"",
-    "SqFt": l.sqft||null, "BaseRent": l.baseRent||null, "CAM": l.cam||null,
     "ExpiryDate": (l.expiryDate&&l.expiryDate!=="Month to Month")?l.expiryDate+"T12:00:00Z":null,
     "NotifyDate": l.notifyDate?l.notifyDate+"T12:00:00Z":null,
     "Landlord": l.landlord||"", "Renewal": l.renewal||"",
@@ -775,13 +774,20 @@ function leaseToSP(l) {
     "Director": l.director||"", "DirectorEmail": l.directorEmail||"",
     "ROM": l.rom||"", "ROMEmail": l.romEmail||"",
     "Notes": l.notes||"", "Company": getCompany(l),
-    "PropTax":       l.propTax||null,
-    "PropInsurance": l.propInsurance||null,
-    "CAMDetail":     l.camDetail||null,
-    "Utilities":     l.utilities||null,
-    "OpExOther":     l.opExOther||null,
-    "LeaseDocs":     l.leaseDocs && l.leaseDocs.length ? JSON.stringify(l.leaseDocs) : null
+    "LeaseDocs": l.leaseDocs && l.leaseDocs.length ? JSON.stringify(l.leaseDocs) : null
   };
+  // Only include number fields if they have actual values — sending null breaks SharePoint Int32 columns
+  const numFields = {
+    "SqFt": l.sqft, "BaseRent": l.baseRent, "CAM": l.cam,
+    "PropTax": l.propTax, "PropInsurance": l.propInsurance,
+    "CAMDetail": l.camDetail, "Utilities": l.utilities, "OpExOther": l.opExOther
+  };
+  for (const [key, val] of Object.entries(numFields)) {
+    if (val !== null && val !== undefined && val !== "") {
+      payload[key] = val;
+    }
+  }
+  return payload;
 }
 
 function spToLease(item) {

@@ -912,7 +912,7 @@ async function spDeleteLease(l) {
 // ── HELPERS ──────────────────────────────────────────────────────────────────
 function getDays(d){ if(!d||d==='Month to Month')return null; return Math.round((new Date(d)-new Date())/86400000); }
 function fmtDate(d){ if(!d||d==='Month to Month')return d||'—'; const[y,m,day]=d.split('-'); return`${m}/${day}/${y}`; }
-function fmtMoney(n){ if(!n&&n!==0)return'—'; return'$'+Number(n).toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2}); }); }
+function fmtMoney(n){ if(!n&&n!==0)return'—'; return'$'+Number(n).toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2}); }
 function fmtSFRent(l){ return l.sqft&&l.baseRent?'$'+(l.baseRent*12/l.sqft).toFixed(2)+'/sf':'—'; }
 
 function rentSF(l){return l.sqft&&l.baseRent?+(l.baseRent*12/l.sqft).toFixed(2):null;}

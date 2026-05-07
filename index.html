@@ -544,20 +544,20 @@ const ALL_COLS = [
   {id:'director', label:'Director',      def:true},
   {id:'rom',      label:'ROM',           def:true},
   {id:'aim',      label:'AIM',           def:true},
-  {id:'brokerInfo',  label:'Broker Info',   def:false},
-  {id:'landlordContact', label:'Landlord Contact', def:false},
-  {id:'payType',     label:'Payment Type',  def:false},
+  {id:'brokerInfo',      label:'Broker Info',       def:true},
+  {id:'landlordContact', label:'Landlord Contact',   def:true},
+  {id:'payType',         label:'Payment Type',       def:true},
   {id:'actions',  label:'Edit/Delete',   def:true},
 ];
 let visibleCols = {};
 function loadColPrefs(){
   try{
-    const s=localStorage.getItem('lm_cols');
+    const s=localStorage.getItem('lm_cols_v3');
     if(s) visibleCols=JSON.parse(s);
     else { ALL_COLS.forEach(c=>visibleCols[c.id]=c.def); }
   }catch(e){ ALL_COLS.forEach(c=>visibleCols[c.id]=c.def); }
 }
-function saveColPrefs(){ try{localStorage.setItem('lm_cols',JSON.stringify(visibleCols));}catch(e){} }
+function saveColPrefs(){ try{localStorage.setItem('lm_cols_v3',JSON.stringify(visibleCols));}catch(e){} }
 function col(id){ return visibleCols[id]!==false; }
 // ── LEASE DOCUMENTS ──────────────────────────────────────────────────────────
 
@@ -850,10 +850,10 @@ function spToLease(item) {
     director:clean(item.Director), directorEmail:clean(item.DirectorEmail),
     rom:clean(item.ROM), romEmail:clean(item.ROMEmail),
     aim:clean(item.AIM), aimEmail:clean(item.AIMEmail),
-    brokerInfo:clean(item.BrokerInfo),
-    landlordContact:clean(item.LandlordContact),
+    brokerInfo:clean(item.BrokerInfo).replace(/<[^>]*>/g,'').trim(),
+    landlordContact:clean(item.LandlordContact).replace(/<[^>]*>/g,'').trim(),
     paymentType:clean(item.PaymentType),
-    notes:item.Notes||"",
+    notes:( item.Notes||'').replace(/<[^>]*>/g,'').trim(),
     leaseDocs: item.LeaseDocs ? (function(){try{return JSON.parse(item.LeaseDocs);}catch(e){return[];}}()) : [] };
 }
 

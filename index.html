@@ -285,6 +285,9 @@ body{font-family:var(--sans);background:var(--bg);color:var(--text);font-size:14
       <select class="search-box" id="filter-rom" onchange="renderLeaseTable()" style="max-width:140px">
         <option value="">All ROMs</option>
       </select>
+      <select class="search-box" id="filter-aim" onchange="renderLeaseTable()" style="max-width:140px">
+        <option value="">All AIMs</option>
+      </select>
       <div style="position:relative">
         <button class="col-toggle-btn" onclick="toggleColPicker()">⊞ Columns</button>
         <div class="col-picker" id="col-picker"></div>
@@ -445,9 +448,9 @@ body{font-family:var(--sans);background:var(--bg);color:var(--text);font-size:14
     <div class="form-section">Lease Dates</div>
     <div class="form-grid">
       <div class="form-group"><label class="form-label">Lease Expiration</label><input class="form-input" type="date" id="f-expiry"></div>
-      <div class="form-group"><label class="form-label">Notify Landlord By</label><input class="form-input" type="date" id="f-notify"></div>
+      <div class="form-group"><label class="form-label">Landlord Notice Deadline</label><input class="form-input" type="date" id="f-notify" oninput="autoCalcRenewalAlert()"></div>
       <div class="form-group"><label class="form-label">Renewal Option / Terms</label><input class="form-input" id="f-renewal" placeholder="e.g. 5-year option, 90-day notice"></div>
-      <div class="form-group"><label class="form-label">Renewal Notification Date</label><input class="form-input" type="date" id="f-renewal-notify"></div>
+      <div class="form-group"><label class="form-label">Internal Renewal Alert Date <span style="font-size:10px;color:var(--muted)">(auto: 20th of prior month)</span></label><input class="form-input" type="date" id="f-renewal-notify" style="background:var(--surface2);color:var(--muted)" readonly></div>
     </div>
     <div class="form-section">Landlord</div>
     <div class="form-grid">
@@ -535,29 +538,31 @@ const ALL_COLS = [
   {id:'opexSF',   label:'OpEx $/SF',     def:true},
   {id:'totalRent',label:'Total Rent',    def:true},
   {id:'totalSF',  label:'Total $/SF',    def:true},
-  {id:'expires',  label:'Expires',       def:true},
-  {id:'notifyBy', label:'Notify By',     def:true},
-  {id:'rentInc',  label:'Base Rent Inc', def:true},
-  {id:'newRent',  label:'New Base Rent', def:true},
-  {id:'opexInc',  label:'OpEx Inc',      def:true},
-  {id:'newOpex',  label:'New OpEx',      def:true},
-  {id:'director', label:'Director',      def:true},
-  {id:'rom',      label:'ROM',           def:true},
-  {id:'aim',      label:'AIM',           def:true},
-  {id:'brokerInfo',      label:'Broker Info',       def:true},
-  {id:'landlordContact', label:'Landlord Contact',   def:true},
-  {id:'payType',         label:'Payment Type',       def:true},
-  {id:'actions',  label:'Edit/Delete',   def:true},
+  {id:'expires',  label:'Expires',              def:true},
+  {id:'notifyBy', label:'Landlord Notice Deadline', def:true},
+  {id:'rentInc',  label:'Base Rent Inc',         def:true},
+  {id:'newRent',  label:'New Base Rent',          def:true},
+  {id:'opexInc',  label:'OpEx Inc',               def:true},
+  {id:'newOpex',  label:'New OpEx',               def:true},
+  {id:'director', label:'Director',               def:true},
+  {id:'rom',      label:'ROM',                    def:true},
+  {id:'aim',      label:'AIM',                    def:true},
+  {id:'brokerInfo',      label:'Broker Info',         def:true},
+  {id:'landlordContact', label:'Landlord Contact',    def:true},
+  {id:'payType',         label:'Payment Type',        def:true},
+  {id:'renewal',         label:'Renewal Terms',       def:true},
+  {id:'notes',           label:'Notes',               def:true},
+  {id:'actions',  label:'Edit/Delete',           def:true},
 ];
 let visibleCols = {};
 function loadColPrefs(){
   try{
-    const s=localStorage.getItem('lm_cols_v3');
+    const s=localStorage.getItem('lm_cols_v4');
     if(s) visibleCols=JSON.parse(s);
     else { ALL_COLS.forEach(c=>visibleCols[c.id]=c.def); }
   }catch(e){ ALL_COLS.forEach(c=>visibleCols[c.id]=c.def); }
 }
-function saveColPrefs(){ try{localStorage.setItem('lm_cols_v3',JSON.stringify(visibleCols));}catch(e){} }
+function saveColPrefs(){ try{localStorage.setItem('lm_cols_v4',JSON.stringify(visibleCols));}catch(e){} }
 function col(id){ return visibleCols[id]!==false; }
 // ── LEASE DOCUMENTS ──────────────────────────────────────────────────────────
 
@@ -706,6 +711,23 @@ function updateCamTotal(){
   const total = tax + ins + cam + util + other;
   const el = document.getElementById('f-cam');
   if(el) el.value = total > 0 ? total.toFixed(2) : '';
+}
+
+function autoCalcRenewalAlert(){
+  const notifyVal = document.getElementById('f-notify')?.value;
+  const alertEl = document.getElementById('f-renewal-notify');
+  if(!notifyVal || !alertEl) return;
+  const d = new Date(notifyVal + 'T12:00:00');
+  if(isNaN(d)) return;
+  // Go back one month, set day to 20
+  let alertMonth = d.getMonth() - 1;
+  let alertYear = d.getFullYear();
+  if(alertMonth < 0){ alertMonth = 11; alertYear--; }
+  const alertDate = new Date(alertYear, alertMonth, 20);
+  const yyyy = alertDate.getFullYear();
+  const mm = String(alertDate.getMonth()+1).padStart(2,'0');
+  const dd = '20';
+  alertEl.value = `${yyyy}-${mm}-${dd}`;
 }
 
 
@@ -1145,10 +1167,12 @@ function renderLeaseTable(){
   const fs=(document.getElementById('filter-status')||{value:''}).value;
   const fd=(document.getElementById('filter-director')||{value:''}).value;
   const fr=(document.getElementById('filter-rom')||{value:''}).value;
+  const fa=(document.getElementById('filter-aim')||{value:''}).value;
 
-  // Populate director/rom dropdowns dynamically
+  // Populate director/rom/aim dropdowns dynamically
   const dSel=document.getElementById('filter-director');
   const rSel=document.getElementById('filter-rom');
+  const aSel=document.getElementById('filter-aim');
   if(dSel){
     const directors=[...new Set(leases.map(l=>l.director||'').filter(Boolean))].sort();
     const curD=dSel.value;
@@ -1159,12 +1183,18 @@ function renderLeaseTable(){
     const curR=rSel.value;
     rSel.innerHTML='<option value="">All ROMs</option>'+roms.map(r=>`<option value="${r}" ${r===curR?'selected':''}>${r}</option>`).join('');
   }
+  if(aSel){
+    const aims=[...new Set(leases.map(l=>l.aim||'').filter(Boolean))].sort();
+    const curA=aSel.value;
+    aSel.innerHTML='<option value="">All AIMs</option>'+aims.map(a=>`<option value="${a}" ${a===curA?'selected':''}>${a}</option>`).join('');
+  }
 
   let rows=leases.filter(l=>{
-    if(search&&!`${l.locNum||''} ${l.location} ${l.address} ${l.city} ${l.state} ${l.landlord} ${l.director||''} ${l.rom||''}`.toLowerCase().includes(search))return false;
+    if(search&&!`${l.locNum||''} ${l.location} ${l.address} ${l.city} ${l.state} ${l.landlord} ${l.director||''} ${l.rom||''} ${l.aim||''}`.toLowerCase().includes(search))return false;
     if(fs&&getStatus(l)!==fs)return false;
     if(fd&&(l.director||'')!==fd)return false;
     if(fr&&(l.rom||'')!==fr)return false;
+    if(fa&&(l.aim||'')!==fa)return false;
     return true;
   });
   rows=sortLeases(rows);
@@ -1182,7 +1212,7 @@ function renderLeaseTable(){
     +(col('totalRent')?thSort('totalRent','Total Rent'):'')
     +(col('totalSF')?thSort('totalSF','Total $/SF'):'')
     +(col('expires')?thSort('expiryDate','Expires'):'')
-    +(col('notifyBy')?thSort('notifyDate','Notify By'):'')
+    +(col('notifyBy')?thSort('notifyDate','Landlord Notice Deadline'):'')
     +(col('rentInc')?thSort('rentIncDate','Base Rent Inc'):'')
     +(col('newRent')?'<th>New Base Rent</th>':'')
     +(col('opexInc')?thSort('opexIncDate','OpEx Inc'):'')
@@ -1193,6 +1223,8 @@ function renderLeaseTable(){
     +(col('brokerInfo')?'<th>Broker Info</th>':'')
     +(col('landlordContact')?'<th>Landlord Contact</th>':'')
     +(col('payType')?'<th>Payment Type</th>':'')
+    +(col('renewal')?'<th>Renewal Terms</th>':'')
+    +(col('notes')?'<th>Notes</th>':'')
     +(col('actions')?'<th></th>':'')
     +'</tr></thead><tbody>'+
   rows.map(l=>{
@@ -1229,6 +1261,9 @@ function renderLeaseTable(){
       +(col('aim')?'<td style="font-size:11px;min-width:100px;max-width:130px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+(l.aim?'<span style="font-weight:500">'+l.aim+'</span>'+(l.aimEmail?'<br><span style="font-size:10px;color:#6B3FA0">'+l.aimEmail+'</span>':''):'—')+'</td>':'')
       +(col('brokerInfo')?'<td style="font-size:11px;max-width:140px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+(l.brokerInfo||'—')+'</td>':'')
       +(col('landlordContact')?'<td style="font-size:11px;max-width:140px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+(l.landlordContact||'—')+'</td>':'')
+      +(col('payType')?'<td style="font-size:11px">'+(l.paymentType?'<span style="background:var(--surface2);border:1px solid var(--border);border-radius:4px;padding:2px 7px;font-size:10px">'+l.paymentType+'</span>':'—')+'</td>':'')
+      +(col('renewal')?'<td style="font-size:11px;max-width:160px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+(l.renewal||'—')+'</td>':'')
+      +(col('notes')?'<td style="font-size:11px;max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="'+(l.notes||'').replace(/"/g,'&quot;')+'">'+(l.notes||'—')+'</td>':'')
       +(col('payType')?'<td style="font-size:11px">'+(l.paymentType?'<span style="background:var(--surface2);border:1px solid var(--border);border-radius:4px;padding:2px 7px;font-size:10px">'+l.paymentType+'</span>':'—')+'</td>':'')
       +(col('actions')?'<td style="position:relative"><div class="row-actions">'+(l.leaseDocs&&l.leaseDocs.length?'<button class="btn sm" onclick="openDocsMenu('+l.id+',this)" title="Documents">📄 '+l.leaseDocs.length+'</button>':'')+'<button class="btn sm" onclick="openEditModal('+l.id+')">Edit</button><button class="btn sm" style="color:var(--danger)" onclick="deleteLease('+l.id+')">Del</button></div></td>':'')
       +'</tr>';

@@ -448,7 +448,7 @@ body{font-family:var(--sans);background:var(--bg);color:var(--text);font-size:14
     <div class="form-section">Lease Dates</div>
     <div class="form-grid">
       <div class="form-group"><label class="form-label">Lease Expiration</label><input class="form-input" type="date" id="f-expiry"></div>
-      <div class="form-group"><label class="form-label">Landlord Notice Deadline</label><input class="form-input" type="date" id="f-notify" oninput="autoCalcRenewalAlert()"></div>
+      <div class="form-group"><label class="form-label">Renewal Notice Deadline</label><input class="form-input" type="date" id="f-notify" oninput="autoCalcRenewalAlert()"></div>
       <div class="form-group"><label class="form-label">Renewal Option / Terms</label><input class="form-input" id="f-renewal" placeholder="e.g. 5-year option, 90-day notice"></div>
       <div class="form-group"><label class="form-label">Internal Renewal Alert Date <span style="font-size:10px;color:var(--muted)">(auto: 20th of prior month)</span></label><input class="form-input" type="date" id="f-renewal-notify" style="background:var(--surface2);color:var(--muted)" readonly></div>
     </div>
@@ -539,7 +539,8 @@ const ALL_COLS = [
   {id:'totalRent',label:'Total Rent',    def:true},
   {id:'totalSF',  label:'Total $/SF',    def:true},
   {id:'expires',  label:'Expires',              def:true},
-  {id:'notifyBy', label:'Landlord Notice Deadline', def:true},
+  {id:'notifyBy',      label:'Renewal Notice Deadline',    def:true},
+  {id:'renewalAlert',  label:'Alert Month',                def:true},
   {id:'rentInc',  label:'Base Rent Inc',         def:true},
   {id:'newRent',  label:'New Base Rent',          def:true},
   {id:'opexInc',  label:'OpEx Inc',               def:true},
@@ -557,12 +558,12 @@ const ALL_COLS = [
 let visibleCols = {};
 function loadColPrefs(){
   try{
-    const s=localStorage.getItem('lm_cols_v4');
+    const s=localStorage.getItem('lm_cols_v5');
     if(s) visibleCols=JSON.parse(s);
     else { ALL_COLS.forEach(c=>visibleCols[c.id]=c.def); }
   }catch(e){ ALL_COLS.forEach(c=>visibleCols[c.id]=c.def); }
 }
-function saveColPrefs(){ try{localStorage.setItem('lm_cols_v4',JSON.stringify(visibleCols));}catch(e){} }
+function saveColPrefs(){ try{localStorage.setItem('lm_cols_v5',JSON.stringify(visibleCols));}catch(e){} }
 function col(id){ return visibleCols[id]!==false; }
 // ── LEASE DOCUMENTS ──────────────────────────────────────────────────────────
 
@@ -1017,6 +1018,7 @@ async function spDeleteLease(l) {
 // ── HELPERS ──────────────────────────────────────────────────────────────────
 function getDays(d){ if(!d||d==='Month to Month')return null; return Math.round((new Date(d)-new Date())/86400000); }
 function fmtDate(d){ if(!d||d==='Month to Month')return d||'—'; const[y,m,day]=d.split('-'); return`${m}/${day}/${y}`; }
+function fmtMonthYear(d){ if(!d) return '—'; const[y,m]=d.split('-'); const months=['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec']; return`${months[parseInt(m)-1]} ${y}`; }
 function fmtMoney(n){ if(!n&&n!==0)return'—'; return'$'+Number(n).toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2}); }
 function fmtSFRent(l){ return l.sqft&&l.baseRent?'$'+(l.baseRent*12/l.sqft).toFixed(2)+'/sf':'—'; }
 
@@ -1212,7 +1214,8 @@ function renderLeaseTable(){
     +(col('totalRent')?thSort('totalRent','Total Rent'):'')
     +(col('totalSF')?thSort('totalSF','Total $/SF'):'')
     +(col('expires')?thSort('expiryDate','Expires'):'')
-    +(col('notifyBy')?thSort('notifyDate','Landlord Notice Deadline'):'')
+    +(col('notifyBy')?thSort('notifyDate','Renewal Notice Deadline'):'')
+    +(col('renewalAlert')?'<th>Alert Month</th>':'')
     +(col('rentInc')?thSort('rentIncDate','Base Rent Inc'):'')
     +(col('newRent')?'<th>New Base Rent</th>':'')
     +(col('opexInc')?thSort('opexIncDate','OpEx Inc'):'')
@@ -1252,6 +1255,7 @@ function renderLeaseTable(){
       +(col('totalSF')?'<td style="white-space:nowrap">'+(totalSF(l)!==null?'<span class="sf-badge" style="background:var(--warn-light);color:var(--warn)">$'+totalSF(l).toFixed(2)+'</span>':'<span style="color:var(--muted);font-size:11px">—</span>')+'</td>':'')
       +(col('expires')?'<td style="font-family:var(--mono);font-size:11px;white-space:nowrap;color:'+expColor+'">'+expVal+'</td>':'')
       +(col('notifyBy')?'<td style="font-family:var(--mono);font-size:11px;white-space:nowrap">'+(l.notifyDate?fmtDate(l.notifyDate):'—')+'</td>':'')
+      +(col('renewalAlert')?'<td style="font-family:var(--mono);font-size:11px;white-space:nowrap">'+(l.renewalNotifyDate?fmtMonthYear(l.renewalNotifyDate):'—')+'</td>':'')
       +(col('rentInc')?'<td style="font-family:var(--mono);font-size:11px;white-space:nowrap">'+(l.rentIncDate?fmtDate(l.rentIncDate):'—')+'</td>':'')
       +(col('newRent')?'<td style="font-family:var(--mono);font-size:11px;white-space:nowrap">'+(l.rentIncAmount?'$'+l.rentIncAmount:'—')+'</td>':'')
       +(col('opexInc')?'<td style="font-family:var(--mono);font-size:11px;white-space:nowrap">'+(l.opexIncDate?fmtDate(l.opexIncDate):'—')+'</td>':'')
@@ -1450,6 +1454,8 @@ function openEditModal(id){
     e.value=(v===null||v===undefined||v==='Month to Month'||v==='undefined')?'':v;
   });
   const pt=document.getElementById('f-payment-type'); if(pt) pt.value=l.paymentType||'';
+  // Auto-calculate Internal Renewal Alert Date from existing Notify Date
+  autoCalcRenewalAlert();
   populateStaffDropdowns();
   updateCamTotal();
   currentDocs = l.leaseDocs && Array.isArray(l.leaseDocs) ? JSON.parse(JSON.stringify(l.leaseDocs)) : [];

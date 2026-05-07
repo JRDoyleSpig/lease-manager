@@ -714,6 +714,16 @@ function updateCamTotal(){
   if(el) el.value = total > 0 ? total.toFixed(2) : '';
 }
 
+function calcAlertDate(notifyDate){
+  if(!notifyDate) return null;
+  const d = new Date(notifyDate + 'T12:00:00');
+  if(isNaN(d)) return null;
+  let m = d.getMonth() - 1;
+  let y = d.getFullYear();
+  if(m < 0){ m = 11; y--; }
+  return `${y}-${String(m+1).padStart(2,'0')}-20`;
+}
+
 function autoCalcRenewalAlert(){
   const notifyVal = document.getElementById('f-notify')?.value;
   const alertEl = document.getElementById('f-renewal-notify');
@@ -820,6 +830,7 @@ function leaseToSP(l) {
     "City": l.city||"", "State": l.state||"", "Zip": l.zip||"", "LocNum": l.locNum||"",
     "ExpiryDate": (l.expiryDate&&l.expiryDate!=="Month to Month")?l.expiryDate+"T12:00:00Z":null,
     "NotifyDate": l.notifyDate?l.notifyDate+"T12:00:00Z":null,
+    "RenewalNotifyDate": l.renewalNotifyDate?l.renewalNotifyDate+"T12:00:00Z":null,
     "Landlord": l.landlord||"", "Renewal": l.renewal||"",
     "RentIncDate": l.rentIncDate?l.rentIncDate+"T12:00:00Z":null, "RentIncAmount": l.rentIncAmount||"",
     "OpexIncDate": l.opexIncDate?l.opexIncDate+"T12:00:00Z":null, "OpexIncAmount": l.opexIncAmount||"",
@@ -1268,7 +1279,6 @@ function renderLeaseTable(){
       +(col('payType')?'<td style="font-size:11px">'+(l.paymentType?'<span style="background:var(--surface2);border:1px solid var(--border);border-radius:4px;padding:2px 7px;font-size:10px">'+l.paymentType+'</span>':'—')+'</td>':'')
       +(col('renewal')?'<td style="font-size:11px;max-width:160px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+(l.renewal||'—')+'</td>':'')
       +(col('notes')?'<td style="font-size:11px;max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="'+(l.notes||'').replace(/"/g,'&quot;')+'">'+(l.notes||'—')+'</td>':'')
-      +(col('payType')?'<td style="font-size:11px">'+(l.paymentType?'<span style="background:var(--surface2);border:1px solid var(--border);border-radius:4px;padding:2px 7px;font-size:10px">'+l.paymentType+'</span>':'—')+'</td>':'')
       +(col('actions')?'<td style="position:relative"><div class="row-actions">'+(l.leaseDocs&&l.leaseDocs.length?'<button class="btn sm" onclick="openDocsMenu('+l.id+',this)" title="Documents">📄 '+l.leaseDocs.length+'</button>':'')+'<button class="btn sm" onclick="openEditModal('+l.id+')">Edit</button><button class="btn sm" style="color:var(--danger)" onclick="deleteLease('+l.id+')">Del</button></div></td>':'')
       +'</tr>';
   }).join('')+'</tbody>';
@@ -1479,7 +1489,7 @@ function saveLease(){
     rentIncDate:g('f-rent-inc')||null, rentIncAmount:g('f-rent-inc-amt'),
     opexIncDate:g('f-opex-inc')||null, opexIncAmount:g('f-opex-inc-amt'),
     expiryDate:g('f-expiry')||null, notifyDate:g('f-notify')||null,
-    renewal:g('f-renewal'), renewalNotifyDate:g('f-renewal-notify')||null,
+    renewal:g('f-renewal'), renewalNotifyDate:calcAlertDate(g('f-notify'))||g('f-renewal-notify')||null,
     landlord:g('f-landlord'),
     director:g('f-director'), directorEmail:g('f-director-email'),
     rom:g('f-rom'), romEmail:g('f-rom-email'),

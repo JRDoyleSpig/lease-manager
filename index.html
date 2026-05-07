@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Lease Manager — 72 Locations</title>
-<!-- v5.1 -->
+<!-- v5.2 - Added AIM, Broker Info, Payment Type -->
 <style>
 @import url('https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=DM+Sans:wght@300;400;500;600&display=swap');
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
@@ -134,6 +134,7 @@ body{font-family:var(--sans);background:var(--bg);color:var(--text);font-size:14
 .staff-avatar{width:36px;height:36px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-weight:600;font-size:13px;flex-shrink:0}
 .staff-avatar.director{background:var(--accent-light);color:var(--accent)}
 .staff-avatar.rom{background:var(--info-light);color:var(--info)}
+.staff-avatar.aim{background:#F0E8FF;color:#6B3FA0}
 .staff-info{flex:1;min-width:0}
 .staff-name{font-size:13px;font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .staff-email{font-size:11px;color:var(--info);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
@@ -351,7 +352,7 @@ body{font-family:var(--sans);background:var(--bg);color:var(--text);font-size:14
     <span class="section-title">Staff Roster</span>
     <button class="btn primary" onclick="openStaffModal()">+ Add Person</button>
   </div>
-  <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px">
+  <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:16px">
     <div>
       <div style="font-size:12px;font-weight:600;color:var(--accent);text-transform:uppercase;letter-spacing:.07em;padding-bottom:8px;border-bottom:1px solid var(--accent-light);margin-bottom:10px">Directors</div>
       <div id="directors-list"></div>
@@ -359,6 +360,10 @@ body{font-family:var(--sans);background:var(--bg);color:var(--text);font-size:14
     <div>
       <div style="font-size:12px;font-weight:600;color:var(--info);text-transform:uppercase;letter-spacing:.07em;padding-bottom:8px;border-bottom:1px solid var(--info-light);margin-bottom:10px">ROMs</div>
       <div id="roms-list"></div>
+    </div>
+    <div>
+      <div style="font-size:12px;font-weight:600;color:#6B3FA0;text-transform:uppercase;letter-spacing:.07em;padding-bottom:8px;border-bottom:2px solid #F0E8FF;margin-bottom:10px">AIMs</div>
+      <div id="aims-list"></div>
     </div>
   </div>
 </div>
@@ -447,6 +452,18 @@ body{font-family:var(--sans);background:var(--bg);color:var(--text);font-size:14
     <div class="form-section">Landlord</div>
     <div class="form-grid">
       <div class="form-group full"><label class="form-label">Landlord / Management Co.</label><input class="form-input" id="f-landlord"></div>
+      <div class="form-group full"><label class="form-label">Broker Information (Name &amp; Number)</label><input class="form-input" id="f-broker-info" placeholder="e.g. Jane Smith, 555-123-4567"></div>
+    </div>
+    <div class="form-section">Financial — Payment</div>
+    <div class="form-grid">
+      <div class="form-group"><label class="form-label">Payment Type</label>
+        <select class="form-input" id="f-payment-type">
+          <option value="">— Select —</option>
+          <option value="ACH">ACH</option>
+          <option value="Check">Check</option>
+          <option value="Bank Draft">Bank Draft</option>
+        </select>
+      </div>
     </div>
     <div class="form-section">Staff</div>
     <div class="form-grid">
@@ -464,6 +481,13 @@ body{font-family:var(--sans);background:var(--bg);color:var(--text);font-size:14
       </div>
       <div class="form-group"><label class="form-label">ROM Name</label><input class="form-input" id="f-rom" placeholder="Auto-filled or type manually"></div>
       <div class="form-group"><label class="form-label">ROM Email</label><input class="form-input" type="email" id="f-rom-email" placeholder="Auto-filled"></div>
+      <div class="form-group full"><label class="form-label">AIM</label>
+        <select class="form-input" id="f-aim-select" onchange="applyStaffSelect('aim')">
+          <option value="">— Select AIM —</option>
+        </select>
+      </div>
+      <div class="form-group"><label class="form-label">AIM Name</label><input class="form-input" id="f-aim" placeholder="Auto-filled or type manually"></div>
+      <div class="form-group"><label class="form-label">AIM Email</label><input class="form-input" type="email" id="f-aim-email" placeholder="Auto-filled"></div>
       <div class="form-group full"><label class="form-label">Notes</label><textarea class="form-input" id="f-notes" rows="3" style="resize:vertical"></textarea></div>
     </div>
     <div class="form-section">Lease Documents</div>
@@ -518,6 +542,9 @@ const ALL_COLS = [
   {id:'newOpex',  label:'New OpEx',      def:true},
   {id:'director', label:'Director',      def:true},
   {id:'rom',      label:'ROM',           def:true},
+  {id:'aim',      label:'AIM',           def:true},
+  {id:'brokerInfo',label:'Broker Info',  def:false},
+  {id:'payType',  label:'Payment Type',  def:false},
   {id:'actions',  label:'Edit/Delete',   def:true},
 ];
 let visibleCols = {};
@@ -773,6 +800,9 @@ function leaseToSP(l) {
     "OpexIncDate": l.opexIncDate?l.opexIncDate+"T12:00:00Z":null, "OpexIncAmount": l.opexIncAmount||"",
     "Director": l.director||"", "DirectorEmail": l.directorEmail||"",
     "ROM": l.rom||"", "ROMEmail": l.romEmail||"",
+    "AIM": l.aim||"", "AIMEmail": l.aimEmail||"",
+    "BrokerInfo": l.brokerInfo||"",
+    "PaymentType": l.paymentType||"",
     "Notes": l.notes||"", "Company": getCompany(l),
     "LeaseDocs": l.leaseDocs && l.leaseDocs.length ? JSON.stringify(l.leaseDocs) : null
   };
@@ -815,8 +845,55 @@ function spToLease(item) {
     rentIncDate:d(item.RentIncDate), rentIncAmount:item.RentIncAmount||"",
     opexIncDate:d(item.OpexIncDate), opexIncAmount:item.OpexIncAmount||"",
     director:clean(item.Director), directorEmail:clean(item.DirectorEmail),
-    rom:clean(item.ROM), romEmail:clean(item.ROMEmail), notes:item.Notes||"",
+    rom:clean(item.ROM), romEmail:clean(item.ROMEmail),
+    aim:clean(item.AIM), aimEmail:clean(item.AIMEmail),
+    brokerInfo:clean(item.BrokerInfo),
+    paymentType:clean(item.PaymentType),
+    notes:item.Notes||"",
     leaseDocs: item.LeaseDocs ? (function(){try{return JSON.parse(item.LeaseDocs);}catch(e){return[];}}()) : [] };
+}
+
+// ── AUTO-PROVISION NEW COLUMNS ────────────────────────────────────────────────
+async function ensureColumns(token) {
+  const SP_FIELDS_API = SP_SITE + "/_api/web/lists/getbytitle('Lease%20Manager')/fields";
+  const NEW_COLS = [
+    { name:'AIM',         type:'Text' },
+    { name:'AIMEmail',    type:'Text' },
+    { name:'BrokerInfo',  type:'Note' },
+    { name:'PaymentType', type:'Text' },
+  ];
+  // Fetch existing field names
+  let existingNames = [];
+  try {
+    const res = await fetch(SP_FIELDS_API + "?$select=InternalName&$top=200", {
+      headers:{"Accept":"application/json;odata=verbose","Authorization":"Bearer "+token}
+    });
+    if(res.ok){
+      const data = await res.json();
+      existingNames = (data.d.results||[]).map(f=>f.InternalName);
+    }
+  } catch(e){ console.warn("ensureColumns: could not fetch fields",e); return; }
+
+  for(const col of NEW_COLS){
+    if(existingNames.includes(col.name)) continue; // already exists
+    try {
+      const typeMap = { Text: 2, Note: 3 };
+      const body = JSON.stringify({
+        "__metadata":{"type":"SP.Field"},
+        "Title": col.name,
+        "FieldTypeKind": typeMap[col.type]||2,
+        "Required": false,
+        "EnforceUniqueValues": false,
+        "StaticName": col.name
+      });
+      await fetch(SP_FIELDS_API, {
+        method:"POST",
+        headers:{"Accept":"application/json;odata=verbose","Content-Type":"application/json;odata=verbose","Authorization":"Bearer "+token},
+        body
+      });
+      console.log("Created column:", col.name);
+    } catch(e){ console.warn("ensureColumns: failed to create",col.name,e); }
+  }
 }
 
 async function loadData() {
@@ -824,6 +901,7 @@ async function loadData() {
   if(sr) sr.innerHTML = "<div style='grid-column:span 6;padding:24px;text-align:center;color:var(--muted)'>Signing in to Microsoft...</div>";
   try {
     const token = await getToken();
+    if(_isOwner) await ensureColumns(token);
     if(sr) sr.innerHTML = "<div style='grid-column:span 6;padding:24px;text-align:center;color:var(--muted)'>Loading lease data...</div>";
     let url = SP_API + "?$select=*&$top=500&$orderby=Id";
     let all = [];
@@ -863,7 +941,7 @@ function saveData() {
 }
 
 async function cleanUndefinedStaffFields(token) {
-  const fields = ['director','directorEmail','rom','romEmail'];
+  const fields = ['director','directorEmail','rom','romEmail','aim','aimEmail'];
   const dirty = leases.filter(l => fields.some(f => l[f] === 'undefined'));
   if(!dirty.length) return;
   for(const l of dirty) {
@@ -873,7 +951,8 @@ async function cleanUndefinedStaffFields(token) {
       const patch = {
         "__metadata":{"type":"SP.Data.Lease_x0020_ManagerListItem"},
         "Director": l.director||"", "DirectorEmail": l.directorEmail||"",
-        "ROM": l.rom||"", "ROMEmail": l.romEmail||""
+        "ROM": l.rom||"", "ROMEmail": l.romEmail||"",
+        "AIM": l.aim||"", "AIMEmail": l.aimEmail||""
       };
       await fetch(SP_API+"("+spId+")", {
         method:"POST",
@@ -937,6 +1016,7 @@ const SORT_KEYS={
   landlord:l=>(l.landlord||'').toLowerCase(),
   director:l=>(l.director||'').toLowerCase(),
   rom:l=>(l.rom||'').toLowerCase(),
+  aim:l=>(l.aim||'').toLowerCase(),
   sqft:l=>l.sqft||0,
   totalRent:l=>(l.baseRent||0)+(l.cam||0),
   totalSF:l=>l.sqft?((l.baseRent||0)+(l.cam||0))*12/l.sqft:0,
@@ -1105,6 +1185,9 @@ function renderLeaseTable(){
     +(col('newOpex')?'<th>New OpEx</th>':'')
     +(col('director')?thSort('director','Director'):'')
     +(col('rom')?thSort('rom','ROM'):'')
+    +(col('aim')?thSort('aim','AIM'):'')
+    +(col('brokerInfo')?'<th>Broker Info</th>':'')
+    +(col('payType')?'<th>Payment Type</th>':'')
     +(col('actions')?'<th></th>':'')
     +'</tr></thead><tbody>'+
   rows.map(l=>{
@@ -1138,6 +1221,9 @@ function renderLeaseTable(){
       +(col('newOpex')?'<td style="font-family:var(--mono);font-size:11px;white-space:nowrap">'+(l.opexIncAmount?'$'+l.opexIncAmount:'—')+'</td>':'')
       +(col('director')?'<td style="font-size:11px;min-width:100px;max-width:130px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+dirHtml+'</td>':'')
       +(col('rom')?'<td style="font-size:11px;min-width:100px;max-width:130px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+romHtml+'</td>':'')
+      +(col('aim')?'<td style="font-size:11px;min-width:100px;max-width:130px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+(l.aim?'<span style="font-weight:500">'+l.aim+'</span>'+(l.aimEmail?'<br><span style="font-size:10px;color:#6B3FA0">'+l.aimEmail+'</span>':''):'—')+'</td>':'')
+      +(col('brokerInfo')?'<td style="font-size:11px;max-width:140px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+(l.brokerInfo||'—')+'</td>':'')
+      +(col('payType')?'<td style="font-size:11px">'+(l.paymentType?'<span style="background:var(--surface2);border:1px solid var(--border);border-radius:4px;padding:2px 7px;font-size:10px">'+l.paymentType+'</span>':'—')+'</td>':'')
       +(col('actions')?'<td style="position:relative"><div class="row-actions">'+(l.leaseDocs&&l.leaseDocs.length?'<button class="btn sm" onclick="openDocsMenu('+l.id+',this)" title="Documents">📄 '+l.leaseDocs.length+'</button>':'')+'<button class="btn sm" onclick="openEditModal('+l.id+')">Edit</button><button class="btn sm" style="color:var(--danger)" onclick="deleteLease('+l.id+')">Del</button></div></td>':'')
       +'</tr>';
   }).join('')+'</tbody>';
@@ -1301,8 +1387,10 @@ function openAddModal(){
   document.getElementById('modal-title').textContent='Add New Lease';
   currentDocs = [];
   renderDocsList();
-  ['f-location','f-address','f-city','f-state','f-zip','f-sqft','f-base-rent','f-cam','f-prop-tax','f-prop-insurance','f-cam-detail','f-utilities','f-opex-other','f-rent-inc','f-rent-inc-amt','f-opex-inc','f-opex-inc-amt','f-expiry','f-notify','f-renewal','f-renewal-notify','f-landlord','f-director','f-director-email','f-rom','f-rom-email','f-notes'].forEach(id=>{
+  ['f-location','f-address','f-city','f-state','f-zip','f-sqft','f-base-rent','f-cam','f-prop-tax','f-prop-insurance','f-cam-detail','f-utilities','f-opex-other','f-rent-inc','f-rent-inc-amt','f-opex-inc','f-opex-inc-amt','f-expiry','f-notify','f-renewal','f-renewal-notify','f-landlord','f-broker-info','f-director','f-director-email','f-rom','f-rom-email','f-aim','f-aim-email','f-notes'].forEach(id=>{
     const e=document.getElementById(id); if(e)e.value='';
+  });
+  const pt=document.getElementById('f-payment-type'); if(pt) pt.value='';
   });
   populateStaffDropdowns();
   updateCamTotal();
@@ -1315,12 +1403,13 @@ function openEditModal(id){
   editingId=id;
   const l=leases.find(x=>x.id===id); if(!l)return;
   document.getElementById('modal-title').textContent='Edit — '+l.location;
-  const map={'f-locnum':'locNum','f-prop-tax':'propTax','f-prop-insurance':'propInsurance','f-cam-detail':'camDetail','f-utilities':'utilities','f-opex-other':'opExOther','f-location':'location','f-address':'address','f-city':'city','f-state':'state','f-zip':'zip','f-sqft':'sqft','f-base-rent':'baseRent','f-cam':'cam','f-rent-inc':'rentIncDate','f-rent-inc-amt':'rentIncAmount','f-opex-inc':'opexIncDate','f-opex-inc-amt':'opexIncAmount','f-expiry':'expiryDate','f-notify':'notifyDate','f-renewal':'renewal','f-renewal-notify':'renewalNotifyDate','f-landlord':'landlord','f-director':'director','f-director-email':'directorEmail','f-rom':'rom','f-rom-email':'romEmail','f-notes':'notes'};
+  const map={'f-locnum':'locNum','f-prop-tax':'propTax','f-prop-insurance':'propInsurance','f-cam-detail':'camDetail','f-utilities':'utilities','f-opex-other':'opExOther','f-location':'location','f-address':'address','f-city':'city','f-state':'state','f-zip':'zip','f-sqft':'sqft','f-base-rent':'baseRent','f-cam':'cam','f-rent-inc':'rentIncDate','f-rent-inc-amt':'rentIncAmount','f-opex-inc':'opexIncDate','f-opex-inc-amt':'opexIncAmount','f-expiry':'expiryDate','f-notify':'notifyDate','f-renewal':'renewal','f-renewal-notify':'renewalNotifyDate','f-landlord':'landlord','f-broker-info':'brokerInfo','f-director':'director','f-director-email':'directorEmail','f-rom':'rom','f-rom-email':'romEmail','f-aim':'aim','f-aim-email':'aimEmail','f-notes':'notes'};
   Object.entries(map).forEach(([fid,k])=>{
     const e=document.getElementById(fid); if(!e)return;
     const v=l[k];
     e.value=(v===null||v===undefined||v==='Month to Month'||v==='undefined')?'':v;
   });
+  const pt=document.getElementById('f-payment-type'); if(pt) pt.value=l.paymentType||'';
   populateStaffDropdowns();
   updateCamTotal();
   currentDocs = l.leaseDocs && Array.isArray(l.leaseDocs) ? JSON.parse(JSON.stringify(l.leaseDocs)) : [];
@@ -1348,6 +1437,9 @@ function saveLease(){
     landlord:g('f-landlord'),
     director:g('f-director'), directorEmail:g('f-director-email'),
     rom:g('f-rom'), romEmail:g('f-rom-email'),
+    aim:g('f-aim'), aimEmail:g('f-aim-email'),
+    brokerInfo:g('f-broker-info'),
+    paymentType:g('f-payment-type'),
     notes:g('f-notes'),
     leaseDocs:currentDocs,
     leaseDocs: currentDocs,
@@ -1405,11 +1497,12 @@ function saveStaff(){
 function renderStaffView(){
   const directors = staff.filter(s=>s.role==='Director').sort((a,b)=>a.name.localeCompare(b.name));
   const roms = staff.filter(s=>s.role==='ROM').sort((a,b)=>a.name.localeCompare(b.name));
+  const aims = staff.filter(s=>s.role==='AIM').sort((a,b)=>a.name.localeCompare(b.name));
 
   function staffCard(s){
     const initials = s.name.split(' ').map(w=>w[0]).join('').toUpperCase().slice(0,2);
     const role = s.role.toLowerCase();
-    const leaseCount = leases.filter(l=>l.director===s.name||l.rom===s.name).length;
+    const leaseCount = leases.filter(l=>l.director===s.name||l.rom===s.name||l.aim===s.name).length;
     return `<div class="staff-card">
       <div class="staff-avatar ${role}">${initials}</div>
       <div class="staff-info">
@@ -1427,15 +1520,19 @@ function renderStaffView(){
 
   const dEl = document.getElementById('directors-list');
   const rEl = document.getElementById('roms-list');
+  const aEl = document.getElementById('aims-list');
   if(dEl) dEl.innerHTML = directors.length ? directors.map(staffCard).join('') : '<div class="empty" style="padding:20px">No directors added yet</div>';
   if(rEl) rEl.innerHTML = roms.length ? roms.map(staffCard).join('') : '<div class="empty" style="padding:20px">No ROMs added yet</div>';
+  if(aEl) aEl.innerHTML = aims.length ? aims.map(staffCard).join('') : '<div class="empty" style="padding:20px">No AIMs added yet</div>';
 }
 
 function populateStaffDropdowns(){
   const directors = staff.filter(s=>s.role==='Director').sort((a,b)=>a.name.localeCompare(b.name));
   const roms = staff.filter(s=>s.role==='ROM').sort((a,b)=>a.name.localeCompare(b.name));
+  const aims = staff.filter(s=>s.role==='AIM').sort((a,b)=>a.name.localeCompare(b.name));
   const dSel = document.getElementById('f-director-select');
   const rSel = document.getElementById('f-rom-select');
+  const aSel = document.getElementById('f-aim-select');
   if(dSel){
     const cur = document.getElementById('f-director')?.value||'';
     dSel.innerHTML = '<option value="">— Select Director —</option>' +
@@ -1448,12 +1545,18 @@ function populateStaffDropdowns(){
       roms.map(s=>`<option value="${s.id}" ${s.name===cur?'selected':''}>${s.name} — ${s.email||'no email'}</option>`).join('') +
       '<option value="__manual__">✏ Enter manually</option>';
   }
+  if(aSel){
+    const cur = document.getElementById('f-aim')?.value||'';
+    aSel.innerHTML = '<option value="">— Select AIM —</option>' +
+      aims.map(s=>`<option value="${s.id}" ${s.name===cur?'selected':''}>${s.name} — ${s.email||'no email'}</option>`).join('') +
+      '<option value="__manual__">✏ Enter manually</option>';
+  }
 }
 
 function applyStaffSelect(role){
-  const selId = role==='director' ? 'f-director-select' : 'f-rom-select';
-  const nameId = role==='director' ? 'f-director' : 'f-rom';
-  const emailId = role==='director' ? 'f-director-email' : 'f-rom-email';
+  const selId = role==='director' ? 'f-director-select' : role==='rom' ? 'f-rom-select' : 'f-aim-select';
+  const nameId = role==='director' ? 'f-director' : role==='rom' ? 'f-rom' : 'f-aim';
+  const emailId = role==='director' ? 'f-director-email' : role==='rom' ? 'f-rom-email' : 'f-aim-email';
   const val = document.getElementById(selId)?.value;
   if(!val||val==='__manual__'){
     document.getElementById(nameId).value='';
@@ -1513,7 +1616,7 @@ function saveStaffMember(){
 function deleteStaff(id){
   const s = staff.find(x=>x.id===id);
   if(!s) return;
-  const assigned = leases.filter(l=>l.director===s.name||l.rom===s.name).length;
+  const assigned = leases.filter(l=>l.director===s.name||l.rom===s.name||l.aim===s.name).length;
   if(assigned && !confirm(`${s.name} is assigned to ${assigned} lease(s). Delete anyway?`)) return;
   staff = staff.filter(x=>x.id!==id);
   saveStaff();
@@ -1676,6 +1779,7 @@ setTimeout(initScrollMirrors, 100);
         <select class="form-input" id="sf-role">
           <option value="Director">Director</option>
           <option value="ROM">ROM</option>
+          <option value="AIM">AIM</option>
         </select>
       </div>
       <div class="form-group"><label class="form-label">Full Name</label>

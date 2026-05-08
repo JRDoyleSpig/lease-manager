@@ -662,12 +662,12 @@ const ALL_COLS = [
 let visibleCols = {};
 function loadColPrefs(){
   try{
-    const s=localStorage.getItem('lm_cols_v8');
+    const s=localStorage.getItem('lm_cols_v9');
     if(s) visibleCols=JSON.parse(s);
     else { ALL_COLS.forEach(c=>visibleCols[c.id]=c.def); }
   }catch(e){ ALL_COLS.forEach(c=>visibleCols[c.id]=c.def); }
 }
-function saveColPrefs(){ try{localStorage.setItem('lm_cols_v8',JSON.stringify(visibleCols));}catch(e){} }
+function saveColPrefs(){ try{localStorage.setItem('lm_cols_v9',JSON.stringify(visibleCols));}catch(e){} }
 function col(id){ return visibleCols[id]!==false; }
 // ── LEASE DOCUMENTS ──────────────────────────────────────────────────────────
 
@@ -1668,7 +1668,12 @@ function showCompanyStatus(co, status, el){
   renderCompanyTable();
 }
 
+let currentStatusView = 'active';
+function thSortS(c,label){const active=sortCol===c;const cls=active?(sortDir===1?'sort-asc':'sort-desc'):'';return`<th class="sortable ${cls}" onclick="setSortColStatus('${c}')" style="cursor:pointer">${label}</th>`;}
+function setSortColStatus(c){if(sortCol===c)sortDir*=-1;else{sortCol=c;sortDir=1;}renderStatusTable(currentStatusView);}
+
 function renderStatusTable(status){
+  currentStatusView = status;
   const tableId = status+'-table';
   const mirrorId = 'mirror-'+status;
   const tbl = document.getElementById(tableId);
@@ -1680,11 +1685,11 @@ function renderStatusTable(status){
   const fa = document.getElementById(status+'-filter-aim')?.value||'';
   const fc = document.getElementById(status+'-filter-company')?.value||'';
 
-  // Populate dropdowns dynamically
   const statusLeases = leases.filter(l=>{
-    const ls = (l.leaseStatus===null||l.leaseStatus===undefined||l.leaseStatus===''||l.leaseStatus==='undefined') ? 'active' : l.leaseStatus.toLowerCase();
-    return ls === status;
+    const ls = (!l.leaseStatus||l.leaseStatus==='undefined') ? 'Active' : l.leaseStatus;
+    return ls.toLowerCase() === status.toLowerCase();
   });
+
   ['director','rom','aim'].forEach(role=>{
     const sel = document.getElementById(status+'-filter-'+role);
     if(!sel) return;
@@ -1695,7 +1700,7 @@ function renderStatusTable(status){
   });
 
   let rows = statusLeases.filter(l=>{
-    if(search&&!`${l.locNum||''} ${l.location} ${l.address} ${l.landlord||''}`.toLowerCase().includes(search)) return false;
+    if(search&&!`${l.locNum||''} ${l.location} ${l.address} ${l.landlord||''} ${l.director||''} ${l.rom||''} ${l.aim||''}`.toLowerCase().includes(search)) return false;
     if(fs&&getStatus(l)!==fs) return false;
     if(fd&&(l.director||'')!==fd) return false;
     if(fr&&(l.rom||'')!==fr) return false;
@@ -1704,7 +1709,81 @@ function renderStatusTable(status){
     return true;
   });
   rows = sortLeases(rows);
-  tbl.innerHTML = buildTableHeader('setSortCol') + '<tbody>' + (rows.length ? rows.map(buildTableRow).join('') : '<tr><td colspan="30" class="empty">No leases found.</td></tr>') + '</tbody>';
+
+  tbl.innerHTML='<thead><tr>'
+    +(col('status')?'<th class="frozen col-status" onclick="setSortColStatus(\'status\')"></th>':'')
+    +(col('locNum')?'<th class="frozen col-num sortable" onclick="setSortColStatus(\'locNum\')">#</th>':'')
+    +(col('location')?'<th class="frozen col-loc sortable" onclick="setSortColStatus(\'location\')">Location</th>':'')
+    +(col('address')?thSortS('address','Address'):'')
+    +(col('landlord')?thSortS('landlord','Landlord'):'')
+    +(col('sqft')?thSortS('sqft','Sq Ft'):'')
+    +(col('baseRent')?thSortS('baseRent','Base Rent'):'')
+    +(col('cam')?thSortS('cam','CAM/OpEx'):'')
+    +(col('rentSF')?thSortS('rentSF','Rent $/SF'):'')
+    +(col('opexSF')?thSortS('opexSF','OpEx $/SF'):'')
+    +(col('totalRent')?thSortS('totalRent','Total Rent'):'')
+    +(col('totalSF')?thSortS('totalSF','Total $/SF'):'')
+    +(col('expires')?thSortS('expiryDate','Expires'):'')
+    +(col('notifyBy')?thSortS('notifyDate','Renewal Notice Deadline'):'')
+    +(col('renewalAlert')?'<th>Alert Month</th>':'')
+    +(col('rentInc')?thSortS('rentIncDate','Base Rent Inc'):'')
+    +(col('newRent')?'<th>New Base Rent</th>':'')
+    +(col('opexInc')?thSortS('opexIncDate','OpEx Inc'):'')
+    +(col('newOpex')?'<th>New OpEx</th>':'')
+    +(col('director')?thSortS('director','Director'):'')
+    +(col('rom')?thSortS('rom','ROM'):'')
+    +(col('aim')?thSortS('aim','AIM'):'')
+    +(col('brokerInfo')?'<th>Broker Info</th>':'')
+    +(col('landlordContact')?'<th>Landlord Contact</th>':'')
+    +(col('payType')?'<th>Payment Type</th>':'')
+    +(col('renewal')?'<th>Renewal Terms</th>':'')
+    +(col('notes')?'<th>Notes</th>':'')
+    +(col('leaseStatus')?'<th>Status</th>':'')
+    +(col('actions')?'<th></th>':'')
+    +'</tr></thead><tbody>'
+    +(rows.length ? rows.map(l=>{
+      const s=getStatus(l);
+      const dotCls=s==='critical'?'red':s==='warning'?'warn':s==='mtm'?'gray':'green';
+      const ex=getDays(l.expiryDate);
+      const expColor=ex!==null&&ex<90?'var(--danger)':ex!==null&&ex<180?'var(--warn)':'inherit';
+      const expVal=l.expiryDate==='Month to Month'?'MTM':fmtDate(l.expiryDate);
+      const rsf=rentSF(l),osf=opexSF(l);
+      const locNumHtml=l.locNum?'<span class="locnum-badge">'+l.locNum+'</span>':'<span style="color:var(--muted);font-size:11px">—</span>';
+      const dirHtml=l.director?'<span style="font-weight:500">'+l.director+'</span>'+(l.directorEmail?'<br><span style="font-size:10px;color:var(--info)">'+l.directorEmail+'</span>':''):'—';
+      const romHtml=l.rom?'<span style="font-weight:500">'+l.rom+'</span>'+(l.romEmail?'<br><span style="font-size:10px;color:var(--info)">'+l.romEmail+'</span>':''):'—';
+      return '<tr ondblclick="openEditModal('+l.id+')" style="cursor:pointer">'
+        +(col('status')?'<td class="frozen col-status"><span class="status-dot dot-'+dotCls+'"></span></td>':'')
+        +(col('locNum')?'<td class="frozen col-num">'+locNumHtml+'</td>':'')
+        +(col('location')?'<td class="frozen col-loc" style="font-weight:500;white-space:nowrap">'+l.location+'<br><span style="font-size:10px;color:var(--muted);font-weight:400">'+l.city+', '+l.state+'</span></td>':'')
+        +(col('address')?'<td style="font-size:11px;max-width:170px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+(l.address||'—')+'</td>':'')
+        +(col('landlord')?'<td style="font-size:11px;max-width:150px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+(l.landlord||'—')+'</td>':'')
+        +(col('sqft')?'<td style="font-family:var(--mono);white-space:nowrap">'+(l.sqft?l.sqft.toLocaleString():'—')+'</td>':'')
+        +(col('baseRent')?'<td style="font-family:var(--mono);white-space:nowrap">'+fmtMoney(l.baseRent)+'</td>':'')
+        +(col('cam')?'<td style="font-family:var(--mono);white-space:nowrap">'+(l.cam?fmtMoney(l.cam):'—')+'</td>':'')
+        +(col('rentSF')?'<td style="white-space:nowrap">'+(rsf!==null?'<span class="sf-badge">$'+rsf.toFixed(2)+'</span>':'—')+'</td>':'')
+        +(col('opexSF')?'<td style="white-space:nowrap">'+(osf!==null?'<span class="sf-badge opex">$'+osf.toFixed(2)+'</span>':'—')+'</td>':'')
+        +(col('totalRent')?'<td style="font-family:var(--mono);font-weight:500;white-space:nowrap">'+fmtMoney(totalRent(l))+'</td>':'')
+        +(col('totalSF')?'<td style="font-family:var(--mono);font-size:11px;white-space:nowrap">'+fmtSF(totalSF(l))+'</td>':'')
+        +(col('expires')?'<td style="font-family:var(--mono);font-size:11px;white-space:nowrap;color:'+expColor+'">'+expVal+'</td>':'')
+        +(col('notifyBy')?'<td style="font-family:var(--mono);font-size:11px;white-space:nowrap">'+(l.notifyDate?fmtDate(l.notifyDate):'—')+'</td>':'')
+        +(col('renewalAlert')?'<td style="font-family:var(--mono);font-size:11px;white-space:nowrap">'+(l.renewalNotifyDate?fmtMonthYear(l.renewalNotifyDate):'—')+'</td>':'')
+        +(col('rentInc')?'<td style="font-family:var(--mono);font-size:11px;white-space:nowrap">'+(l.rentIncDate?fmtDate(l.rentIncDate):'—')+'</td>':'')
+        +(col('newRent')?'<td style="font-family:var(--mono);font-size:11px;white-space:nowrap">'+(l.rentIncAmount?'$'+l.rentIncAmount:'—')+'</td>':'')
+        +(col('opexInc')?'<td style="font-family:var(--mono);font-size:11px;white-space:nowrap">'+(l.opexIncDate?fmtDate(l.opexIncDate):'—')+'</td>':'')
+        +(col('newOpex')?'<td style="font-family:var(--mono);font-size:11px;white-space:nowrap">'+(l.opexIncAmount?'$'+l.opexIncAmount:'—')+'</td>':'')
+        +(col('director')?'<td style="font-size:11px;max-width:130px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+dirHtml+'</td>':'')
+        +(col('rom')?'<td style="font-size:11px;max-width:130px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+romHtml+'</td>':'')
+        +(col('aim')?'<td style="font-size:11px;max-width:130px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+(l.aim?'<span style="font-weight:500">'+l.aim+'</span>'+(l.aimEmail?'<br><span style="font-size:10px;color:#6B3FA0">'+l.aimEmail+'</span>':''):'—')+'</td>':'')
+        +(col('brokerInfo')?'<td style="font-size:11px;max-width:140px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+(l.brokerInfo||'—')+'</td>':'')
+        +(col('landlordContact')?'<td style="font-size:11px;max-width:140px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+(l.landlordContact||'—')+'</td>':'')
+        +(col('payType')?'<td style="font-size:11px">'+(l.paymentType?'<span style="background:var(--surface2);border:1px solid var(--border);border-radius:4px;padding:2px 7px;font-size:10px">'+l.paymentType+'</span>':'—')+'</td>':'')
+        +(col('renewal')?'<td style="font-size:11px;max-width:160px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+(l.renewal||'—')+'</td>':'')
+        +(col('notes')?'<td style="font-size:11px;max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="'+(l.notes||'').replace(/"/g,'&quot;')+'">'+(l.notes||'—')+'</td>':'')
+        +(col('leaseStatus')?'<td style="font-size:11px;white-space:nowrap"><span class="status-badge '+(l.leaseStatus||'Active').toLowerCase()+'">'+(l.leaseStatus||'Active')+'</span></td>':'')
+        +(col('actions')?'<td><div class="row-actions"><button class="btn sm" onclick="openEditModal('+l.id+')">Edit</button><button class="btn sm" style="color:var(--danger)" onclick="deleteLease('+l.id+')">Del</button></div></td>':'')
+        +'</tr>';
+    }).join('') : '<tr><td colspan="30" class="empty">No leases found.</td></tr>')
+    +'</tbody>';
   syncScrollMirror(mirrorId, tableId);
 }
 

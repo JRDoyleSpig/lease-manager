@@ -106,6 +106,13 @@ body{font-family:var(--sans);background:var(--bg);color:var(--text);font-size:14
 .toggle-slider::before{content:'';position:absolute;width:14px;height:14px;left:3px;top:3px;background:#fff;border-radius:50%;transition:.2s}
 .toggle input:checked+.toggle-slider::before{transform:translateX(16px)}
 .hidden{display:none!important}
+.nav-sub{padding-left:28px;font-size:11px}
+.nav-expand-icon{margin-left:auto;font-size:10px;transition:transform .2s;color:var(--muted)}
+.nav-expand-icon.open{transform:rotate(90deg)}
+.nav-company-toggle{cursor:pointer}
+.status-badge{display:inline-block;padding:2px 8px;border-radius:10px;font-size:10px;font-weight:600}
+.status-badge.active{background:#E1F5EE;color:var(--accent)}
+.status-badge.inactive{background:#F0EEE8;color:var(--muted)}
 .empty{text-align:center;padding:40px;color:var(--muted);font-size:13px}
 .locnum-badge{display:inline-block;background:var(--surface2);border:1px solid var(--border);color:var(--text);font-family:var(--mono);font-size:11px;padding:2px 7px;border-radius:4px;font-weight:500;min-width:28px;text-align:center}
 
@@ -210,6 +217,14 @@ body{font-family:var(--sans);background:var(--bg);color:var(--text);font-size:14
     <svg class="nav-icon" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 16 16"><rect x="2" y="1" width="12" height="14" rx="1"/><line x1="5" y1="5" x2="11" y2="5"/><line x1="5" y1="8" x2="11" y2="8"/><line x1="5" y1="11" x2="9" y2="11"/></svg>
     <span class="nav-label"> All Leases</span>
   </div>
+  <div class="nav-item" data-view="active" onclick="showView('active',this)">
+    <svg class="nav-icon" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 16 16"><circle cx="8" cy="8" r="6"/><path d="M5 8l2 2 4-4"/></svg>
+    <span class="nav-label"> Active Leases</span>
+  </div>
+  <div class="nav-item" data-view="inactive" onclick="showView('inactive',this)">
+    <svg class="nav-icon" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 16 16"><circle cx="8" cy="8" r="6"/><line x1="5" y1="5" x2="11" y2="11"/><line x1="11" y1="5" x2="5" y2="11"/></svg>
+    <span class="nav-label"> Inactive Leases</span>
+  </div>
   <div class="nav-item" data-view="alerts" onclick="showView('alerts',this)">
     <svg class="nav-icon" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 16 16"><path d="M8 1a5 5 0 015 5v3l1.5 2.5H1.5L3 9V6a5 5 0 015-5z"/><path d="M6.5 13.5a1.5 1.5 0 003 0"/></svg>
     <span class="nav-label"> Alerts</span> <span class="nav-badge" id="alert-badge">0</span>
@@ -219,17 +234,35 @@ body{font-family:var(--sans);background:var(--bg);color:var(--text);font-size:14
     <span class="nav-label"> By Expiry</span>
   </div>
   <div class="sidebar-section">By Company</div>
-  <div class="nav-item" onclick="showCompany('spig',this)">
+  <!-- SPIG -->
+  <div class="nav-item nav-company-toggle" onclick="toggleCompanyExpand('spig')">
     <svg class="nav-icon" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 16 16"><rect x="1" y="3" width="14" height="10" rx="1"/><path d="M5 3V2a1 1 0 011-1h4a1 1 0 011 1v1"/></svg>
-    <span class="nav-label"> SPIG Leases</span>
+    <span class="nav-label"> SPIG</span>
+    <span class="nav-expand-icon" id="expand-spig">▶</span>
   </div>
-  <div class="nav-item" onclick="showCompany('pft',this)">
-    <svg class="nav-icon" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 16 16"><rect x="1" y="3" width="14" height="10" rx="1"/><path d="M5 3V2a1 1 0 011-1h4a1 1 0 011 1v1"/></svg>
-    <span class="nav-label"> PF&amp;T Leases</span>
+  <div class="nav-sub-group" id="sub-spig" style="display:none">
+    <div class="nav-item nav-sub" onclick="showCompanyStatus('spig','active',this)"><span class="nav-label"> ● Active</span></div>
+    <div class="nav-item nav-sub" onclick="showCompanyStatus('spig','inactive',this)"><span class="nav-label"> ○ Inactive</span></div>
   </div>
-  <div class="nav-item" onclick="showCompany('erx',this)">
+  <!-- PF&T -->
+  <div class="nav-item nav-company-toggle" onclick="toggleCompanyExpand('pft')">
     <svg class="nav-icon" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 16 16"><rect x="1" y="3" width="14" height="10" rx="1"/><path d="M5 3V2a1 1 0 011-1h4a1 1 0 011 1v1"/></svg>
-    <span class="nav-label"> ERX Leases</span>
+    <span class="nav-label"> PF&amp;T</span>
+    <span class="nav-expand-icon" id="expand-pft">▶</span>
+  </div>
+  <div class="nav-sub-group" id="sub-pft" style="display:none">
+    <div class="nav-item nav-sub" onclick="showCompanyStatus('pft','active',this)"><span class="nav-label"> ● Active</span></div>
+    <div class="nav-item nav-sub" onclick="showCompanyStatus('pft','inactive',this)"><span class="nav-label"> ○ Inactive</span></div>
+  </div>
+  <!-- ERX -->
+  <div class="nav-item nav-company-toggle" onclick="toggleCompanyExpand('erx')">
+    <svg class="nav-icon" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 16 16"><rect x="1" y="3" width="14" height="10" rx="1"/><path d="M5 3V2a1 1 0 011-1h4a1 1 0 011 1v1"/></svg>
+    <span class="nav-label"> ERX</span>
+    <span class="nav-expand-icon" id="expand-erx">▶</span>
+  </div>
+  <div class="nav-sub-group" id="sub-erx" style="display:none">
+    <div class="nav-item nav-sub" onclick="showCompanyStatus('erx','active',this)"><span class="nav-label"> ● Active</span></div>
+    <div class="nav-item nav-sub" onclick="showCompanyStatus('erx','inactive',this)"><span class="nav-label"> ○ Inactive</span></div>
   </div>
   <div class="sidebar-section">Settings</div>
   <div class="nav-item" data-view="staff" onclick="showView('staff',this)">
@@ -244,6 +277,39 @@ body{font-family:var(--sans);background:var(--bg);color:var(--text);font-size:14
 </div>
 
 <div class="content">
+
+<!-- ACTIVE LEASES -->
+<div id="view-active" class="hidden">
+  <div class="section-header" style="margin-bottom:6px">
+    <span class="section-title">Active Leases</span>
+    <div class="section-actions">
+      <input class="search-box" placeholder="Search..." id="active-search" oninput="renderStatusTable('active')" style="width:200px">
+      <select class="search-box" id="active-filter-status" onchange="renderStatusTable('active')">
+        <option value="">All statuses</option>
+        <option value="critical">Critical</option>
+        <option value="warning">Warning</option>
+        <option value="ok">OK</option>
+        <option value="mtm">Month-to-Month</option>
+      </select>
+    </div>
+  </div>
+  <div style="font-size:11px;color:var(--muted);margin-bottom:4px">Active leases only. Click column header to sort.</div>
+  <div class="scroll-mirror-wrap" id="mirror-active"><div class="scroll-mirror-inner"></div></div>
+  <div class="table-wrap" style="border-radius:0 0 var(--radius) var(--radius)"><table class="lease-table" id="active-table"></table></div>
+</div>
+
+<!-- INACTIVE LEASES -->
+<div id="view-inactive" class="hidden">
+  <div class="section-header" style="margin-bottom:6px">
+    <span class="section-title">Inactive Leases</span>
+    <div class="section-actions">
+      <input class="search-box" placeholder="Search..." id="inactive-search" oninput="renderStatusTable('inactive')" style="width:200px">
+    </div>
+  </div>
+  <div style="font-size:11px;color:var(--muted);margin-bottom:4px">Inactive leases only.</div>
+  <div class="scroll-mirror-wrap" id="mirror-inactive"><div class="scroll-mirror-inner"></div></div>
+  <div class="table-wrap" style="border-radius:0 0 var(--radius) var(--radius)"><table class="lease-table" id="inactive-table"></table></div>
+</div>
 
 <!-- DASHBOARD -->
 <div id="view-dashboard">
@@ -418,6 +484,12 @@ body{font-family:var(--sans);background:var(--bg);color:var(--text);font-size:14
     <div class="form-grid">
       <div class="form-group"><label class="form-label">Workroom # (Location ID)</label><input class="form-input" id="f-locnum" placeholder="e.g. 52 or 6.1 or PFT-R"></div>
       <div class="form-group"><label class="form-label">Location Name</label><input class="form-input" id="f-location" placeholder="e.g. Buffalo"></div>
+      <div class="form-group"><label class="form-label">Status</label>
+        <select class="form-input" id="f-status">
+          <option value="Active">Active</option>
+          <option value="Inactive">Inactive</option>
+        </select>
+      </div>
       <div class="form-group"><label class="form-label">Street Address</label><input class="form-input" id="f-address"></div>
       <div class="form-group"><label class="form-label">City</label><input class="form-input" id="f-city"></div>
       <div class="form-group"><label class="form-label">State</label><input class="form-input" id="f-state" maxlength="2"></div>
@@ -538,7 +610,7 @@ const ALL_COLS = [
   {id:'opexSF',   label:'OpEx $/SF',     def:true},
   {id:'totalRent',label:'Total Rent',    def:true},
   {id:'totalSF',  label:'Total $/SF',    def:true},
-  {id:'expires',  label:'Expires',              def:true},
+  {id:'leaseStatus', label:'Status',          def:true},
   {id:'notifyBy',      label:'Renewal Notice Deadline',    def:true},
   {id:'renewalAlert',  label:'Alert Month',                def:true},
   {id:'rentInc',  label:'Base Rent Inc',         def:true},
@@ -558,12 +630,12 @@ const ALL_COLS = [
 let visibleCols = {};
 function loadColPrefs(){
   try{
-    const s=localStorage.getItem('lm_cols_v5');
+    const s=localStorage.getItem('lm_cols_v6');
     if(s) visibleCols=JSON.parse(s);
     else { ALL_COLS.forEach(c=>visibleCols[c.id]=c.def); }
   }catch(e){ ALL_COLS.forEach(c=>visibleCols[c.id]=c.def); }
 }
-function saveColPrefs(){ try{localStorage.setItem('lm_cols_v5',JSON.stringify(visibleCols));}catch(e){} }
+function saveColPrefs(){ try{localStorage.setItem('lm_cols_v6',JSON.stringify(visibleCols));}catch(e){} }
 function col(id){ return visibleCols[id]!==false; }
 // ── LEASE DOCUMENTS ──────────────────────────────────────────────────────────
 
@@ -826,7 +898,8 @@ function updateEditControls() {
 function leaseToSP(l) {
   const payload = {
     "__metadata": {"type":"SP.Data.Lease_x0020_ManagerListItem"},
-    "Title": l.location||"", "Location": l.location||"", "Address": l.address||"",
+    "Title": l.location||"", "Location": l.location||"",
+    "LeaseStatus": l.leaseStatus||"Active", "Address": l.address||"",
     "City": l.city||"", "State": l.state||"", "Zip": l.zip||"", "LocNum": l.locNum||"",
     "ExpiryDate": (l.expiryDate&&l.expiryDate!=="Month to Month")?l.expiryDate+"T12:00:00Z":null,
     "NotifyDate": l.notifyDate?l.notifyDate+"T12:00:00Z":null,
@@ -872,6 +945,7 @@ function spToLease(item) {
   const finalCamDetail = camDetail || (breakdown === 0 ? existingCAM : 0);
   const finalCam       = breakdown > 0 ? breakdown : existingCAM;
   return { id:item.Id, _spId:item.Id, location:item.Location||item.Title||"",
+    leaseStatus:item.LeaseStatus||"Active",
     address:item.Address||"", city:item.City||"", state:item.State||"",
     zip:item.Zip||"", locNum:item.LocNum||"", sqft:item.SqFt||0,
     baseRent:item.BaseRent||0, cam:finalCam,
@@ -896,10 +970,13 @@ function spToLease(item) {
 async function ensureColumns(token) {
   const SP_FIELDS_API = SP_SITE + "/_api/web/lists/getbytitle('Lease%20Manager')/fields";
   const NEW_COLS = [
-    { name:'AIM',         type:'Text' },
-    { name:'AIMEmail',    type:'Text' },
-    { name:'BrokerInfo',  type:'Note' },
-    { name:'PaymentType', type:'Text' },
+    { name:'AIM',               type:'Text' },
+    { name:'AIMEmail',          type:'Text' },
+    { name:'BrokerInfo',        type:'Text' },
+    { name:'PaymentType',       type:'Text' },
+    { name:'LandlordContact',   type:'Text' },
+    { name:'RenewalNotifyDate', type:'DateTime' },
+    { name:'LeaseStatus',       type:'Text' },
   ];
   // Fetch existing field names
   let existingNames = [];
@@ -1050,6 +1127,7 @@ const SORT_KEYS={
   if(!isNaN(whole)) return whole*10000+sub;
   return 8000000000;
 },
+  leaseStatus:l=>(l.leaseStatus||'Active').toLowerCase(),
   location:l=>(l.location||l.city||'').toLowerCase(),
   address:l=>(l.address||'').toLowerCase(),
   state:l=>(l.state||'').toLowerCase(),
@@ -1103,6 +1181,7 @@ function getStatus(l){
 }
 
 function getAlerts(l){
+  if((l.leaseStatus||'Active')==='Inactive') return [];
   const a=[],pd=notifSettings.preDays,rd=notifSettings.reviewMonths*30;
   const ex=getDays(l.expiryDate),no=getDays(l.notifyDate),ri=getDays(l.rentIncDate),rn=getDays(l.renewalNotifyDate);
   if(notifSettings.triggers.leaseExpiry&&ex!==null&&ex>=0&&ex<=rd)
@@ -1121,17 +1200,18 @@ function getAlerts(l){
 
 // ── RENDER FUNCTIONS ─────────────────────────────────────────────────────────
 function renderStats(){
-  const crit=leases.filter(l=>getStatus(l)==='critical').length;
-  const warn=leases.filter(l=>getStatus(l)==='warning').length;
-  const mtm=leases.filter(l=>l.expiryDate==='Month to Month').length;
-  const spigCount=leases.filter(l=>getCompany(l)==='spig').length;
-  const pftCount=leases.filter(l=>getCompany(l)==='pft').length;
-  const erxCount=leases.filter(l=>getCompany(l)==='erx').length;
+  const activeLeases = leases.filter(l=>(l.leaseStatus||'Active')==='Active');
+  const crit=activeLeases.filter(l=>getStatus(l)==='critical').length;
+  const warn=activeLeases.filter(l=>getStatus(l)==='warning').length;
+  const mtm=activeLeases.filter(l=>l.expiryDate==='Month to Month').length;
+  const spigCount=activeLeases.filter(l=>getCompany(l)==='spig').length;
+  const pftCount=activeLeases.filter(l=>getCompany(l)==='pft').length;
+  const erxCount=activeLeases.filter(l=>getCompany(l)==='erx').length;
 
-  // Per-company rent totals
+  // Per-company rent totals (active only)
   const companies = ['spig','pft','erx'];
   const labels = {spig:'SPIG', pft:'PF&T', erx:'ERX'};
-  function companyRent(co, field){ return leases.filter(l=>getCompany(l)===co).reduce((s,l)=>s+(Number(l[field])||0),0); }
+  function companyRent(co, field){ return activeLeases.filter(l=>getCompany(l)===co).reduce((s,l)=>s+(Number(l[field])||0),0); }
   function fmt(n){ return n>=1000?'$'+Math.round(n/1000)+'k':'$'+Math.round(n); }
 
   const baseRows = companies.map(co=>`<div style="display:flex;justify-content:space-between;font-size:11px;padding:2px 0"><span style="color:var(--muted)">${labels[co]}</span><span style="font-family:var(--mono);font-weight:500">${fmt(companyRent(co,'baseRent'))}</span></div>`).join('');
@@ -1225,6 +1305,7 @@ function renderLeaseTable(){
     +(col('opexSF')?thSort('opexSF','OpEx $/SF'):'')
     +(col('totalRent')?thSort('totalRent','Total Rent'):'')
     +(col('totalSF')?thSort('totalSF','Total $/SF'):'')
+    +(col('leaseStatus')?thSort('leaseStatus','Status'):'')
     +(col('expires')?thSort('expiryDate','Expires'):'')
     +(col('notifyBy')?thSort('notifyDate','Renewal Notice Deadline'):'')
     +(col('renewalAlert')?'<th>Alert Month</th>':'')
@@ -1265,6 +1346,7 @@ function renderLeaseTable(){
       +(col('opexSF')?'<td style="white-space:nowrap">'+osfHtml+'</td>':'')
       +(col('totalRent')?'<td style="font-family:var(--mono);white-space:nowrap;font-weight:500">'+fmtMoney(totalRent(l))+'</td>':'')
       +(col('totalSF')?'<td style="white-space:nowrap">'+(totalSF(l)!==null?'<span class="sf-badge" style="background:var(--warn-light);color:var(--warn)">$'+totalSF(l).toFixed(2)+'</span>':'<span style="color:var(--muted);font-size:11px">—</span>')+'</td>':'')
+      +(col('leaseStatus')?'<td style="font-size:11px;white-space:nowrap"><span class="status-badge '+(l.leaseStatus||'Active').toLowerCase()+'">'+(l.leaseStatus||'Active')+'</span></td>':'')
       +(col('expires')?'<td style="font-family:var(--mono);font-size:11px;white-space:nowrap;color:'+expColor+'">'+expVal+'</td>':'')
       +(col('notifyBy')?'<td style="font-family:var(--mono);font-size:11px;white-space:nowrap">'+(l.notifyDate?fmtDate(l.notifyDate):'—')+'</td>':'')
       +(col('renewalAlert')?'<td style="font-family:var(--mono);font-size:11px;white-space:nowrap">'+(l.renewalNotifyDate?fmtMonthYear(l.renewalNotifyDate):'—')+'</td>':'')
@@ -1447,6 +1529,7 @@ function openAddModal(){
     const e=document.getElementById(id); if(e)e.value='';
   });
   const pt=document.getElementById('f-payment-type'); if(pt) pt.value='';
+  const st=document.getElementById('f-status'); if(st) st.value='Active';
   populateStaffDropdowns();
   updateCamTotal();
   currentDocs = [];
@@ -1465,6 +1548,7 @@ function openEditModal(id){
     e.value=(v===null||v===undefined||v==='Month to Month'||v==='undefined')?'':v;
   });
   const pt=document.getElementById('f-payment-type'); if(pt) pt.value=l.paymentType||'';
+  const st=document.getElementById('f-status'); if(st) st.value=l.leaseStatus||'Active';
   // Auto-calculate Internal Renewal Alert Date from existing Notify Date
   autoCalcRenewalAlert();
   populateStaffDropdowns();
@@ -1498,6 +1582,7 @@ function saveLease(){
     brokerInfo:g('f-broker-info'),
     landlordContact:g('f-landlord-contact'),
     paymentType:g('f-payment-type'),
+    leaseStatus:g('f-status')||'Active',
     notes:g('f-notes'),
     leaseDocs:currentDocs,
     leaseDocs: currentDocs,
@@ -1519,9 +1604,52 @@ async function deleteLease(id){
   leases=leases.filter(x=>x.id!==id); saveData(); renderAll();
 }
 
+function toggleCompanyExpand(co){
+  const sub = document.getElementById('sub-'+co);
+  const icon = document.getElementById('expand-'+co);
+  if(!sub) return;
+  const open = sub.style.display === 'none';
+  sub.style.display = open ? 'block' : 'none';
+  if(icon) icon.classList.toggle('open', open);
+}
+
+function showCompanyStatus(co, status, el){
+  currentCompany = co;
+  currentCompanyStatus = status;
+  document.querySelectorAll('.content > div[id^="view-"]').forEach(v=>v.classList.add('hidden'));
+  document.querySelectorAll('.nav-item').forEach(n=>n.classList.remove('active'));
+  const view = document.getElementById('view-company');
+  if(view) view.classList.remove('hidden');
+  if(el) el.classList.add('active');
+  const title = document.getElementById('company-view-title');
+  const coLabel = co==='pft'?'PF&T':co==='erx'?'ERX':'SPIG';
+  const statusLabel = status==='active'?'Active':'Inactive';
+  if(title) title.textContent = `${coLabel} — ${statusLabel} Leases`;
+  renderCompanyTable();
+}
+
+function renderStatusTable(status){
+  const tableId = status+'-table';
+  const mirrorId = 'mirror-'+status;
+  const tbl = document.getElementById(tableId);
+  if(!tbl) return;
+  const search = (document.getElementById(status+'-search')?.value||'').toLowerCase();
+  const fs = document.getElementById(status+'-filter-status')?.value||'';
+  let rows = leases.filter(l=>{
+    if((l.leaseStatus||'Active')!==status.charAt(0).toUpperCase()+status.slice(1)) return false;
+    if(search&&!`${l.locNum||''} ${l.location} ${l.address} ${l.landlord||''}`.toLowerCase().includes(search)) return false;
+    if(fs&&getStatus(l)!==fs) return false;
+    return true;
+  });
+  rows = sortLeases(rows);
+  tbl.innerHTML = buildTableHeader('setSortCol') + '<tbody>' + (rows.length ? rows.map(buildTableRow).join('') : '<tr><td colspan="30" class="empty">No leases found.</td></tr>') + '</tbody>';
+  syncScrollMirror(mirrorId, tableId);
+}
+
 function showView(name, el){
-  ['dashboard','leases','alerts','expiring','staff','notifications','company'].forEach(v=>{
-    document.getElementById('view-'+v).classList.toggle('hidden',v!==name);
+  ['dashboard','leases','active','inactive','alerts','expiring','staff','notifications','company'].forEach(v=>{
+    const el2=document.getElementById('view-'+v);
+    if(el2) el2.classList.toggle('hidden',v!==name);
   });
   document.querySelectorAll('.nav-item').forEach(n=>n.classList.remove('active'));
   if(el)el.classList.add('active');
@@ -1530,6 +1658,8 @@ function showView(name, el){
   if(name==='staff'){renderStaffView();}
   if(name==='alerts')renderAllAlerts();
   if(name==='leases')renderLeaseTable();
+  if(name==='active')renderStatusTable('active');
+  if(name==='inactive')renderStatusTable('inactive');
   if(name==='expiring')renderExpiryView();
 }
 
@@ -1683,6 +1813,7 @@ function deleteStaff(id){
 
 
 let currentCompany = 'spig';
+let currentCompanyStatus = 'active';
 
 function getCompany(l){
   const n = (l.locNum||'').trim();
@@ -1711,6 +1842,7 @@ function renderCompanyTable(){
 
   let rows = leases.filter(l=>{
     if(getCompany(l) !== currentCompany) return false;
+    if((l.leaseStatus||'Active') !== (currentCompanyStatus==='active'?'Active':'Inactive')) return false;
     if(search && !`${l.locNum||''} ${l.location} ${l.address} ${l.city} ${l.state} ${l.landlord} ${l.director||''} ${l.rom||''}`.toLowerCase().includes(search)) return false;
     if(fs && getStatus(l) !== fs) return false;
     return true;

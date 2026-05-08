@@ -1204,7 +1204,15 @@ const SORT_KEYS={
   expiryDate:l=>l.expiryDate==='Month to Month'?'9999-12-31':(l.expiryDate||'9999-12-31'),
   notifyDate:l=>l.notifyDate||'9999-12-31',
   rentIncDate:l=>l.rentIncDate||'9999-12-31',
+  renewalAlert:l=>l.renewalNotifyDate||'9999-12-31',
   opexIncDate:l=>l.opexIncDate||'9999-12-31',
+  newRent:l=>parseFloat(l.rentIncAmount)||0,
+  newOpex:l=>parseFloat(l.opexIncAmount)||0,
+  brokerInfo:l=>(l.brokerInfo||'').toLowerCase(),
+  landlordContact:l=>(l.landlordContact||'').toLowerCase(),
+  payType:l=>(l.paymentType||'').toLowerCase(),
+  renewal:l=>(l.renewal||'').toLowerCase(),
+  notes:l=>(l.notes||'').toLowerCase(),
   status:l=>({critical:0,warning:1,ok:2,mtm:3,expired:4}[getStatus(l)]||0),
 };
 function sortLeases(rows){
@@ -1374,19 +1382,19 @@ function renderLeaseTable(){
     +(col('totalSF')?thSort('totalSF','Total $/SF'):'')
     +(col('expires')?thSort('expiryDate','Expires'):'')
     +(col('notifyBy')?thSort('notifyDate','Renewal Notice Deadline'):'')
-    +(col('renewalAlert')?'<th>Alert Month</th>':'')
+    +(col('renewalAlert')?thSort('renewalAlert','Alert Month'):'')
     +(col('rentInc')?thSort('rentIncDate','Base Rent Inc'):'')
-    +(col('newRent')?'<th>New Base Rent</th>':'')
+    +(col('newRent')?thSort('newRent','New Base Rent'):'')
     +(col('opexInc')?thSort('opexIncDate','OpEx Inc'):'')
-    +(col('newOpex')?'<th>New OpEx</th>':'')
+    +(col('newOpex')?thSort('newOpex','New OpEx'):'')
     +(col('director')?thSort('director','Director'):'')
     +(col('rom')?thSort('rom','ROM'):'')
     +(col('aim')?thSort('aim','AIM'):'')
-    +(col('brokerInfo')?'<th>Broker Info</th>':'')
-    +(col('landlordContact')?'<th>Landlord Contact</th>':'')
-    +(col('payType')?'<th>Payment Type</th>':'')
-    +(col('renewal')?'<th>Renewal Terms</th>':'')
-    +(col('notes')?'<th>Notes</th>':'')
+    +(col('brokerInfo')?thSort('brokerInfo','Broker Info'):'')
+    +(col('landlordContact')?thSort('landlordContact','Landlord Contact'):'')
+    +(col('payType')?thSort('payType','Payment Type'):'')
+    +(col('renewal')?thSort('renewal','Renewal Terms'):'')
+    +(col('notes')?thSort('notes','Notes'):'')
     +(col('leaseStatus')?thSort('leaseStatus','Status'):'')
     +(col('actions')?'<th></th>':'')
     +'</tr></thead><tbody>'+
@@ -1760,20 +1768,20 @@ function renderStatusTable(status){
     +(col('totalSF')?thSortS('totalSF','Total $/SF'):'')
     +(col('expires')?thSortS('expiryDate','Expires'):'')
     +(col('notifyBy')?thSortS('notifyDate','Renewal Notice Deadline'):'')
-    +(col('renewalAlert')?'<th>Alert Month</th>':'')
+    +(col('renewalAlert')?thSortS('renewalAlert','Alert Month'):'')
     +(col('rentInc')?thSortS('rentIncDate','Base Rent Inc'):'')
-    +(col('newRent')?'<th>New Base Rent</th>':'')
+    +(col('newRent')?thSort('newRent','New Base Rent'):'')
     +(col('opexInc')?thSortS('opexIncDate','OpEx Inc'):'')
-    +(col('newOpex')?'<th>New OpEx</th>':'')
+    +(col('newOpex')?thSort('newOpex','New OpEx'):'')
     +(col('director')?thSortS('director','Director'):'')
     +(col('rom')?thSortS('rom','ROM'):'')
     +(col('aim')?thSortS('aim','AIM'):'')
-    +(col('brokerInfo')?'<th>Broker Info</th>':'')
-    +(col('landlordContact')?'<th>Landlord Contact</th>':'')
-    +(col('payType')?'<th>Payment Type</th>':'')
-    +(col('renewal')?'<th>Renewal Terms</th>':'')
-    +(col('notes')?'<th>Notes</th>':'')
-    +(col('leaseStatus')?'<th>Status</th>':'')
+    +(col('brokerInfo')?thSort('brokerInfo','Broker Info'):'')
+    +(col('landlordContact')?thSort('landlordContact','Landlord Contact'):'')
+    +(col('payType')?thSort('payType','Payment Type'):'')
+    +(col('renewal')?thSort('renewal','Renewal Terms'):'')
+    +(col('notes')?thSort('notes','Notes'):'')
+    +(col('leaseStatus')?thSortS('leaseStatus','Status'):'')
     +(col('actions')?'<th></th>':'')
     +'</tr></thead><tbody>'
     +(rows.length ? rows.map(l=>{

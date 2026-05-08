@@ -282,14 +282,23 @@ body{font-family:var(--sans);background:var(--bg);color:var(--text);font-size:14
 <div id="view-active" class="hidden">
   <div class="section-header" style="margin-bottom:6px">
     <span class="section-title">Active Leases</span>
-    <div class="section-actions">
-      <input class="search-box" placeholder="Search..." id="active-search" oninput="renderStatusTable('active')" style="width:200px">
+    <div class="section-actions" style="flex-wrap:wrap;gap:6px">
+      <input class="search-box" placeholder="Search location, address, landlord..." id="active-search" oninput="renderStatusTable('active')" style="width:200px">
       <select class="search-box" id="active-filter-status" onchange="renderStatusTable('active')">
         <option value="">All statuses</option>
         <option value="critical">Critical</option>
         <option value="warning">Warning</option>
         <option value="ok">OK</option>
         <option value="mtm">Month-to-Month</option>
+      </select>
+      <select class="search-box" id="active-filter-director" onchange="renderStatusTable('active')" style="max-width:150px"><option value="">All Directors</option></select>
+      <select class="search-box" id="active-filter-rom" onchange="renderStatusTable('active')" style="max-width:130px"><option value="">All ROMs</option></select>
+      <select class="search-box" id="active-filter-aim" onchange="renderStatusTable('active')" style="max-width:130px"><option value="">All AIMs</option></select>
+      <select class="search-box" id="active-filter-company" onchange="renderStatusTable('active')" style="max-width:120px">
+        <option value="">All Companies</option>
+        <option value="spig">SPIG</option>
+        <option value="pft">PF&T</option>
+        <option value="erx">ERX</option>
       </select>
     </div>
   </div>
@@ -302,11 +311,20 @@ body{font-family:var(--sans);background:var(--bg);color:var(--text);font-size:14
 <div id="view-inactive" class="hidden">
   <div class="section-header" style="margin-bottom:6px">
     <span class="section-title">Inactive Leases</span>
-    <div class="section-actions">
-      <input class="search-box" placeholder="Search..." id="inactive-search" oninput="renderStatusTable('inactive')" style="width:200px">
+    <div class="section-actions" style="flex-wrap:wrap;gap:6px">
+      <input class="search-box" placeholder="Search location, address, landlord..." id="inactive-search" oninput="renderStatusTable('inactive')" style="width:200px">
+      <select class="search-box" id="inactive-filter-director" onchange="renderStatusTable('inactive')" style="max-width:150px"><option value="">All Directors</option></select>
+      <select class="search-box" id="inactive-filter-rom" onchange="renderStatusTable('inactive')" style="max-width:130px"><option value="">All ROMs</option></select>
+      <select class="search-box" id="inactive-filter-aim" onchange="renderStatusTable('inactive')" style="max-width:130px"><option value="">All AIMs</option></select>
+      <select class="search-box" id="inactive-filter-company" onchange="renderStatusTable('inactive')" style="max-width:120px">
+        <option value="">All Companies</option>
+        <option value="spig">SPIG</option>
+        <option value="pft">PF&T</option>
+        <option value="erx">ERX</option>
+      </select>
     </div>
   </div>
-  <div style="font-size:11px;color:var(--muted);margin-bottom:4px">Inactive leases only.</div>
+  <div style="font-size:11px;color:var(--muted);margin-bottom:4px">Inactive leases only. Click column header to sort.</div>
   <div class="scroll-mirror-wrap" id="mirror-inactive"><div class="scroll-mirror-inner"></div></div>
   <div class="table-wrap" style="border-radius:0 0 var(--radius) var(--radius)"><table class="lease-table" id="inactive-table"></table></div>
 </div>
@@ -353,6 +371,17 @@ body{font-family:var(--sans);background:var(--bg);color:var(--text);font-size:14
       </select>
       <select class="search-box" id="filter-aim" onchange="renderLeaseTable()" style="max-width:140px">
         <option value="">All AIMs</option>
+      </select>
+      <select class="search-box" id="filter-company" onchange="renderLeaseTable()" style="max-width:130px">
+        <option value="">All Companies</option>
+        <option value="spig">SPIG</option>
+        <option value="pft">PF&T</option>
+        <option value="erx">ERX</option>
+      </select>
+      <select class="search-box" id="filter-lease-status" onchange="renderLeaseTable()" style="max-width:130px">
+        <option value="">Active &amp; Inactive</option>
+        <option value="active">Active Only</option>
+        <option value="inactive">Inactive Only</option>
       </select>
       <div style="position:relative">
         <button class="col-toggle-btn" onclick="toggleColPicker()">⊞ Columns</button>
@@ -630,12 +659,12 @@ const ALL_COLS = [
 let visibleCols = {};
 function loadColPrefs(){
   try{
-    const s=localStorage.getItem('lm_cols_v6');
+    const s=localStorage.getItem('lm_cols_v7');
     if(s) visibleCols=JSON.parse(s);
     else { ALL_COLS.forEach(c=>visibleCols[c.id]=c.def); }
   }catch(e){ ALL_COLS.forEach(c=>visibleCols[c.id]=c.def); }
 }
-function saveColPrefs(){ try{localStorage.setItem('lm_cols_v6',JSON.stringify(visibleCols));}catch(e){} }
+function saveColPrefs(){ try{localStorage.setItem('lm_cols_v7',JSON.stringify(visibleCols));}catch(e){} }
 function col(id){ return visibleCols[id]!==false; }
 // ── LEASE DOCUMENTS ──────────────────────────────────────────────────────────
 
@@ -1181,7 +1210,7 @@ function getStatus(l){
 }
 
 function getAlerts(l){
-  if((l.leaseStatus||'Active')==='Inactive') return [];
+  if((l.leaseStatus||'Active').toLowerCase()==='inactive') return [];
   const a=[],pd=notifSettings.preDays,rd=notifSettings.reviewMonths*30;
   const ex=getDays(l.expiryDate),no=getDays(l.notifyDate),ri=getDays(l.rentIncDate),rn=getDays(l.renewalNotifyDate);
   if(notifSettings.triggers.leaseExpiry&&ex!==null&&ex>=0&&ex<=rd)
@@ -1200,7 +1229,7 @@ function getAlerts(l){
 
 // ── RENDER FUNCTIONS ─────────────────────────────────────────────────────────
 function renderStats(){
-  const activeLeases = leases.filter(l=>(l.leaseStatus||'Active')==='Active');
+  const activeLeases = leases.filter(l=>(l.leaseStatus||'Active').toLowerCase()==='active');
   const crit=activeLeases.filter(l=>getStatus(l)==='critical').length;
   const warn=activeLeases.filter(l=>getStatus(l)==='warning').length;
   const mtm=activeLeases.filter(l=>l.expiryDate==='Month to Month').length;
@@ -1262,6 +1291,8 @@ function renderLeaseTable(){
   const fd=(document.getElementById('filter-director')||{value:''}).value;
   const fr=(document.getElementById('filter-rom')||{value:''}).value;
   const fa=(document.getElementById('filter-aim')||{value:''}).value;
+  const fc=(document.getElementById('filter-company')||{value:''}).value;
+  const fls=(document.getElementById('filter-lease-status')||{value:''}).value;
 
   // Populate director/rom/aim dropdowns dynamically
   const dSel=document.getElementById('filter-director');
@@ -1289,6 +1320,8 @@ function renderLeaseTable(){
     if(fd&&(l.director||'')!==fd)return false;
     if(fr&&(l.rom||'')!==fr)return false;
     if(fa&&(l.aim||'')!==fa)return false;
+    if(fc&&getCompany(l)!==fc)return false;
+    if(fls&&(l.leaseStatus||'Active').toLowerCase()!==fls)return false;
     return true;
   });
   rows=sortLeases(rows);
@@ -1305,7 +1338,6 @@ function renderLeaseTable(){
     +(col('opexSF')?thSort('opexSF','OpEx $/SF'):'')
     +(col('totalRent')?thSort('totalRent','Total Rent'):'')
     +(col('totalSF')?thSort('totalSF','Total $/SF'):'')
-    +(col('leaseStatus')?thSort('leaseStatus','Status'):'')
     +(col('expires')?thSort('expiryDate','Expires'):'')
     +(col('notifyBy')?thSort('notifyDate','Renewal Notice Deadline'):'')
     +(col('renewalAlert')?'<th>Alert Month</th>':'')
@@ -1321,6 +1353,7 @@ function renderLeaseTable(){
     +(col('payType')?'<th>Payment Type</th>':'')
     +(col('renewal')?'<th>Renewal Terms</th>':'')
     +(col('notes')?'<th>Notes</th>':'')
+    +(col('leaseStatus')?thSort('leaseStatus','Status'):'')
     +(col('actions')?'<th></th>':'')
     +'</tr></thead><tbody>'+
   rows.map(l=>{
@@ -1346,7 +1379,6 @@ function renderLeaseTable(){
       +(col('opexSF')?'<td style="white-space:nowrap">'+osfHtml+'</td>':'')
       +(col('totalRent')?'<td style="font-family:var(--mono);white-space:nowrap;font-weight:500">'+fmtMoney(totalRent(l))+'</td>':'')
       +(col('totalSF')?'<td style="white-space:nowrap">'+(totalSF(l)!==null?'<span class="sf-badge" style="background:var(--warn-light);color:var(--warn)">$'+totalSF(l).toFixed(2)+'</span>':'<span style="color:var(--muted);font-size:11px">—</span>')+'</td>':'')
-      +(col('leaseStatus')?'<td style="font-size:11px;white-space:nowrap"><span class="status-badge '+(l.leaseStatus||'Active').toLowerCase()+'">'+(l.leaseStatus||'Active')+'</span></td>':'')
       +(col('expires')?'<td style="font-family:var(--mono);font-size:11px;white-space:nowrap;color:'+expColor+'">'+expVal+'</td>':'')
       +(col('notifyBy')?'<td style="font-family:var(--mono);font-size:11px;white-space:nowrap">'+(l.notifyDate?fmtDate(l.notifyDate):'—')+'</td>':'')
       +(col('renewalAlert')?'<td style="font-family:var(--mono);font-size:11px;white-space:nowrap">'+(l.renewalNotifyDate?fmtMonthYear(l.renewalNotifyDate):'—')+'</td>':'')
@@ -1362,6 +1394,7 @@ function renderLeaseTable(){
       +(col('payType')?'<td style="font-size:11px">'+(l.paymentType?'<span style="background:var(--surface2);border:1px solid var(--border);border-radius:4px;padding:2px 7px;font-size:10px">'+l.paymentType+'</span>':'—')+'</td>':'')
       +(col('renewal')?'<td style="font-size:11px;max-width:160px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+(l.renewal||'—')+'</td>':'')
       +(col('notes')?'<td style="font-size:11px;max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="'+(l.notes||'').replace(/"/g,'&quot;')+'">'+(l.notes||'—')+'</td>':'')
+      +(col('leaseStatus')?'<td style="font-size:11px;white-space:nowrap"><span class="status-badge '+(l.leaseStatus||'Active').toLowerCase()+'">'+(l.leaseStatus||'Active')+'</span></td>':'')
       +(col('actions')?'<td style="position:relative"><div class="row-actions">'+(l.leaseDocs&&l.leaseDocs.length?'<button class="btn sm" onclick="openDocsMenu('+l.id+',this)" title="Documents">📄 '+l.leaseDocs.length+'</button>':'')+'<button class="btn sm" onclick="openEditModal('+l.id+')">Edit</button><button class="btn sm" style="color:var(--danger)" onclick="deleteLease('+l.id+')">Del</button></div></td>':'')
       +'</tr>';
   }).join('')+'</tbody>';
@@ -1635,10 +1668,29 @@ function renderStatusTable(status){
   if(!tbl) return;
   const search = (document.getElementById(status+'-search')?.value||'').toLowerCase();
   const fs = document.getElementById(status+'-filter-status')?.value||'';
-  let rows = leases.filter(l=>{
-    if((l.leaseStatus||'Active')!==status.charAt(0).toUpperCase()+status.slice(1)) return false;
+  const fd = document.getElementById(status+'-filter-director')?.value||'';
+  const fr = document.getElementById(status+'-filter-rom')?.value||'';
+  const fa = document.getElementById(status+'-filter-aim')?.value||'';
+  const fc = document.getElementById(status+'-filter-company')?.value||'';
+
+  // Populate dropdowns dynamically
+  const statusLeases = leases.filter(l=>(l.leaseStatus||'Active').toLowerCase()===status);
+  ['director','rom','aim'].forEach(role=>{
+    const sel = document.getElementById(status+'-filter-'+role);
+    if(!sel) return;
+    const vals = [...new Set(statusLeases.map(l=>l[role]||'').filter(Boolean))].sort();
+    const cur = sel.value;
+    const label = role.charAt(0).toUpperCase()+role.slice(1)+'s';
+    sel.innerHTML = `<option value="">All ${label}</option>`+vals.map(v=>`<option value="${v}" ${v===cur?'selected':''}>${v}</option>`).join('');
+  });
+
+  let rows = statusLeases.filter(l=>{
     if(search&&!`${l.locNum||''} ${l.location} ${l.address} ${l.landlord||''}`.toLowerCase().includes(search)) return false;
     if(fs&&getStatus(l)!==fs) return false;
+    if(fd&&(l.director||'')!==fd) return false;
+    if(fr&&(l.rom||'')!==fr) return false;
+    if(fa&&(l.aim||'')!==fa) return false;
+    if(fc&&getCompany(l)!==fc) return false;
     return true;
   });
   rows = sortLeases(rows);
@@ -1842,7 +1894,7 @@ function renderCompanyTable(){
 
   let rows = leases.filter(l=>{
     if(getCompany(l) !== currentCompany) return false;
-    if((l.leaseStatus||'Active') !== (currentCompanyStatus==='active'?'Active':'Inactive')) return false;
+    if((l.leaseStatus||'Active').toLowerCase() !== currentCompanyStatus.toLowerCase()) return false;
     if(search && !`${l.locNum||''} ${l.location} ${l.address} ${l.city} ${l.state} ${l.landlord} ${l.director||''} ${l.rom||''}`.toLowerCase().includes(search)) return false;
     if(fs && getStatus(l) !== fs) return false;
     return true;

@@ -551,7 +551,15 @@ body{font-family:var(--sans);background:var(--bg);color:var(--text);font-size:14
     </div>
     <div class="form-section">Lease Dates</div>
     <div class="form-grid">
-      <div class="form-group"><label class="form-label">Lease Expiration</label><input class="form-input" type="date" id="f-expiry"></div>
+      <div class="form-group">
+        <label class="form-label">Lease Expiration</label>
+        <div style="display:flex;align-items:center;gap:10px">
+          <input class="form-input" type="date" id="f-expiry" style="flex:1" oninput="if(this.value){document.getElementById('f-mtm').checked=false;}">
+          <label style="display:flex;align-items:center;gap:5px;font-size:12px;white-space:nowrap;cursor:pointer">
+            <input type="checkbox" id="f-mtm" onchange="toggleMTM(this.checked)"> Month-to-Month
+          </label>
+        </div>
+      </div>
       <div class="form-group"><label class="form-label">Renewal Notice Deadline</label><input class="form-input" type="date" id="f-notify" oninput="autoCalcRenewalAlert()"></div>
       <div class="form-group"><label class="form-label">Renewal Option / Terms</label><input class="form-input" id="f-renewal" placeholder="e.g. 5-year option, 90-day notice"></div>
       <div class="form-group"><label class="form-label">Internal Renewal Alert Date <span style="font-size:10px;color:var(--muted)">(auto: 20th of prior month)</span></label><input class="form-input" type="date" id="f-renewal-notify" style="background:var(--surface2);color:var(--muted)" readonly></div>
@@ -826,6 +834,25 @@ function calcAlertDate(notifyDate){
   let y = d.getFullYear();
   if(m < 0){ m = 11; y--; }
   return `${y}-${String(m+1).padStart(2,'0')}-20`;
+}
+
+function toggleMTM(checked){
+  const expiry = document.getElementById('f-expiry');
+  const notify = document.getElementById('f-notify');
+  const renewalNotify = document.getElementById('f-renewal-notify');
+  if(checked){
+    expiry.value = '';
+    expiry.disabled = true;
+    expiry.style.background = 'var(--surface2)';
+    expiry.style.color = 'var(--muted)';
+    if(notify) { notify.value=''; notify.disabled=true; notify.style.background='var(--surface2)'; }
+    if(renewalNotify) { renewalNotify.value=''; }
+  } else {
+    expiry.disabled = false;
+    expiry.style.background = '';
+    expiry.style.color = '';
+    if(notify) { notify.disabled=false; notify.style.background=''; }
+  }
 }
 
 function autoCalcRenewalAlert(){
@@ -1570,6 +1597,7 @@ function openAddModal(){
   });
   const pt=document.getElementById('f-payment-type'); if(pt) pt.value='';
   const st=document.getElementById('f-status'); if(st) st.value='Active';
+  const mtm=document.getElementById('f-mtm'); if(mtm){ mtm.checked=false; toggleMTM(false); }
   populateStaffDropdowns();
   updateCamTotal();
   currentDocs = [];
@@ -1589,6 +1617,9 @@ function openEditModal(id){
   });
   const pt=document.getElementById('f-payment-type'); if(pt) pt.value=l.paymentType||'';
   const st=document.getElementById('f-status'); if(st) st.value=l.leaseStatus||'Active';
+  const isMTM = l.expiryDate==='Month to Month'||!l.expiryDate;
+  const mtm=document.getElementById('f-mtm');
+  if(mtm){ mtm.checked=isMTM; toggleMTM(isMTM); }
   // Auto-calculate Internal Renewal Alert Date from existing Notify Date
   autoCalcRenewalAlert();
   populateStaffDropdowns();
@@ -1602,6 +1633,9 @@ function closeModal(){ document.getElementById('modal').classList.remove('open')
 
 function saveLease(){
   const g=id=>document.getElementById(id)?.value||'';
+  const isMTM = document.getElementById('f-mtm')?.checked||false;
+  const expiryVal = isMTM ? 'Month to Month' : (g('f-expiry')||null);
+  const notifyVal = isMTM ? null : (g('f-notify')||null);
   const obj={
     locNum:g('f-locnum'),
     location:g('f-location'),address:g('f-address'),city:g('f-city'),state:g('f-state'),zip:g('f-zip'),
@@ -1613,8 +1647,9 @@ function saveLease(){
     opExOther:parseFloat(g('f-opex-other'))||0,
     rentIncDate:g('f-rent-inc')||null, rentIncAmount:g('f-rent-inc-amt'),
     opexIncDate:g('f-opex-inc')||null, opexIncAmount:g('f-opex-inc-amt'),
-    expiryDate:g('f-expiry')||null, notifyDate:g('f-notify')||null,
-    renewal:g('f-renewal'), renewalNotifyDate:calcAlertDate(g('f-notify'))||g('f-renewal-notify')||null,
+    expiryDate:expiryVal, notifyDate:notifyVal,
+    renewalNotifyDate: isMTM ? null : (calcAlertDate(g('f-notify'))||g('f-renewal-notify')||null),
+    renewal:g('f-renewal'),
     landlord:g('f-landlord'),
     director:g('f-director'), directorEmail:g('f-director-email'),
     rom:g('f-rom'), romEmail:g('f-rom-email'),

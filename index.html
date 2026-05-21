@@ -1186,8 +1186,7 @@ function leaseToSP(l) {
     "LandlordContact": l.landlordContact||"",
     "PaymentType": l.paymentType||"",
     "Notes": l.notes||"", "Company": getCompany(l),
-    "LeaseDocs": l.leaseDocs && l.leaseDocs.length ? JSON.stringify(l.leaseDocs) : null,
-    "DateAdded": l.dateAdded||null
+    "LeaseDocs": l.leaseDocs && l.leaseDocs.length ? JSON.stringify(l.leaseDocs) : null
   };
   // Only include number fields if they have actual values — sending null breaks SharePoint Int32 columns
   const numFields = {
@@ -1200,6 +1199,8 @@ function leaseToSP(l) {
       payload[key] = val;
     }
   }
+  // Only send DateAdded if it has a value — column may not exist yet on older SP lists
+  if(l.dateAdded) payload["DateAdded"] = l.dateAdded;
   return payload;
 }
 

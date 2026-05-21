@@ -187,6 +187,79 @@ body{font-family:var(--sans);background:var(--bg);color:var(--text);font-size:14
 .docs-popup{position:absolute;background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:10px;box-shadow:0 4px 16px rgba(0,0,0,.12);z-index:50;min-width:220px;max-width:320px}
 .docs-popup a{display:block;padding:6px 8px;font-size:12px;color:var(--accent);text-decoration:none;border-radius:4px}
 .docs-popup a:hover{background:var(--surface2)}
+
+/* ── RENT REVIEW ─────────────────────────────────────────────────────────── */
+.rr-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;flex-wrap:wrap;gap:8px}
+.rr-title{font-size:18px;font-weight:600}
+.rr-meta{font-size:12px;color:var(--muted)}
+.rr-step{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);margin-bottom:12px;overflow:hidden}
+.rr-step-header{display:flex;align-items:center;gap:10px;padding:12px 16px;cursor:pointer;user-select:none;transition:background .12s}
+.rr-step-header:hover{background:var(--surface2)}
+.rr-step-header.complete{background:#f0faf5}
+.rr-step-num{width:26px;height:26px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;flex-shrink:0;background:var(--surface2);color:var(--muted);border:2px solid var(--border)}
+.rr-step-num.active{background:var(--accent);color:#fff;border-color:var(--accent)}
+.rr-step-num.ok{background:var(--accent-mid);color:#fff;border-color:var(--accent-mid)}
+.rr-step-num.warn{background:var(--warn);color:#fff;border-color:var(--warn)}
+.rr-step-num.danger{background:var(--danger);color:#fff;border-color:var(--danger)}
+.rr-step-label{flex:1}
+.rr-step-title{font-size:13px;font-weight:600}
+.rr-step-sub{font-size:11px;color:var(--muted);margin-top:1px}
+.rr-step-badge{margin-left:auto;display:flex;gap:6px;align-items:center}
+.rr-count{background:var(--surface2);border:1px solid var(--border);color:var(--text);font-size:11px;font-weight:600;font-family:var(--mono);padding:2px 8px;border-radius:10px}
+.rr-count.red{background:var(--danger-light);color:var(--danger);border-color:var(--danger-light)}
+.rr-count.warn{background:var(--warn-light);color:var(--warn);border-color:var(--warn-light)}
+.rr-count.ok{background:var(--accent-light);color:var(--accent);border-color:var(--accent-light)}
+.rr-chevron{font-size:11px;color:var(--muted);transition:transform .2s;margin-left:4px}
+.rr-chevron.open{transform:rotate(90deg)}
+.rr-body{display:none;border-top:1px solid var(--border);padding:0}
+.rr-body.open{display:block}
+.rr-empty{padding:20px 16px;text-align:center;color:var(--muted);font-size:13px}
+.rr-row{display:grid;align-items:center;padding:10px 16px;border-bottom:1px solid var(--border);font-size:12px;gap:10px}
+.rr-row:last-child{border-bottom:none}
+.rr-row:hover{background:var(--surface2)}
+/* step-specific grid layouts */
+.rr-row.expired{grid-template-columns:90px 1fr 110px 110px auto}
+.rr-row.increase{grid-template-columns:90px 1fr 130px 130px 130px auto}
+.rr-row.notes{grid-template-columns:90px 1fr 2fr auto}
+.rr-row.closed{grid-template-columns:90px 1fr 110px 110px auto}
+.rr-row.newloc{grid-template-columns:90px 1fr 110px 130px 2fr auto}
+.rr-row.bankdraft{grid-template-columns:90px 1fr 110px 110px 80px 80px auto}
+.rr-col-head{display:grid;align-items:center;padding:6px 16px;font-size:10px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.05em;background:var(--surface2);border-bottom:1px solid var(--border);gap:10px}
+.rr-col-head.expired{grid-template-columns:90px 1fr 110px 110px auto}
+.rr-col-head.increase{grid-template-columns:90px 1fr 130px 130px 130px auto}
+.rr-col-head.notes{grid-template-columns:90px 1fr 2fr auto}
+.rr-col-head.closed{grid-template-columns:90px 1fr 110px 110px auto}
+.rr-col-head.newloc{grid-template-columns:90px 1fr 110px 130px 2fr auto}
+.rr-col-head.bankdraft{grid-template-columns:90px 1fr 110px 110px 80px 80px auto}
+.rr-locname{font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.rr-locnum{font-family:var(--mono);font-size:11px;color:var(--muted)}
+.rr-money{font-family:var(--mono);font-weight:500}
+.rr-date{font-family:var(--mono);font-size:11px}
+.rr-note{color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.rr-arrow{color:var(--accent-mid);font-weight:700;margin:0 4px}
+.apply-btn{background:var(--accent);color:#fff;border:none;border-radius:5px;padding:4px 12px;font-size:11px;font-family:var(--sans);cursor:pointer;white-space:nowrap;transition:background .12s}
+.apply-btn:hover{background:#174035}
+.apply-btn.cam{background:var(--info)}
+.apply-btn.cam:hover{background:#1050a0}
+.paid-toggle{display:flex;align-items:center;gap:6px;font-size:11px;cursor:pointer}
+.paid-toggle input{cursor:pointer;width:14px;height:14px}
+.paid-yes{color:var(--accent-mid);font-weight:600}
+.paid-no{color:var(--muted)}
+.rr-increase-modal{position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:300;display:none;align-items:center;justify-content:center}
+.rr-increase-modal.open{display:flex}
+.rr-inc-box{background:var(--surface);border-radius:12px;width:480px;padding:28px;border:1px solid var(--border);box-shadow:0 8px 32px rgba(0,0,0,.18)}
+.rr-inc-title{font-size:16px;font-weight:600;margin-bottom:6px}
+.rr-inc-sub{font-size:12px;color:var(--muted);margin-bottom:20px}
+.rr-inc-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:20px}
+.rr-inc-label{font-size:11px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.04em;display:block;margin-bottom:4px}
+.rr-inc-input{border:1px solid var(--border);border-radius:6px;padding:8px 10px;font-size:13px;font-family:var(--sans);color:var(--text);width:100%}
+.rr-inc-input:focus{outline:none;border-color:var(--accent-mid)}
+.rr-inc-note{font-size:11px;color:var(--muted);background:var(--warn-light);border:1px solid var(--warn-light);border-radius:6px;padding:8px 12px;margin-bottom:16px}
+.rr-inc-btns{display:flex;justify-content:flex-end;gap:8px}
+.rr-summary-bar{display:flex;gap:16px;padding:12px 16px;background:var(--surface2);border-bottom:1px solid var(--border);font-size:12px;flex-wrap:wrap}
+.rr-summary-item{display:flex;gap:6px;align-items:center}
+.rr-summary-label{color:var(--muted)}
+.rr-summary-val{font-family:var(--mono);font-weight:600}
 </style>
 <script src="https://cdn.jsdelivr.net/npm/@azure/msal-browser@2.38.3/lib/msal-browser.min.js" crossorigin="anonymous"></script>
 </head>
@@ -263,6 +336,11 @@ body{font-family:var(--sans);background:var(--bg);color:var(--text);font-size:14
   <div class="nav-sub-group" id="sub-erx" style="display:none">
     <div class="nav-item nav-sub" onclick="showCompanyStatus('erx','active',this)"><span class="nav-label"> ● Active</span></div>
     <div class="nav-item nav-sub" onclick="showCompanyStatus('erx','inactive',this)"><span class="nav-label"> ○ Inactive</span></div>
+  </div>
+  <div class="sidebar-section">Workflows</div>
+  <div class="nav-item" data-view="rentreview" onclick="showView('rentreview',this)">
+    <svg class="nav-icon" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 16 16"><rect x="1" y="2" width="14" height="12" rx="1"/><path d="M4 6h8M4 9h5"/><circle cx="11.5" cy="9.5" r="2.5"/><path d="M13.5 11.5l1.5 1.5"/></svg>
+    <span class="nav-label"> Rent Review</span>
   </div>
   <div class="sidebar-section">Settings</div>
   <div class="nav-item" data-view="staff" onclick="showView('staff',this)">
@@ -423,6 +501,141 @@ body{font-family:var(--sans);background:var(--bg);color:var(--text);font-size:14
     </select>
   </div>
   <div id="expiry-content"></div>
+</div>
+
+<!-- RENT REVIEW -->
+<div id="view-rentreview" class="hidden">
+  <div class="rr-header">
+    <div>
+      <div class="rr-title">Monthly Rent Review — SPIG</div>
+      <div class="rr-meta" id="rr-review-meta"></div>
+    </div>
+    <div style="display:flex;gap:8px;align-items:center">
+      <select class="search-box" id="rr-month-select" onchange="renderRentReview()" style="font-size:12px"></select>
+      <button class="btn primary" onclick="renderRentReview()">↻ Refresh</button>
+    </div>
+  </div>
+
+  <!-- Step 1: Expired Leases -->
+  <div class="rr-step" id="rr-step1">
+    <div class="rr-step-header" onclick="toggleRRStep(1)">
+      <div class="rr-step-num" id="rr-num1">1</div>
+      <div class="rr-step-label">
+        <div class="rr-step-title">Lease Expirations</div>
+        <div class="rr-step-sub">Verify nothing is expired or needs removal</div>
+      </div>
+      <div class="rr-step-badge"><span class="rr-count" id="rr-badge1">—</span><span class="rr-chevron" id="rr-chev1">▶</span></div>
+    </div>
+    <div class="rr-body" id="rr-body1"></div>
+  </div>
+
+  <!-- Step 2: Rent & CAM Increases -->
+  <div class="rr-step" id="rr-step2">
+    <div class="rr-step-header" onclick="toggleRRStep(2)">
+      <div class="rr-step-num" id="rr-num2">2</div>
+      <div class="rr-step-label">
+        <div class="rr-step-title">Rent &amp; CAM Increases Due</div>
+        <div class="rr-step-sub">Apply increases effective for the selected review month</div>
+      </div>
+      <div class="rr-step-badge"><span class="rr-count" id="rr-badge2">—</span><span class="rr-chevron" id="rr-chev2">▶</span></div>
+    </div>
+    <div class="rr-body" id="rr-body2"></div>
+  </div>
+
+  <!-- Step 3: Notes -->
+  <div class="rr-step" id="rr-step3">
+    <div class="rr-step-header" onclick="toggleRRStep(3)">
+      <div class="rr-step-num" id="rr-num3">3</div>
+      <div class="rr-step-label">
+        <div class="rr-step-title">Special Payment Notes</div>
+        <div class="rr-step-sub">Review notes for locations with non-standard payment situations</div>
+      </div>
+      <div class="rr-step-badge"><span class="rr-count" id="rr-badge3">—</span><span class="rr-chevron" id="rr-chev3">▶</span></div>
+    </div>
+    <div class="rr-body" id="rr-body3"></div>
+  </div>
+
+  <!-- Step 4: Closed Locations -->
+  <div class="rr-step" id="rr-step4">
+    <div class="rr-step-header" onclick="toggleRRStep(4)">
+      <div class="rr-step-num" id="rr-num4">4</div>
+      <div class="rr-step-label">
+        <div class="rr-step-title">Closed / Inactive Locations</div>
+        <div class="rr-step-sub">Confirm no rent is being paid in NetSuite for these locations</div>
+      </div>
+      <div class="rr-step-badge"><span class="rr-count" id="rr-badge4">—</span><span class="rr-chevron" id="rr-chev4">▶</span></div>
+    </div>
+    <div class="rr-body" id="rr-body4"></div>
+  </div>
+
+  <!-- Step 5: New / Recent Locations -->
+  <div class="rr-step" id="rr-step5">
+    <div class="rr-step-header" onclick="toggleRRStep(5)">
+      <div class="rr-step-num" id="rr-num5">5</div>
+      <div class="rr-step-label">
+        <div class="rr-step-title">New &amp; Recently Moved Locations</div>
+        <div class="rr-step-sub">Verify correct rent for locations in first 6 months of lease</div>
+      </div>
+      <div class="rr-step-badge"><span class="rr-count" id="rr-badge5">—</span><span class="rr-chevron" id="rr-chev5">▶</span></div>
+    </div>
+    <div class="rr-body" id="rr-body5"></div>
+  </div>
+
+  <!-- Step 6: NetSuite True-Up (placeholder) -->
+  <div class="rr-step" id="rr-step6">
+    <div class="rr-step-header" onclick="toggleRRStep(6)">
+      <div class="rr-step-num" id="rr-num6">6</div>
+      <div class="rr-step-label">
+        <div class="rr-step-title">NetSuite True-Up</div>
+        <div class="rr-step-sub">Compare lease database vs. NetSuite — coming next month</div>
+      </div>
+      <div class="rr-step-badge"><span class="rr-count" id="rr-badge6" style="background:#f0f0f0;color:#aaa">Soon</span><span class="rr-chevron" id="rr-chev6">▶</span></div>
+    </div>
+    <div class="rr-body" id="rr-body6">
+      <div class="rr-empty">
+        <div style="font-size:28px;margin-bottom:10px">📊</div>
+        <div style="font-weight:600;margin-bottom:4px">NetSuite True-Up — Coming Next Month</div>
+        <div style="font-size:11px;color:var(--muted);max-width:380px;margin:0 auto">Once your lease data is fully updated, you'll be able to paste your NetSuite Rent Review export here and compare it line-by-line against the database. Mismatches will be flagged automatically.</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Step 7: Bank Drafts -->
+  <div class="rr-step" id="rr-step7">
+    <div class="rr-step-header" onclick="toggleRRStep(7)">
+      <div class="rr-step-num" id="rr-num7">7</div>
+      <div class="rr-step-label">
+        <div class="rr-step-title">Bank Drafts</div>
+        <div class="rr-step-sub">Landlords on automatic bank draft — verify and mark as reviewed</div>
+      </div>
+      <div class="rr-step-badge"><span class="rr-count" id="rr-badge7">—</span><span class="rr-chevron" id="rr-chev7">▶</span></div>
+    </div>
+    <div class="rr-body" id="rr-body7"></div>
+  </div>
+</div>
+
+<!-- Rent Increase Apply Modal -->
+<div class="rr-increase-modal" id="rr-inc-modal">
+  <div class="rr-inc-box">
+    <div class="rr-inc-title" id="rr-inc-modal-title">Apply Rent Increase</div>
+    <div class="rr-inc-sub" id="rr-inc-modal-sub"></div>
+    <div class="rr-inc-note" id="rr-inc-modal-note"></div>
+    <div style="font-size:12px;font-weight:600;color:var(--accent);text-transform:uppercase;letter-spacing:.06em;margin-bottom:10px">Next Scheduled Increase (optional)</div>
+    <div class="rr-inc-grid">
+      <div>
+        <label class="rr-inc-label">Next Increase Date</label>
+        <input class="rr-inc-input" type="date" id="rr-next-date">
+      </div>
+      <div>
+        <label class="rr-inc-label">New Amount After Next Increase ($)</label>
+        <input class="rr-inc-input" type="number" id="rr-next-amount" step="0.01" placeholder="e.g. 3200.00">
+      </div>
+    </div>
+    <div class="rr-inc-btns">
+      <button class="btn" onclick="closeRRModal()">Cancel</button>
+      <button class="btn primary" id="rr-inc-confirm-btn" onclick="confirmApplyIncrease()">Confirm &amp; Apply</button>
+    </div>
+  </div>
 </div>
 
 <!-- NOTIFICATIONS -->
@@ -973,7 +1186,8 @@ function leaseToSP(l) {
     "LandlordContact": l.landlordContact||"",
     "PaymentType": l.paymentType||"",
     "Notes": l.notes||"", "Company": getCompany(l),
-    "LeaseDocs": l.leaseDocs && l.leaseDocs.length ? JSON.stringify(l.leaseDocs) : null
+    "LeaseDocs": l.leaseDocs && l.leaseDocs.length ? JSON.stringify(l.leaseDocs) : null,
+    "DateAdded": l.dateAdded||null
   };
   // Only include number fields if they have actual values — sending null breaks SharePoint Int32 columns
   const numFields = {
@@ -1022,7 +1236,8 @@ function spToLease(item) {
     landlordContact:clean(item.LandlordContact).replace(/<[^>]*>/g,'').trim(),
     paymentType:clean(item.PaymentType),
     notes:( item.Notes||'').replace(/<[^>]*>/g,'').trim(),
-    leaseDocs: item.LeaseDocs ? (function(){try{return JSON.parse(item.LeaseDocs);}catch(e){return[];}}()) : [] };
+    leaseDocs: item.LeaseDocs ? (function(){try{return JSON.parse(item.LeaseDocs);}catch(e){return[];}}()) : [],
+    dateAdded: item.DateAdded ? item.DateAdded.substring(0,10) : null };
 }
 
 // ── AUTO-PROVISION NEW COLUMNS ────────────────────────────────────────────────
@@ -1036,6 +1251,7 @@ async function ensureColumns(token) {
     { name:'LandlordContact',   type:'Text' },
     { name:'RenewalNotifyDate', type:'DateTime' },
     { name:'LeaseStatus',       type:'Text' },
+    { name:'DateAdded',          type:'Text' },
   ];
   // Fetch existing field names
   let existingNames = [];
@@ -1672,8 +1888,14 @@ function saveLease(){
   };
   // Calculate CAM total from breakdown
   obj.cam = (obj.propTax||0) + (obj.propInsurance||0) + (obj.camDetail||0) + (obj.utilities||0) + (obj.opExOther||0);
-  if(editingId){ const i=leases.findIndex(x=>x.id===editingId); if(i>=0)leases[i]={...leases[i],...obj}; }
-  else{ obj.id=Date.now(); leases.push(obj); }
+  if(editingId){
+    const i=leases.findIndex(x=>x.id===editingId);
+    if(i>=0){ const existing=leases[i]; leases[i]={...existing,...obj}; if(existing.dateAdded) leases[i].dateAdded=existing.dateAdded; }
+  } else {
+    obj.id=Date.now();
+    obj.dateAdded=new Date().toISOString().split('T')[0];
+    leases.push(obj);
+  }
   const saved = editingId ? leases.find(x=>x.id===editingId) : leases[leases.length-1];
   saveData();
   spSaveLease(saved).then(()=>{ renderAll(); updateEditControls(); });
@@ -1831,7 +2053,7 @@ function renderStatusTable(status){
 }
 
 function showView(name, el){
-  ['dashboard','leases','active','inactive','alerts','expiring','staff','notifications','company'].forEach(v=>{
+  ['dashboard','leases','active','inactive','alerts','expiring','staff','notifications','company','rentreview'].forEach(v=>{
     const el2=document.getElementById('view-'+v);
     if(el2) el2.classList.toggle('hidden',v!==name);
   });
@@ -1845,6 +2067,7 @@ function showView(name, el){
   if(name==='active')renderStatusTable('active');
   if(name==='inactive')renderStatusTable('inactive');
   if(name==='expiring')renderExpiryView();
+  if(name==='rentreview')renderRentReview();
 }
 
 function renderAll(){
@@ -1852,6 +2075,7 @@ function renderAll(){
   const lv=document.getElementById('view-leases'); if(lv&&!lv.classList.contains('hidden'))renderLeaseTable();
   const av=document.getElementById('view-alerts'); if(av&&!av.classList.contains('hidden'))renderAllAlerts();
   const ev=document.getElementById('view-expiring'); if(ev&&!ev.classList.contains('hidden'))renderExpiryView();
+  const rv=document.getElementById('view-rentreview'); if(rv&&!rv.classList.contains('hidden'))renderRentReview();
 }
 
 
@@ -2161,6 +2385,442 @@ function initScrollMirrors(){
 loadColPrefs();
 // Init handled by window.load event above
 setTimeout(initScrollMirrors, 100);
+
+// ── RENT REVIEW ───────────────────────────────────────────────────────────────
+
+let rrPendingIncrease = null; // {leaseId, type:'rent'|'cam', newVal, newDate}
+
+// Build month selector options (current month + next 3 months)
+function initRRMonthSelect(){
+  const sel = document.getElementById('rr-month-select');
+  if(!sel) return;
+  const now = new Date();
+  sel.innerHTML = '';
+  for(let i = 0; i < 4; i++){
+    const d = new Date(now.getFullYear(), now.getMonth() + i, 1);
+    const label = d.toLocaleString('default',{month:'long',year:'numeric'});
+    const val = `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}`;
+    const opt = document.createElement('option');
+    opt.value = val; opt.textContent = label;
+    if(i === 1) opt.selected = true; // default to next month (what you're reviewing now)
+    sel.appendChild(opt);
+  }
+}
+
+// Get review target month from selector (YYYY-MM)
+function rrTargetMonth(){
+  return (document.getElementById('rr-month-select')?.value) || '';
+}
+
+// Determine if an increase date falls within the review window for a given target month
+// Rule: show increase if it falls on or before the 7th of the target month
+function rrIncreaseInWindow(incDateStr, targetMonth){
+  if(!incDateStr || !targetMonth) return false;
+  const inc = new Date(incDateStr + 'T12:00:00');
+  const [ty, tm] = targetMonth.split('-').map(Number);
+  // Cutoff = 7th of target month
+  const cutoff = new Date(ty, tm - 1, 7);
+  return inc <= cutoff;
+}
+
+// SPIG active leases only
+function spigActiveLeases(){
+  return leases.filter(l => {
+    if(getCompany(l) !== 'spig') return false;
+    const ls = (l.leaseStatus||'Active').toLowerCase();
+    return ls === 'active';
+  });
+}
+
+function toggleRRStep(n){
+  const body = document.getElementById('rr-body'+n);
+  const chev = document.getElementById('rr-chev'+n);
+  if(!body) return;
+  const isOpen = body.classList.contains('open');
+  body.classList.toggle('open', !isOpen);
+  if(chev) chev.classList.toggle('open', !isOpen);
+}
+
+function setRRBadge(n, count, severity){
+  const badge = document.getElementById('rr-badge'+n);
+  const num = document.getElementById('rr-num'+n);
+  if(!badge || !num) return;
+  if(count === null){ badge.textContent = '—'; badge.className = 'rr-count'; num.className = 'rr-step-num'; return; }
+  badge.textContent = count;
+  if(count === 0){ badge.className = 'rr-count ok'; num.className = 'rr-step-num ok'; }
+  else if(severity === 'danger'){ badge.className = 'rr-count red'; num.className = 'rr-step-num danger'; }
+  else if(severity === 'warn'){ badge.className = 'rr-count warn'; num.className = 'rr-step-num warn'; }
+  else { badge.className = 'rr-count'; num.className = 'rr-step-num active'; }
+}
+
+function locTag(l){
+  return `<div class="rr-locname">${l.location||l.city}, ${l.state}</div><div class="rr-locnum">${l.locNum?'WR #'+l.locNum:l.city||''}</div>`;
+}
+
+// ── STEP 1: Expired leases ────────────────────────────────────────────────────
+function renderRRStep1(){
+  const body = document.getElementById('rr-body1');
+  const today = new Date();
+  const spig = spigActiveLeases();
+  
+  // Expired = expiry date in the past (not MTM)
+  const expired = spig.filter(l => {
+    if(!l.expiryDate || l.expiryDate === 'Month to Month') return false;
+    return new Date(l.expiryDate) < today;
+  }).sort((a,b) => new Date(a.expiryDate) - new Date(b.expiryDate));
+
+  // Expiring this review month
+  const tm = rrTargetMonth();
+  const expiring = spig.filter(l => {
+    if(!l.expiryDate || l.expiryDate === 'Month to Month') return false;
+    const d = new Date(l.expiryDate);
+    const [ty,tmon] = tm.split('-').map(Number);
+    return d >= today && d.getFullYear() === ty && (d.getMonth()+1) === tmon;
+  });
+
+  const total = expired.length + expiring.length;
+  setRRBadge(1, total, expired.length > 0 ? 'danger' : expiring.length > 0 ? 'warn' : null);
+
+  if(total === 0){
+    body.innerHTML = '<div class="rr-empty">✓ No expired or expiring leases this month</div>';
+    return;
+  }
+
+  let html = '';
+
+  if(expired.length){
+    html += `<div style="padding:8px 16px;background:var(--danger-light);font-size:11px;font-weight:600;color:var(--danger)">⚠ ${expired.length} EXPIRED LEASE${expired.length>1?'S':''} — REQUIRES IMMEDIATE ACTION</div>`;
+    html += `<div class="rr-col-head expired"><span>Location</span><span>Landlord</span><span>Expired On</span><span>Monthly Rent</span><span></span></div>`;
+    html += expired.map(l=>`
+      <div class="rr-row expired">
+        <div>${locTag(l)}</div>
+        <div style="font-size:11px">${l.landlord||'—'}</div>
+        <div class="rr-date" style="color:var(--danger);font-weight:600">${fmtDate(l.expiryDate)}</div>
+        <div class="rr-money">${fmtMoney((l.baseRent||0)+(l.cam||0))}</div>
+        <div><button class="btn sm" onclick="openEditModal(${l.id})">Update</button></div>
+      </div>`).join('');
+  }
+
+  if(expiring.length){
+    html += `<div style="padding:8px 16px;background:var(--warn-light);font-size:11px;font-weight:600;color:var(--warn);${expired.length?'border-top:1px solid var(--border)':''}">⚡ ${expiring.length} LEASE${expiring.length>1?'S':''} EXPIRING THIS REVIEW MONTH</div>`;
+    html += `<div class="rr-col-head expired"><span>Location</span><span>Landlord</span><span>Expires</span><span>Monthly Rent</span><span></span></div>`;
+    html += expiring.map(l=>`
+      <div class="rr-row expired">
+        <div>${locTag(l)}</div>
+        <div style="font-size:11px">${l.landlord||'—'}</div>
+        <div class="rr-date" style="color:var(--warn);font-weight:600">${fmtDate(l.expiryDate)}</div>
+        <div class="rr-money">${fmtMoney((l.baseRent||0)+(l.cam||0))}</div>
+        <div><button class="btn sm" onclick="openEditModal(${l.id})">Edit</button></div>
+      </div>`).join('');
+  }
+
+  body.innerHTML = html;
+}
+
+// ── STEP 2: Rent & CAM Increases ─────────────────────────────────────────────
+function renderRRStep2(){
+  const body = document.getElementById('rr-body2');
+  const tm = rrTargetMonth();
+  const spig = spigActiveLeases();
+
+  const rentIncs = spig.filter(l => l.rentIncDate && parseFloat(l.rentIncAmount) > 0 && rrIncreaseInWindow(l.rentIncDate, tm));
+  const camIncs  = spig.filter(l => l.opexIncDate && parseFloat(l.opexIncAmount) > 0 && rrIncreaseInWindow(l.opexIncDate, tm));
+
+  const total = rentIncs.length + camIncs.length;
+  setRRBadge(2, total, total > 0 ? 'warn' : null);
+
+  if(total === 0){
+    body.innerHTML = '<div class="rr-empty">✓ No rent or CAM increases due for this review month</div>';
+    return;
+  }
+
+  let html = '';
+
+  if(rentIncs.length){
+    html += `<div style="padding:8px 16px;background:var(--warn-light);font-size:11px;font-weight:600;color:var(--warn)">Base Rent Increases — ${rentIncs.length} location${rentIncs.length>1?'s':''}</div>`;
+    html += `<div class="rr-col-head increase"><span>Location</span><span>Landlord</span><span>Eff. Date</span><span>Current Rent</span><span>New Rent</span><span></span></div>`;
+    html += rentIncs.map(l=>`
+      <div class="rr-row increase">
+        <div>${locTag(l)}</div>
+        <div style="font-size:11px">${l.landlord||'—'}</div>
+        <div class="rr-date">${fmtDate(l.rentIncDate)}</div>
+        <div class="rr-money">${fmtMoney(l.baseRent)}</div>
+        <div class="rr-money" style="color:var(--accent-mid)">$${parseFloat(l.rentIncAmount).toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2})}</div>
+        <div><button class="apply-btn" onclick="openApplyIncrease(${l.id},'rent')">Apply</button></div>
+      </div>`).join('');
+  }
+
+  if(camIncs.length){
+    html += `<div style="padding:8px 16px;background:var(--info-light);font-size:11px;font-weight:600;color:var(--info);${rentIncs.length?'border-top:1px solid var(--border)':''}">CAM / OpEx Increases — ${camIncs.length} location${camIncs.length>1?'s':''}</div>`;
+    html += `<div class="rr-col-head increase"><span>Location</span><span>Landlord</span><span>Eff. Date</span><span>Current CAM</span><span>New CAM</span><span></span></div>`;
+    html += camIncs.map(l=>`
+      <div class="rr-row increase">
+        <div>${locTag(l)}</div>
+        <div style="font-size:11px">${l.landlord||'—'}</div>
+        <div class="rr-date">${fmtDate(l.opexIncDate)}</div>
+        <div class="rr-money">${fmtMoney(l.cam)}</div>
+        <div class="rr-money" style="color:var(--info)">$${parseFloat(l.opexIncAmount).toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2})}</div>
+        <div><button class="apply-btn cam" onclick="openApplyIncrease(${l.id},'cam')">Apply</button></div>
+      </div>`).join('');
+  }
+
+  body.innerHTML = html;
+}
+
+// ── STEP 3: Notes ─────────────────────────────────────────────────────────────
+function renderRRStep3(){
+  const body = document.getElementById('rr-body3');
+  const spig = spigActiveLeases().filter(l => l.notes && l.notes.trim().length > 0)
+    .sort((a,b) => (a.location||'').localeCompare(b.location||''));
+
+  setRRBadge(3, spig.length, spig.length > 0 ? 'info' : null);
+
+  if(!spig.length){
+    body.innerHTML = '<div class="rr-empty">No payment notes on file</div>';
+    return;
+  }
+
+  body.innerHTML =
+    `<div class="rr-col-head notes"><span>Location</span><span>Landlord</span><span>Note</span><span></span></div>` +
+    spig.map(l=>`
+      <div class="rr-row notes">
+        <div>${locTag(l)}</div>
+        <div style="font-size:11px">${l.landlord||'—'}<br><span style="color:var(--muted)">${fmtMoney((l.baseRent||0)+(l.cam||0))}/mo</span></div>
+        <div style="font-size:11px;color:var(--text)">${l.notes}</div>
+        <div><button class="btn sm" onclick="openEditModal(${l.id})">Edit</button></div>
+      </div>`).join('');
+}
+
+// ── STEP 4: Closed / Inactive Locations ──────────────────────────────────────
+function renderRRStep4(){
+  const body = document.getElementById('rr-body4');
+  const inactive = leases.filter(l => {
+    if(getCompany(l) !== 'spig') return false;
+    return (l.leaseStatus||'Active').toLowerCase() === 'inactive';
+  }).sort((a,b) => (a.location||'').localeCompare(b.location||''));
+
+  setRRBadge(4, inactive.length, inactive.length > 0 ? 'warn' : null);
+
+  if(!inactive.length){
+    body.innerHTML = '<div class="rr-empty">No inactive SPIG locations on file</div>';
+    return;
+  }
+
+  body.innerHTML =
+    `<div style="padding:8px 16px;background:var(--warn-light);font-size:11px;color:var(--warn)">Confirm these are NOT in your NetSuite scheduled payments for the review month</div>` +
+    `<div class="rr-col-head closed"><span>Location</span><span>Landlord</span><span>Lease Expired</span><span>Last Rent</span><span></span></div>` +
+    inactive.map(l=>`
+      <div class="rr-row closed">
+        <div>${locTag(l)}</div>
+        <div style="font-size:11px">${l.landlord||'—'}</div>
+        <div class="rr-date" style="color:var(--muted)">${l.expiryDate&&l.expiryDate!=='Month to Month'?fmtDate(l.expiryDate):'—'}</div>
+        <div class="rr-money">${fmtMoney((l.baseRent||0)+(l.cam||0))}</div>
+        <div><button class="btn sm" onclick="openEditModal(${l.id})">View</button></div>
+      </div>`).join('');
+}
+
+// ── STEP 5: New / Recent Locations ───────────────────────────────────────────
+function renderRRStep5(){
+  const body = document.getElementById('rr-body5');
+  const today = new Date();
+  const ninetyDaysAgo = new Date(today.getFullYear(), today.getMonth(), today.getDate() - 90);
+  const newKeywords = /prepaid|pre-paid|free rent|first month|starts|commenced|new lease|moved|relocation/i;
+
+  const spig = spigActiveLeases().filter(l => {
+    const hasNewNote = l.notes && newKeywords.test(l.notes);
+    const isRecentlyAdded = l.dateAdded && new Date(l.dateAdded) >= ninetyDaysAgo;
+    return hasNewNote || isRecentlyAdded;
+  }).sort((a,b) => {
+    // Recently added first, then alpha
+    const aNew = a.dateAdded ? new Date(a.dateAdded) : new Date(0);
+    const bNew = b.dateAdded ? new Date(b.dateAdded) : new Date(0);
+    return bNew - aNew || (a.location||'').localeCompare(b.location||'');
+  });
+
+  setRRBadge(5, spig.length, spig.length > 0 ? 'warn' : null);
+
+  if(!spig.length){
+    body.innerHTML = `<div class="rr-empty">
+      <div>No new/recent location flags found</div>
+      <div style="font-size:11px;color:var(--muted);margin-top:6px">Locations appear here when added to the database within the last 90 days, or when notes contain keywords like: prepaid, free rent, first month, starts, moved, relocation</div>
+    </div>`;
+    return;
+  }
+
+  body.innerHTML =
+    `<div style="padding:8px 16px;background:var(--info-light);font-size:11px;color:var(--info)">Review these carefully — early-lease situations may have prepaid rent, free months, or non-standard payment schedules</div>` +
+    `<div class="rr-col-head newloc"><span>Location</span><span>Landlord</span><span>Added</span><span>Monthly Rent</span><span>Note</span><span></span></div>` +
+    spig.map(l => {
+      const isNew = l.dateAdded && new Date(l.dateAdded) >= ninetyDaysAgo;
+      const addedBadge = isNew
+        ? `<span style="background:var(--accent-light);color:var(--accent);border-radius:4px;padding:2px 6px;font-size:10px;font-weight:600">NEW ${fmtDate(l.dateAdded)}</span>`
+        : `<span style="color:var(--muted);font-size:11px">—</span>`;
+      return `<div class="rr-row newloc">
+        <div>${locTag(l)}</div>
+        <div style="font-size:11px">${l.landlord||'—'}</div>
+        <div>${addedBadge}</div>
+        <div class="rr-money">${fmtMoney((l.baseRent||0)+(l.cam||0))}</div>
+        <div style="font-size:11px;color:var(--warn)">${l.notes||'—'}</div>
+        <div><button class="btn sm" onclick="openEditModal(${l.id})">Edit</button></div>
+      </div>`;
+    }).join('');
+}
+
+// ── STEP 7: Bank Drafts ───────────────────────────────────────────────────────
+function renderRRStep7(){
+  const body = document.getElementById('rr-body7');
+  const tm = rrTargetMonth();
+  const bankDraft = spigActiveLeases().filter(l =>
+    l.paymentType && l.paymentType.toLowerCase().includes('bank draft')
+  ).sort((a,b) => (a.location||'').localeCompare(b.location||''));
+
+  setRRBadge(7, bankDraft.length, bankDraft.length > 0 ? 'info' : null);
+
+  if(!bankDraft.length){
+    body.innerHTML = '<div class="rr-empty">No SPIG leases with Bank Draft payment type on file</div>';
+    return;
+  }
+
+  const tmKey = 'rr_bd_'+tm;
+  let paid = {};
+  try{ paid = JSON.parse(localStorage.getItem(tmKey)||'{}'); }catch(e){}
+
+  body.innerHTML =
+    `<div style="padding:8px 16px;background:var(--info-light);font-size:11px;color:var(--info)">These landlords auto-draft payment. Verify the draft cleared and mark as reviewed.</div>` +
+    `<div class="rr-col-head bankdraft"><span>Location</span><span>Landlord</span><span>Base Rent</span><span>CAM/OpEx</span><span>Total</span><span>Reviewed</span><span></span></div>` +
+    bankDraft.map(l=>{
+      const isPaid = !!paid[l.id];
+      return `<div class="rr-row bankdraft" style="${isPaid?'background:#f0faf5':''}">
+        <div>${locTag(l)}</div>
+        <div style="font-size:11px">${l.landlord||'—'}</div>
+        <div class="rr-money">${fmtMoney(l.baseRent)}</div>
+        <div class="rr-money">${l.cam?fmtMoney(l.cam):'—'}</div>
+        <div class="rr-money" style="font-weight:600">${fmtMoney((l.baseRent||0)+(l.cam||0))}</div>
+        <div>
+          <label class="paid-toggle">
+            <input type="checkbox" ${isPaid?'checked':''} onchange="toggleBankDraftPaid(${l.id},'${tm}',this.checked)">
+            <span class="${isPaid?'paid-yes':'paid-no'}">${isPaid?'✓ Done':'Pending'}</span>
+          </label>
+        </div>
+        <div><button class="btn sm" onclick="openEditModal(${l.id})">View</button></div>
+      </div>`;
+    }).join('');
+}
+
+function toggleBankDraftPaid(id, tm, checked){
+  const tmKey = 'rr_bd_'+tm;
+  let paid = {};
+  try{ paid = JSON.parse(localStorage.getItem(tmKey)||'{}'); }catch(e){}
+  if(checked) paid[id] = true; else delete paid[id];
+  try{ localStorage.setItem(tmKey, JSON.stringify(paid)); }catch(e){}
+  renderRRStep7(); // re-render to update row styling
+}
+
+// ── APPLY INCREASE MODAL ──────────────────────────────────────────────────────
+function openApplyIncrease(leaseId, type){
+  const l = leases.find(x => x.id === leaseId);
+  if(!l) return;
+  rrPendingIncrease = {leaseId, type};
+
+  const isRent = type === 'rent';
+  const currentVal = isRent ? l.baseRent : l.cam;
+  const newVal     = isRent ? parseFloat(l.rentIncAmount) : parseFloat(l.opexIncAmount);
+  const incDate    = isRent ? l.rentIncDate : l.opexIncDate;
+  const typeLabel  = isRent ? 'Base Rent' : 'CAM / OpEx';
+
+  document.getElementById('rr-inc-modal-title').textContent = `Apply ${typeLabel} Increase — ${l.location||l.city}`;
+  document.getElementById('rr-inc-modal-sub').textContent =
+    `${l.landlord||'Unknown landlord'} · WR #${l.locNum||'—'} · ${l.city}, ${l.state}`;
+  document.getElementById('rr-inc-modal-note').innerHTML =
+    `Effective <strong>${fmtDate(incDate)}</strong>: ${typeLabel} changes from <strong>${fmtMoney(currentVal)}</strong> → <strong>${fmtMoney(newVal)}</strong>/mo`;
+
+  // Clear next-increase fields
+  document.getElementById('rr-next-date').value = '';
+  document.getElementById('rr-next-amount').value = '';
+
+  document.getElementById('rr-increase-modal').classList.add('open');
+  document.getElementById('rr-inc-confirm-btn').textContent = 'Confirm & Apply';
+}
+
+function closeRRModal(){
+  document.getElementById('rr-increase-modal').classList.remove('open');
+  rrPendingIncrease = null;
+}
+
+async function confirmApplyIncrease(){
+  if(!rrPendingIncrease) return;
+  const {leaseId, type} = rrPendingIncrease;
+  const l = leases.find(x => x.id === leaseId);
+  if(!l) return;
+
+  const isRent = type === 'rent';
+  const newVal = isRent ? parseFloat(l.rentIncAmount) : parseFloat(l.opexIncAmount);
+  const nextDate   = document.getElementById('rr-next-date').value || null;
+  const nextAmount = document.getElementById('rr-next-amount').value || '';
+
+  // Confirm with user
+  const typeLabel = isRent ? 'base rent' : 'CAM/OpEx';
+  const confirmed = confirm(`Confirm: Update ${l.location} ${typeLabel} to ${fmtMoney(newVal)}?\n\n${nextDate ? 'Next increase: '+fmtDate(nextDate)+(nextAmount?' → $'+nextAmount:'') : 'No next increase entered.'}`);
+  if(!confirmed){ closeRRModal(); return; }
+
+  const btn = document.getElementById('rr-inc-confirm-btn');
+  btn.textContent = 'Saving...';
+  btn.disabled = true;
+
+  // Apply the change to the lease record
+  if(isRent){
+    l.baseRent      = newVal;
+    l.rentIncDate   = nextDate;
+    l.rentIncAmount = nextAmount;
+  } else {
+    // For CAM, update the total cam field
+    l.cam          = newVal;
+    l.opexIncDate  = nextDate;
+    l.opexIncAmount = nextAmount;
+  }
+
+  try {
+    await spSaveLease(l);
+    renderAll();
+    renderRentReview();
+    closeRRModal();
+  } catch(e){
+    alert('Save error: ' + e.message);
+    btn.textContent = 'Confirm & Apply';
+    btn.disabled = false;
+  }
+}
+
+// ── MAIN RENDER ───────────────────────────────────────────────────────────────
+function renderRentReview(){
+  initRRMonthSelect();
+  const tm = rrTargetMonth();
+  const [ty,tmon] = tm ? tm.split('-').map(Number) : [0,0];
+  const monthLabel = tm ? new Date(ty, tmon-1, 1).toLocaleString('default',{month:'long',year:'numeric'}) : '';
+
+  const meta = document.getElementById('rr-review-meta');
+  if(meta) meta.textContent = `Reviewing payments due ${monthLabel} · SPIG locations only · Data as of ${new Date().toLocaleDateString()}`;
+
+  renderRRStep1();
+  renderRRStep2();
+  renderRRStep3();
+  renderRRStep4();
+  renderRRStep5();
+  renderRRStep7();
+
+  // Auto-open any steps with items
+  [1,2,3,4,5,7].forEach(n => {
+    const badge = document.getElementById('rr-badge'+n);
+    const body  = document.getElementById('rr-body'+n);
+    const chev  = document.getElementById('rr-chev'+n);
+    if(!badge || !body) return;
+    const count = parseInt(badge.textContent);
+    if(!isNaN(count) && count > 0){
+      body.classList.add('open');
+      if(chev) chev.classList.add('open');
+    }
+  });
+}
 </script>
 
 

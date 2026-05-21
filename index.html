@@ -1359,11 +1359,13 @@ async function spSaveLease(l) {
   try {
     const token = await getToken();
     const body = leaseToSP(l);
-    const spId = l._spId; // Only use _spId — l.id can be a local timestamp, not a real SP ID
-    if(spId && typeof spId==="number") {
-      await fetch(SP_API+"("+spId+")",{method:"POST",headers:{"Accept":"application/json;odata=verbose","Content-Type":"application/json;odata=verbose","Authorization":"Bearer "+token,"X-HTTP-Method":"MERGE","IF-MATCH":"*"},body:JSON.stringify(body)});
+    const spId = l._spId ? parseInt(l._spId) : null; // normalize to number regardless of how it came in
+    if(spId && spId > 0) {
+      const res = await fetch(SP_API+"("+spId+")",{method:"POST",headers:{"Accept":"application/json;odata=verbose","Content-Type":"application/json;odata=verbose","Authorization":"Bearer "+token,"X-HTTP-Method":"MERGE","IF-MATCH":"*"},body:JSON.stringify(body)});
+      if(!res.ok) { const txt=await res.text(); throw new Error("MERGE failed ("+res.status+"): "+txt.substring(0,300)); }
     } else {
       const r=await fetch(SP_API,{method:"POST",headers:{"Accept":"application/json;odata=verbose","Content-Type":"application/json;odata=verbose","Authorization":"Bearer "+token},body:JSON.stringify(body)});
+      if(!r.ok) { const txt=await r.text(); throw new Error("POST failed ("+r.status+"): "+txt.substring(0,300)); }
       const rd=await r.json(); l._spId=rd.d.Id; l.id=rd.d.Id;
     }
   } catch(e) { alert("Save error: "+e.message); }

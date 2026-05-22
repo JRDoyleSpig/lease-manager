@@ -1294,13 +1294,14 @@ async function ensureColumns(token) {
         "EnforceUniqueValues": false,
         "StaticName": col.name
       });
-      await fetch(SP_FIELDS_API, {
+      const cr = await fetch(SP_FIELDS_API, {
         method:"POST",
-        headers:{"Accept":"application/json;odata=verbose","Content-Type":"application/json;odata=verbose","Authorization":"Bearer "+token},
+        headers:{"Accept":"application/json;odata=verbose","Content-Type":"application/json;odata=verbose","Authorization":"Bearer "+token,"X-RequestDigest":"0x0"},
         body
       });
-      console.log("Created column:", col.name);
-    } catch(e){ console.warn("ensureColumns: failed to create",col.name,e); }
+      if(cr.ok){ console.log("Created column:", col.name); }
+      else { const t=await cr.text(); console.error("ensureColumns FAILED for",col.name,"status:",cr.status,t.substring(0,400)); alert("Could not auto-create SharePoint column '"+col.name+"' ("+cr.status+"). Please create it manually in SharePoint as a Single Line of Text column."); }
+    } catch(e){ console.warn("ensureColumns: failed to create",col.name,e); alert("Column creation error for '"+col.name+"': "+e.message); }
   }
 }
 

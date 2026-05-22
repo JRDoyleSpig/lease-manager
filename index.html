@@ -2632,7 +2632,7 @@ function renderRRStep3(){
 function renderRRStep4(){
   const body = document.getElementById('rr-body4');
   const today = new Date();
-  const hundredDaysAgo = new Date(ty, tmon - 1, 1 - 100); // 100 days before rent due date
+  const hundredDaysAgo = new Date(today.getFullYear(), today.getMonth(), today.getDate() - 100);
   const tm = rrTargetMonth();
   const [ty, tmon] = tm ? tm.split('-').map(Number) : [today.getFullYear(), today.getMonth()+1];
   // Rent due date = 1st of target month
@@ -2899,13 +2899,7 @@ function renderRentReview(){
   renderRRStep5();
   renderRRStep7();
 
-  // Reset all steps to closed first, then open ones with items
-  [1,2,3,4,5,6,7].forEach(n => {
-    const body = document.getElementById('rr-body'+n);
-    const chev = document.getElementById('rr-chev'+n);
-    if(body) body.classList.remove('open');
-    if(chev) chev.classList.remove('open');
-  });
+  // Auto-open any steps with items
   [1,2,3,4,5,7].forEach(n => {
     const badge = document.getElementById('rr-badge'+n);
     const body  = document.getElementById('rr-body'+n);

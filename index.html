@@ -620,6 +620,9 @@ body{font-family:var(--sans);background:var(--bg);color:var(--text);font-size:14
     <div class="rr-inc-title" id="rr-inc-modal-title">Apply Rent Increase</div>
     <div class="rr-inc-sub" id="rr-inc-modal-sub"></div>
     <div class="rr-inc-note" id="rr-inc-modal-note"></div>
+    <div id="rr-inc-check-lease-note" style="display:none;background:var(--warn-light);border:1px solid var(--warn);border-radius:6px;padding:10px 14px;margin-bottom:16px;font-size:12px;color:var(--warn);font-weight:500">
+      ⚠ <strong>Check Lease if Renewed</strong> is flagged for this location. Verify the lease document for renewal terms and confirm whether a next increase applies before proceeding.
+    </div>
     <div style="font-size:12px;font-weight:600;color:var(--accent);text-transform:uppercase;letter-spacing:.06em;margin-bottom:10px">Next Scheduled Increase (optional)</div>
     <div class="rr-inc-grid">
       <div>
@@ -761,6 +764,10 @@ body{font-family:var(--sans);background:var(--bg);color:var(--text);font-size:14
       <div class="form-group"><label class="form-label">New Base Rent After Increase ($)</label><input class="form-input" type="number" id="f-rent-inc-amt" step="0.01"></div>
       <div class="form-group"><label class="form-label">CAM / OpEx Increase Date</label><input class="form-input" type="date" id="f-opex-inc"></div>
       <div class="form-group"><label class="form-label">New CAM / OpEx After Increase ($)</label><input class="form-input" type="number" id="f-opex-inc-amt" step="0.01"></div>
+      <div class="form-group" style="display:flex;align-items:center;gap:10px;padding:10px 0">
+        <input type="checkbox" id="f-check-lease" style="width:16px;height:16px;cursor:pointer;accent-color:var(--accent)">
+        <label for="f-check-lease" style="font-size:13px;font-weight:500;cursor:pointer">Check Lease if Renewed — verify terms before next increase</label>
+      </div>
     </div>
     <div class="form-section">Lease Dates</div>
     <div class="form-grid">
@@ -870,6 +877,7 @@ const ALL_COLS = [
   {id:'newRent',  label:'New Base Rent',          def:true},
   {id:'opexInc',  label:'OpEx Inc',               def:true},
   {id:'newOpex',  label:'New OpEx',               def:true},
+  {id:'checkLease',label:'Check Lease if Renewed', def:true},
   {id:'director', label:'Director',               def:true},
   {id:'rom',      label:'ROM',                    def:true},
   {id:'aim',      label:'AIM',                    def:true},
@@ -1201,6 +1209,7 @@ function leaseToSP(l) {
   }
   // Only send DateAdded if it has a value — column may not exist yet on older SP lists
   if(l.dateAdded) payload["DateAdded"] = l.dateAdded;
+  payload["CheckLease"] = l.checkLease ? "Yes" : "No";
   return payload;
 }
 
@@ -1238,7 +1247,8 @@ function spToLease(item) {
     paymentType:clean(item.PaymentType),
     notes:( item.Notes||'').replace(/<[^>]*>/g,'').trim(),
     leaseDocs: item.LeaseDocs ? (function(){try{return JSON.parse(item.LeaseDocs);}catch(e){return[];}}()) : [],
-    dateAdded: item.DateAdded ? item.DateAdded.substring(0,10) : null };
+    dateAdded: item.DateAdded ? item.DateAdded.substring(0,10) : null,
+    checkLease: item.CheckLease === 'Yes' };
 }
 
 // ── AUTO-PROVISION NEW COLUMNS ────────────────────────────────────────────────
@@ -1253,6 +1263,7 @@ async function ensureColumns(token) {
     { name:'RenewalNotifyDate', type:'DateTime' },
     { name:'LeaseStatus',       type:'Text' },
     { name:'DateAdded',          type:'Text' },
+    { name:'CheckLease',         type:'Text' },
   ];
   // Fetch existing field names
   let existingNames = [];
@@ -1427,6 +1438,7 @@ const SORT_KEYS={
   opexIncDate:l=>l.opexIncDate||'9999-12-31',
   newRent:l=>parseFloat(l.rentIncAmount)||0,
   newOpex:l=>parseFloat(l.opexIncAmount)||0,
+  checkLease:l=>l.checkLease?1:0,
   brokerInfo:l=>(l.brokerInfo||'').toLowerCase(),
   landlordContact:l=>(l.landlordContact||'').toLowerCase(),
   payType:l=>(l.paymentType||'').toLowerCase(),
@@ -1606,6 +1618,7 @@ function renderLeaseTable(){
     +(col('newRent')?thSort('newRent','New Base Rent'):'')
     +(col('opexInc')?thSort('opexIncDate','OpEx Inc'):'')
     +(col('newOpex')?thSort('newOpex','New OpEx'):'')
+      +(col('checkLease')?'<th style="text-align:center">Check Lease</th>':'')
     +(col('director')?thSort('director','Director'):'')
     +(col('rom')?thSort('rom','ROM'):'')
     +(col('aim')?thSort('aim','AIM'):'')
@@ -1647,6 +1660,7 @@ function renderLeaseTable(){
       +(col('newRent')?'<td style="font-family:var(--mono);font-size:11px;white-space:nowrap">'+(l.rentIncAmount?'$'+l.rentIncAmount:'—')+'</td>':'')
       +(col('opexInc')?'<td style="font-family:var(--mono);font-size:11px;white-space:nowrap">'+(l.opexIncDate?fmtDate(l.opexIncDate):'—')+'</td>':'')
       +(col('newOpex')?'<td style="font-family:var(--mono);font-size:11px;white-space:nowrap">'+(l.opexIncAmount?'$'+l.opexIncAmount:'—')+'</td>':'')
+        +(col('checkLease')?'<td style="text-align:center">'+(l.checkLease?'<span style="color:var(--accent-mid);font-size:14px">✓</span>':'')+'</td>':'')
       +(col('director')?'<td style="font-size:11px;min-width:100px;max-width:130px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+dirHtml+'</td>':'')
       +(col('rom')?'<td style="font-size:11px;min-width:100px;max-width:130px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+romHtml+'</td>':'')
       +(col('aim')?'<td style="font-size:11px;min-width:100px;max-width:130px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+(l.aim?'<span style="font-weight:500">'+l.aim+'</span>'+(l.aimEmail?'<br><span style="font-size:10px;color:#6B3FA0">'+l.aimEmail+'</span>':''):'—')+'</td>':'')
@@ -1819,7 +1833,7 @@ function openAddModal(){
   document.getElementById('modal-title').textContent='Add New Lease';
   currentDocs = [];
   renderDocsList();
-  ['f-location','f-address','f-city','f-state','f-zip','f-sqft','f-base-rent','f-cam','f-prop-tax','f-prop-insurance','f-cam-detail','f-utilities','f-opex-other','f-rent-inc','f-rent-inc-amt','f-opex-inc','f-opex-inc-amt','f-expiry','f-notify','f-renewal','f-renewal-notify','f-landlord','f-broker-info','f-landlord-contact','f-director','f-director-email','f-rom','f-rom-email','f-aim','f-aim-email','f-notes'].forEach(id=>{
+  ['f-location','f-address','f-city','f-state','f-zip','f-sqft','f-base-rent','f-cam','f-prop-tax','f-prop-insurance','f-cam-detail','f-utilities','f-opex-other','f-rent-inc','f-rent-inc-amt','f-opex-inc','f-opex-inc-amt','f-expiry','f-notify','f-renewal','f-renewal-notify','f-landlord','f-broker-info','f-landlord-contact','f-director','f-director-email','f-rom','f-rom-email','f-aim','f-aim-email','f-notes','f-check-lease'].forEach(id=>{
     const e=document.getElementById(id); if(e)e.value='';
   });
   const pt=document.getElementById('f-payment-type'); if(pt) pt.value='';
@@ -1837,6 +1851,7 @@ function openEditModal(id){
   const l=leases.find(x=>x.id===id); if(!l)return;
   document.getElementById('modal-title').textContent='Edit — '+l.location;
   const map={'f-locnum':'locNum','f-prop-tax':'propTax','f-prop-insurance':'propInsurance','f-cam-detail':'camDetail','f-utilities':'utilities','f-opex-other':'opExOther','f-location':'location','f-address':'address','f-city':'city','f-state':'state','f-zip':'zip','f-sqft':'sqft','f-base-rent':'baseRent','f-cam':'cam','f-rent-inc':'rentIncDate','f-rent-inc-amt':'rentIncAmount','f-opex-inc':'opexIncDate','f-opex-inc-amt':'opexIncAmount','f-expiry':'expiryDate','f-notify':'notifyDate','f-renewal':'renewal','f-renewal-notify':'renewalNotifyDate','f-landlord':'landlord','f-broker-info':'brokerInfo','f-landlord-contact':'landlordContact','f-director':'director','f-director-email':'directorEmail','f-rom':'rom','f-rom-email':'romEmail','f-aim':'aim','f-aim-email':'aimEmail','f-notes':'notes'};
+  const chkEl = document.getElementById('f-check-lease'); if(chkEl) chkEl.checked = !!l.checkLease;
   Object.entries(map).forEach(([fid,k])=>{
     const e=document.getElementById(fid); if(!e)return;
     const v=l[k];
@@ -1874,6 +1889,7 @@ function saveLease(){
     opExOther:parseFloat(g('f-opex-other'))||0,
     rentIncDate:g('f-rent-inc')||null, rentIncAmount:g('f-rent-inc-amt'),
     opexIncDate:g('f-opex-inc')||null, opexIncAmount:g('f-opex-inc-amt'),
+    checkLease: document.getElementById('f-check-lease')?.checked || false,
     expiryDate:expiryVal, notifyDate:notifyVal,
     renewalNotifyDate: isMTM ? null : (calcAlertDate(g('f-notify'))||g('f-renewal-notify')||null),
     renewal:g('f-renewal'),
@@ -1998,6 +2014,7 @@ function renderStatusTable(status){
     +(col('newRent')?thSort('newRent','New Base Rent'):'')
     +(col('opexInc')?thSortS('opexIncDate','OpEx Inc'):'')
     +(col('newOpex')?thSort('newOpex','New OpEx'):'')
+      +(col('checkLease')?'<th style="text-align:center">Check Lease</th>':'')
     +(col('director')?thSortS('director','Director'):'')
     +(col('rom')?thSortS('rom','ROM'):'')
     +(col('aim')?thSortS('aim','AIM'):'')
@@ -2039,6 +2056,7 @@ function renderStatusTable(status){
         +(col('newRent')?'<td style="font-family:var(--mono);font-size:11px;white-space:nowrap">'+(l.rentIncAmount?'$'+l.rentIncAmount:'—')+'</td>':'')
         +(col('opexInc')?'<td style="font-family:var(--mono);font-size:11px;white-space:nowrap">'+(l.opexIncDate?fmtDate(l.opexIncDate):'—')+'</td>':'')
         +(col('newOpex')?'<td style="font-family:var(--mono);font-size:11px;white-space:nowrap">'+(l.opexIncAmount?'$'+l.opexIncAmount:'—')+'</td>':'')
+        +(col('checkLease')?'<td style="text-align:center">'+(l.checkLease?'<span style="color:var(--accent-mid);font-size:14px">✓</span>':'')+'</td>':'')
         +(col('director')?'<td style="font-size:11px;max-width:130px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+dirHtml+'</td>':'')
         +(col('rom')?'<td style="font-size:11px;max-width:130px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+romHtml+'</td>':'')
         +(col('aim')?'<td style="font-size:11px;max-width:130px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+(l.aim?'<span style="font-weight:500">'+l.aim+'</span>'+(l.aimEmail?'<br><span style="font-size:10px;color:#6B3FA0">'+l.aimEmail+'</span>':''):'—')+'</td>':'')
@@ -2736,6 +2754,9 @@ function openApplyIncrease(leaseId, type){
     `${l.landlord||'Unknown landlord'} · WR #${l.locNum||'—'} · ${l.city}, ${l.state}`;
   document.getElementById('rr-inc-modal-note').innerHTML =
     `Effective <strong>${fmtDate(incDate)}</strong>: ${typeLabel} changes from <strong>${fmtMoney(currentVal)}</strong> → <strong>${fmtMoney(newVal)}</strong>/mo`;
+  // Show Check Lease flag if set on this lease
+  const rrChkNote = document.getElementById('rr-inc-check-lease-note');
+  if(rrChkNote) rrChkNote.style.display = l.checkLease ? 'block' : 'none';
 
   // Clear next-increase fields
   document.getElementById('rr-next-date').value = '';

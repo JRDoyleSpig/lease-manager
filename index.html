@@ -829,6 +829,7 @@ body{font-family:var(--sans);background:var(--bg);color:var(--text);font-size:14
       <div class="form-group"><label class="form-label">AIM Name</label><input class="form-input" id="f-aim" placeholder="Auto-filled or type manually"></div>
       <div class="form-group"><label class="form-label">AIM Email</label><input class="form-input" type="email" id="f-aim-email" placeholder="Auto-filled"></div>
       <div class="form-group full"><label class="form-label">Notes</label><textarea class="form-input" id="f-notes" rows="3" style="resize:vertical"></textarea></div>
+      <div class="form-group full"><label class="form-label" style="color:var(--accent)">Rent Review Notes</label><textarea class="form-input" id="f-rr-notes" rows="3" style="resize:vertical;border-color:var(--accent-mid)" placeholder="Payment-specific notes shown during monthly rent review..."></textarea></div>
     </div>
     <div class="form-section">Lease Documents</div>
     <div id="lease-docs-list" style="display:flex;flex-direction:column;gap:8px;margin-bottom:8px"></div>
@@ -890,6 +891,7 @@ const ALL_COLS = [
   {id:'payType',         label:'Payment Type',        def:true},
   {id:'renewal',         label:'Renewal Terms',       def:true},
   {id:'notes',           label:'Notes',               def:true},
+  {id:'rrNotes',         label:'Rent Review Notes',   def:true},
   {id:'actions',  label:'Edit/Delete',           def:true},
 ];
 let visibleCols = {};
@@ -1197,7 +1199,7 @@ function leaseToSP(l) {
     "BrokerInfo": l.brokerInfo||"",
     "LandlordContact": l.landlordContact||"",
     "PaymentType": l.paymentType||"",
-    "Notes": l.notes||"", "Company": getCompany(l),
+    "Notes": l.notes||"", "RentReviewNotes": l.rentReviewNotes||"", "Company": getCompany(l),
     "LeaseDocs": l.leaseDocs && l.leaseDocs.length ? JSON.stringify(l.leaseDocs) : null
   };
   // Only include number fields if they have actual values — sending null breaks SharePoint Int32 columns
@@ -1251,6 +1253,7 @@ function spToLease(item) {
     landlordContact:clean(item.LandlordContact).replace(/<[^>]*>/g,'').trim(),
     paymentType:clean(item.PaymentType),
     notes:( item.Notes||'').replace(/<[^>]*>/g,'').trim(),
+    rentReviewNotes:( item.RentReviewNotes||'').replace(/<[^>]*>/g,'').trim(),
     leaseDocs: item.LeaseDocs ? (function(){try{return JSON.parse(item.LeaseDocs);}catch(e){return[];}}()) : [],
     dateAdded: item.DateAdded ? item.DateAdded.substring(0,10) : null,
     checkLease: item.CheckLease === 'Yes' };
@@ -1269,6 +1272,7 @@ async function ensureColumns(token) {
     { name:'LeaseStatus',       type:'Text' },
     { name:'DateAdded',          type:'Text' },
     { name:'CheckLease',         type:'Text' },
+    { name:'RentReviewNotes',    type:'Note' },
   ];
   // Fetch existing field names
   let existingNames = [];
@@ -1450,6 +1454,7 @@ const SORT_KEYS={
   payType:l=>(l.paymentType||'').toLowerCase(),
   renewal:l=>(l.renewal||'').toLowerCase(),
   notes:l=>(l.notes||'').toLowerCase(),
+  rrNotes:l=>(l.rentReviewNotes||'').toLowerCase(),
   status:l=>({critical:0,warning:1,ok:2,mtm:3,expired:4}[getStatus(l)]||0),
 };
 function sortLeases(rows){
@@ -1633,6 +1638,7 @@ function renderLeaseTable(){
     +(col('payType')?thSort('payType','Payment Type'):'')
     +(col('renewal')?thSort('renewal','Renewal Terms'):'')
     +(col('notes')?thSort('notes','Notes'):'')
+      +(col('rrNotes')?thSort('rrNotes','Rent Review Notes'):'')
     +(col('leaseStatus')?thSort('leaseStatus','Status'):'')
     +(col('actions')?'<th></th>':'')
     +'</tr></thead><tbody>'+
@@ -1675,6 +1681,7 @@ function renderLeaseTable(){
       +(col('payType')?'<td style="font-size:11px">'+(l.paymentType?'<span style="background:var(--surface2);border:1px solid var(--border);border-radius:4px;padding:2px 7px;font-size:10px">'+l.paymentType+'</span>':'—')+'</td>':'')
       +(col('renewal')?'<td style="font-size:11px;max-width:160px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+(l.renewal||'—')+'</td>':'')
       +(col('notes')?'<td style="font-size:11px;max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="'+(l.notes||'').replace(/"/g,'&quot;')+'">'+(l.notes||'—')+'</td>':'')
+        +(col('rrNotes')?'<td style="font-size:11px;max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--accent)" title="'+(l.rentReviewNotes||'').replace(/"/g,'&quot;')+'">'+(l.rentReviewNotes||'—')+'</td>':'')
       +(col('leaseStatus')?'<td style="font-size:11px;white-space:nowrap"><span class="status-badge '+(l.leaseStatus||'Active').toLowerCase()+'">'+(l.leaseStatus||'Active')+'</span></td>':'')
       +(col('actions')?'<td style="position:relative"><div class="row-actions">'+(l.leaseDocs&&l.leaseDocs.length?'<button class="btn sm" onclick="openDocsMenu('+l.id+',this)" title="Documents">📄 '+l.leaseDocs.length+'</button>':'')+'<button class="btn sm" onclick="openEditModal('+l.id+')">Edit</button><button class="btn sm" style="color:var(--danger)" onclick="deleteLease('+l.id+')">Del</button></div></td>':'')
       +'</tr>';
@@ -1839,7 +1846,7 @@ function openAddModal(){
   document.getElementById('modal-title').textContent='Add New Lease';
   currentDocs = [];
   renderDocsList();
-  ['f-location','f-address','f-city','f-state','f-zip','f-sqft','f-base-rent','f-cam','f-prop-tax','f-prop-insurance','f-cam-detail','f-utilities','f-opex-other','f-rent-inc','f-rent-inc-amt','f-opex-inc','f-opex-inc-amt','f-expiry','f-notify','f-renewal','f-renewal-notify','f-landlord','f-broker-info','f-landlord-contact','f-director','f-director-email','f-rom','f-rom-email','f-aim','f-aim-email','f-notes','f-check-lease'].forEach(id=>{
+  ['f-location','f-address','f-city','f-state','f-zip','f-sqft','f-base-rent','f-cam','f-prop-tax','f-prop-insurance','f-cam-detail','f-utilities','f-opex-other','f-rent-inc','f-rent-inc-amt','f-opex-inc','f-opex-inc-amt','f-expiry','f-notify','f-renewal','f-renewal-notify','f-landlord','f-broker-info','f-landlord-contact','f-director','f-director-email','f-rom','f-rom-email','f-aim','f-aim-email','f-notes','f-rr-notes','f-check-lease'].forEach(id=>{
     const e=document.getElementById(id); if(e)e.value='';
   });
   const pt=document.getElementById('f-payment-type'); if(pt) pt.value='';
@@ -1856,7 +1863,7 @@ function openEditModal(id){
   editingId=id;
   const l=leases.find(x=>x.id===id); if(!l)return;
   document.getElementById('modal-title').textContent='Edit — '+l.location;
-  const map={'f-locnum':'locNum','f-prop-tax':'propTax','f-prop-insurance':'propInsurance','f-cam-detail':'camDetail','f-utilities':'utilities','f-opex-other':'opExOther','f-location':'location','f-address':'address','f-city':'city','f-state':'state','f-zip':'zip','f-sqft':'sqft','f-base-rent':'baseRent','f-cam':'cam','f-rent-inc':'rentIncDate','f-rent-inc-amt':'rentIncAmount','f-opex-inc':'opexIncDate','f-opex-inc-amt':'opexIncAmount','f-expiry':'expiryDate','f-notify':'notifyDate','f-renewal':'renewal','f-renewal-notify':'renewalNotifyDate','f-landlord':'landlord','f-broker-info':'brokerInfo','f-landlord-contact':'landlordContact','f-director':'director','f-director-email':'directorEmail','f-rom':'rom','f-rom-email':'romEmail','f-aim':'aim','f-aim-email':'aimEmail','f-notes':'notes'};
+  const map={'f-locnum':'locNum','f-prop-tax':'propTax','f-prop-insurance':'propInsurance','f-cam-detail':'camDetail','f-utilities':'utilities','f-opex-other':'opExOther','f-location':'location','f-address':'address','f-city':'city','f-state':'state','f-zip':'zip','f-sqft':'sqft','f-base-rent':'baseRent','f-cam':'cam','f-rent-inc':'rentIncDate','f-rent-inc-amt':'rentIncAmount','f-opex-inc':'opexIncDate','f-opex-inc-amt':'opexIncAmount','f-expiry':'expiryDate','f-notify':'notifyDate','f-renewal':'renewal','f-renewal-notify':'renewalNotifyDate','f-landlord':'landlord','f-broker-info':'brokerInfo','f-landlord-contact':'landlordContact','f-director':'director','f-director-email':'directorEmail','f-rom':'rom','f-rom-email':'romEmail','f-aim':'aim','f-aim-email':'aimEmail','f-notes':'notes','f-rr-notes':'rentReviewNotes'};
   const chkEl = document.getElementById('f-check-lease'); if(chkEl) chkEl.checked = !!l.checkLease;
   Object.entries(map).forEach(([fid,k])=>{
     const e=document.getElementById(fid); if(!e)return;
@@ -1908,6 +1915,7 @@ function saveLease(){
     paymentType:g('f-payment-type'),
     leaseStatus:g('f-status')||'Active',
     notes:g('f-notes'),
+    rentReviewNotes:g('f-rr-notes'),
     leaseDocs:currentDocs,
     leaseDocs: currentDocs,
   };
@@ -2029,6 +2037,7 @@ function renderStatusTable(status){
     +(col('payType')?thSort('payType','Payment Type'):'')
     +(col('renewal')?thSort('renewal','Renewal Terms'):'')
     +(col('notes')?thSort('notes','Notes'):'')
+      +(col('rrNotes')?thSort('rrNotes','Rent Review Notes'):'')
     +(col('leaseStatus')?thSortS('leaseStatus','Status'):'')
     +(col('actions')?'<th></th>':'')
     +'</tr></thead><tbody>'
@@ -2071,6 +2080,7 @@ function renderStatusTable(status){
         +(col('payType')?'<td style="font-size:11px">'+(l.paymentType?'<span style="background:var(--surface2);border:1px solid var(--border);border-radius:4px;padding:2px 7px;font-size:10px">'+l.paymentType+'</span>':'—')+'</td>':'')
         +(col('renewal')?'<td style="font-size:11px;max-width:160px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+(l.renewal||'—')+'</td>':'')
         +(col('notes')?'<td style="font-size:11px;max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="'+(l.notes||'').replace(/"/g,'&quot;')+'">'+(l.notes||'—')+'</td>':'')
+        +(col('rrNotes')?'<td style="font-size:11px;max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--accent)" title="'+(l.rentReviewNotes||'').replace(/"/g,'&quot;')+'">'+(l.rentReviewNotes||'—')+'</td>':'')
         +(col('leaseStatus')?'<td style="font-size:11px;white-space:nowrap"><span class="status-badge '+(l.leaseStatus||'Active').toLowerCase()+'">'+(l.leaseStatus||'Active')+'</span></td>':'')
         +(col('actions')?'<td><div class="row-actions"><button class="btn sm" onclick="openEditModal('+l.id+')">Edit</button><button class="btn sm" style="color:var(--danger)" onclick="deleteLease('+l.id+')">Del</button></div></td>':'')
         +'</tr>';
@@ -2597,7 +2607,7 @@ function renderRRStep2(){
 // ── STEP 3: Notes ─────────────────────────────────────────────────────────────
 function renderRRStep3(){
   const body = document.getElementById('rr-body3');
-  const spig = spigActiveLeases().filter(l => l.notes && l.notes.trim().length > 0)
+  const spig = spigActiveLeases().filter(l => l.rentReviewNotes && l.rentReviewNotes.trim().length > 0)
     .sort((a,b) => (a.location||'').localeCompare(b.location||''));
 
   setRRBadge(3, spig.length, spig.length > 0 ? 'info' : null);
@@ -2613,7 +2623,7 @@ function renderRRStep3(){
       <div class="rr-row notes">
         <div>${locTag(l)}</div>
         <div style="font-size:11px">${l.landlord||'—'}<br><span style="color:var(--muted)">${fmtMoney((l.baseRent||0)+(l.cam||0))}/mo</span></div>
-        <div style="font-size:11px;color:var(--text)">${l.notes}</div>
+        <div style="font-size:11px;color:var(--text)">${l.rentReviewNotes}</div>
         <div><button class="btn sm" onclick="openEditModal(${l.id})">Edit</button></div>
       </div>`).join('');
 }

@@ -2632,7 +2632,7 @@ function renderRRStep3(){
 function renderRRStep4(){
   const body = document.getElementById('rr-body4');
   const today = new Date();
-  const hundredDaysAgo = new Date(today.getFullYear(), today.getMonth(), today.getDate() - 100);
+  const hundredDaysAgo = new Date(ty, tmon - 1, 1 - 100); // 100 days before rent due date (1st of review month)
   const tm = rrTargetMonth();
   const [ty, tmon] = tm ? tm.split('-').map(Number) : [today.getFullYear(), today.getMonth()+1];
   // Rent due date = 1st of target month

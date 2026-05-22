@@ -2899,7 +2899,13 @@ function renderRentReview(){
   renderRRStep5();
   renderRRStep7();
 
-  // Auto-open any steps with items
+  // Reset all steps then auto-open any with items
+  [1,2,3,4,5,6,7].forEach(n => {
+    const body = document.getElementById('rr-body'+n);
+    const chev = document.getElementById('rr-chev'+n);
+    if(body) body.classList.remove('open');
+    if(chev) chev.classList.remove('open');
+  });
   [1,2,3,4,5,7].forEach(n => {
     const badge = document.getElementById('rr-badge'+n);
     const body  = document.getElementById('rr-body'+n);

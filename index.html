@@ -2664,7 +2664,7 @@ function renderRRStep5(){
   const newKeywords = /prepaid|pre-paid|free rent|first month|starts|commenced|new lease|moved|relocation/i;
 
   const spig = spigActiveLeases().filter(l => {
-    const hasNewNote = l.notes && newKeywords.test(l.notes);
+    const hasNewNote = (l.notes && newKeywords.test(l.notes)) || (l.rentReviewNotes && newKeywords.test(l.rentReviewNotes));
     const isRecentlyAdded = l.dateAdded && new Date(l.dateAdded) >= ninetyDaysAgo;
     return hasNewNote || isRecentlyAdded;
   }).sort((a,b) => {

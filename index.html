@@ -1213,7 +1213,8 @@ function leaseToSP(l) {
   }
   // Only send DateAdded if it has a value — column may not exist yet on older SP lists
   if(l.dateAdded) payload["DateAdded"] = l.dateAdded;
-  payload["CheckLease"] = l.checkLease ? "Yes" : "No";
+  // Only send CheckLease if it has been explicitly set — column may not exist yet on older SP lists
+  if(l.checkLease !== undefined) payload["CheckLease"] = l.checkLease ? "Yes" : "No";
   return payload;
 }
 
@@ -1308,7 +1309,7 @@ async function loadData() {
   if(sr) sr.innerHTML = "<div style='grid-column:span 6;padding:24px;text-align:center;color:var(--muted)'>Signing in to Microsoft...</div>";
   try {
     const token = await getToken();
-    if(_isOwner) await ensureColumns(token);
+    await ensureColumns(token); // run for all users — safe, only creates missing columns
     if(sr) sr.innerHTML = "<div style='grid-column:span 6;padding:24px;text-align:center;color:var(--muted)'>Loading lease data...</div>";
     let url = SP_API + "?$select=*&$top=500&$orderby=Id";
     let all = [];

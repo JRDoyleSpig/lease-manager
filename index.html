@@ -2631,22 +2631,58 @@ function renderRRStep3(){
 // ── STEP 4: Closed / Inactive Locations ──────────────────────────────────────
 function renderRRStep4(){
   const body = document.getElementById('rr-body4');
-  const inactive = leases.filter(l => {
+  const today = new Date();
+  const hundredDaysAgo = new Date(today.getFullYear(), today.getMonth(), today.getDate() - 100);
+  const tm = rrTargetMonth();
+  const [ty, tmon] = tm ? tm.split('-').map(Number) : [today.getFullYear(), today.getMonth()+1];
+  // Rent due date = 1st of target month
+  const rentDueDate = new Date(ty, tmon - 1, 1);
+
+  // Section A: Inactive closed within last 100 days
+  const recentlyClosed = leases.filter(l => {
     if(getCompany(l) !== 'spig') return false;
-    return (l.leaseStatus||'Active').toLowerCase() === 'inactive';
-  }).sort((a,b) => (a.location||'').localeCompare(b.location||''));
+    if((l.leaseStatus||'Active').toLowerCase() !== 'inactive') return false;
+    if(!l.expiryDate || l.expiryDate === 'Month to Month') return true; // no expiry date — show it
+    return new Date(l.expiryDate) >= hundredDaysAgo;
+  }).sort((a,b) => new Date(b.expiryDate||0) - new Date(a.expiryDate||0));
 
-  setRRBadge(4, inactive.length, inactive.length > 0 ? 'warn' : null);
+  // Section B: Active leases expiring before rent due date (will be expired when rent is due)
+  const expiringBeforeRent = leases.filter(l => {
+    if(getCompany(l) !== 'spig') return false;
+    if((l.leaseStatus||'Active').toLowerCase() !== 'active') return false;
+    if(!l.expiryDate || l.expiryDate === 'Month to Month') return false;
+    const expiry = new Date(l.expiryDate);
+    return expiry < rentDueDate && expiry >= today; // expires between today and rent due date
+  }).sort((a,b) => new Date(a.expiryDate) - new Date(b.expiryDate));
 
-  if(!inactive.length){
-    body.innerHTML = '<div class="rr-empty">No inactive SPIG locations on file</div>';
+  const total = recentlyClosed.length + expiringBeforeRent.length;
+  setRRBadge(4, total, expiringBeforeRent.length > 0 ? 'danger' : recentlyClosed.length > 0 ? 'warn' : null);
+
+  if(total === 0){
+    body.innerHTML = '<div class="rr-empty">✓ No closed or expiring-before-rent-due locations this review</div>';
     return;
   }
 
-  body.innerHTML =
-    `<div style="padding:8px 16px;background:var(--warn-light);font-size:11px;color:var(--warn)">Confirm these are NOT in your NetSuite scheduled payments for the review month</div>` +
-    `<div class="rr-col-head closed"><span>Location</span><span>Landlord</span><span>Lease Expired</span><span>Last Rent</span><span></span></div>` +
-    inactive.map(l=>`
+  const colHead = `<div class="rr-col-head closed"><span>Location</span><span>Landlord</span><span>Lease Expires</span><span>Monthly Rent</span><span></span></div>`;
+  let html = '';
+
+  if(expiringBeforeRent.length){
+    html += `<div style="padding:8px 16px;background:var(--danger-light);font-size:11px;font-weight:600;color:var(--danger)">⚠ ${expiringBeforeRent.length} ACTIVE LEASE${expiringBeforeRent.length>1?'S':''} EXPIRE BEFORE RENT IS DUE (${rentDueDate.toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'})}) — VERIFY PAYMENT</div>`;
+    html += colHead;
+    html += expiringBeforeRent.map(l=>`
+      <div class="rr-row closed">
+        <div>${locTag(l)}</div>
+        <div style="font-size:11px">${l.landlord||'—'}</div>
+        <div class="rr-date" style="color:var(--danger);font-weight:600">${fmtDate(l.expiryDate)}</div>
+        <div class="rr-money">${fmtMoney((l.baseRent||0)+(l.cam||0))}</div>
+        <div><button class="btn sm" onclick="openEditModal(${l.id})">Edit</button></div>
+      </div>`).join('');
+  }
+
+  if(recentlyClosed.length){
+    html += `<div style="padding:8px 16px;background:var(--warn-light);font-size:11px;font-weight:600;color:var(--warn);${expiringBeforeRent.length?'border-top:1px solid var(--border)':''}">Closed / Inactive within last 100 days — confirm NOT in NetSuite payments</div>`;
+    html += colHead;
+    html += recentlyClosed.map(l=>`
       <div class="rr-row closed">
         <div>${locTag(l)}</div>
         <div style="font-size:11px">${l.landlord||'—'}</div>
@@ -2654,6 +2690,9 @@ function renderRRStep4(){
         <div class="rr-money">${fmtMoney((l.baseRent||0)+(l.cam||0))}</div>
         <div><button class="btn sm" onclick="openEditModal(${l.id})">View</button></div>
       </div>`).join('');
+  }
+
+  body.innerHTML = html;
 }
 
 // ── STEP 5: New / Recent Locations ───────────────────────────────────────────

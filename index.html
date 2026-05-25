@@ -802,6 +802,7 @@ body{font-family:var(--sans);background:var(--bg);color:var(--text);font-size:14
           <option value="ACH">ACH</option>
           <option value="Check">Check</option>
           <option value="Bank Draft">Bank Draft</option>
+          <option value="Ramp">Ramp</option>
         </select>
       </div>
     </div>
@@ -1832,8 +1833,17 @@ function sendAlertEmail(){
 }
 
 function exportCSV(){
-  const fields=['id','location','address','city','state','zip','landlord','sqft','baseRent','cam','expiryDate','notifyDate','rentIncDate','rentIncAmount','renewalNotifyDate','renewal','notes'];
-  const rows=leases.map(l=>fields.map(f=>JSON.stringify(l[f]===null?'':l[f])).join(','));
+  const fields=[
+    'locNum','location','leaseStatus','address','city','state','zip',
+    'landlord','landlordContact','brokerInfo',
+    'sqft','baseRent','propTax','propInsurance','camDetail','utilities','opExOther','cam',
+    'paymentType',
+    'expiryDate','notifyDate','renewalNotifyDate','renewal',
+    'rentIncDate','rentIncAmount','opexIncDate','opexIncAmount','checkLease',
+    'director','directorEmail','rom','romEmail','aim','aimEmail',
+    'notes','rentReviewNotes','dateAdded'
+  ];
+  const rows=leases.map(l=>fields.map(f=>JSON.stringify(l[f]===null||l[f]===undefined?'':l[f])).join(','));
   const csv=fields.join(',')+'\n'+rows.join('\n');
   const a=document.createElement('a');
   a.href='data:text/csv;charset=utf-8,'+encodeURIComponent(csv);

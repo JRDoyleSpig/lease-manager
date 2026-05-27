@@ -2152,7 +2152,7 @@ function renderStatusTable(status){
         +'</tr>';
     }).join('') : '<tr><td colspan="30" class="empty">No leases found.</td></tr>')
     +'</tbody>';
-  syncScrollMirror(mirrorId, tableId);
+  setTimeout(initScrollMirrors, 50);
 }
 
 function showView(name, el){

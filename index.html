@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Lease Manager — 74 Locations</title>
-<!-- v5.5 - Pre-fill future OpEx breakdown with current values in apply modal -->
+<!-- v5.6 - Fixed zero-skipping bug in leaseToSP — numeric fields now always saved including $0 -->
 <style>
 @import url('https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=DM+Sans:wght@300;400;500;600&display=swap');
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
@@ -1241,16 +1241,14 @@ function leaseToSP(l) {
     "Notes": l.notes||"", "RentReviewNotes": l.rentReviewNotes||"", "Company": getCompany(l),
     "LeaseDocs": l.leaseDocs && l.leaseDocs.length ? JSON.stringify(l.leaseDocs) : null
   };
-  // Only include number fields if they have actual values — sending null breaks SharePoint Int32 columns
+  // Always include number fields — send 0 explicitly to allow zeroing out values in SharePoint
   const numFields = {
     "SqFt": l.sqft, "BaseRent": l.baseRent, "CAM": l.cam,
     "PropTax": l.propTax, "PropInsurance": l.propInsurance,
     "CAMDetail": l.camDetail, "Utilities": l.utilities, "OpExOther": l.opExOther
   };
   for (const [key, val] of Object.entries(numFields)) {
-    if (val !== null && val !== undefined && val !== "" && val !== 0) {
-      payload[key] = val;
-    }
+    payload[key] = (val !== null && val !== undefined && val !== "") ? val : 0;
   }
   // Only send DateAdded if it has a value — column may not exist yet on older SP lists
   if(l.dateAdded) payload["DateAdded"] = l.dateAdded;

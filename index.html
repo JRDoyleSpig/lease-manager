@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Lease Manager — 74 Locations</title>
-<!-- v5.2 - Added AIM, Broker Info, Payment Type -->
+<!-- v5.3 - Added OpEx increase breakdown fields (FutureCAM, FuturePropTax, FuturePropInsurance, FutureUtilities, FutureOpExOther) -->
 <style>
 @import url('https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=DM+Sans:wght@300;400;500;600&display=swap');
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
@@ -638,6 +638,17 @@ body{font-family:var(--sans);background:var(--bg);color:var(--text);font-size:14
         <input class="rr-inc-input" type="number" id="rr-next-amount" step="0.01" placeholder="e.g. 3200.00">
       </div>
     </div>
+    <!-- Future OpEx breakdown — only shown for CAM increases -->
+    <div id="rr-next-opex-breakdown" style="display:none;margin-top:4px">
+      <div style="font-size:11px;font-weight:600;color:var(--info);text-transform:uppercase;letter-spacing:.04em;margin-bottom:8px">Next OpEx Breakdown (auto-calculates total above)</div>
+      <div class="rr-inc-grid" style="grid-template-columns:1fr 1fr 1fr">
+        <div><label class="rr-inc-label">Prop Tax</label><input class="rr-inc-input" type="number" id="rr-next-prop-tax" step="0.01" placeholder="0.00" oninput="rrCalcNextOpEx()"></div>
+        <div><label class="rr-inc-label">Insurance</label><input class="rr-inc-input" type="number" id="rr-next-prop-insurance" step="0.01" placeholder="0.00" oninput="rrCalcNextOpEx()"></div>
+        <div><label class="rr-inc-label">CAM</label><input class="rr-inc-input" type="number" id="rr-next-cam" step="0.01" placeholder="0.00" oninput="rrCalcNextOpEx()"></div>
+        <div><label class="rr-inc-label">Utilities</label><input class="rr-inc-input" type="number" id="rr-next-utilities" step="0.01" placeholder="0.00" oninput="rrCalcNextOpEx()"></div>
+        <div><label class="rr-inc-label">Other</label><input class="rr-inc-input" type="number" id="rr-next-opex-other" step="0.01" placeholder="0.00" oninput="rrCalcNextOpEx()"></div>
+      </div>
+    </div>
     <div class="rr-inc-btns">
       <button class="btn" onclick="closeRRModal()">Cancel</button>
       <button class="btn primary" id="rr-inc-confirm-btn" onclick="confirmApplyIncrease()">Confirm &amp; Apply</button>
@@ -767,7 +778,19 @@ body{font-family:var(--sans);background:var(--bg);color:var(--text);font-size:14
       <div class="form-group"><label class="form-label">Base Rent Increase Date</label><input class="form-input" type="date" id="f-rent-inc"></div>
       <div class="form-group"><label class="form-label">New Base Rent After Increase ($)</label><input class="form-input" type="number" id="f-rent-inc-amt" step="0.01"></div>
       <div class="form-group"><label class="form-label">CAM / OpEx Increase Date</label><input class="form-input" type="date" id="f-opex-inc"></div>
-      <div class="form-group"><label class="form-label">New CAM / OpEx After Increase ($)</label><input class="form-input" type="number" id="f-opex-inc-amt" step="0.01"></div>
+      <div class="form-group"><label class="form-label">New CAM / OpEx After Increase ($) <span style="font-size:10px;color:var(--muted)">(auto-calculated)</span></label><input class="form-input" type="number" id="f-opex-inc-amt" step="0.01" readonly style="background:var(--surface2);color:var(--muted)"></div>
+      <div class="form-group full" style="margin-top:4px">
+        <details>
+          <summary style="cursor:pointer;font-size:11px;font-weight:600;color:var(--info);text-transform:uppercase;letter-spacing:.04em">+ Future OpEx Breakdown (after increase)</summary>
+          <div class="form-grid" style="margin-top:10px">
+            <div class="form-group"><label class="form-label">Future Prop Tax (monthly $)</label><input class="form-input" type="number" id="f-future-prop-tax" step="0.01" oninput="updateFutureOpExTotal()"></div>
+            <div class="form-group"><label class="form-label">Future Prop Insurance (monthly $)</label><input class="form-input" type="number" id="f-future-prop-insurance" step="0.01" oninput="updateFutureOpExTotal()"></div>
+            <div class="form-group"><label class="form-label">Future CAM (monthly $)</label><input class="form-input" type="number" id="f-future-cam" step="0.01" oninput="updateFutureOpExTotal()"></div>
+            <div class="form-group"><label class="form-label">Future Utilities (monthly $)</label><input class="form-input" type="number" id="f-future-utilities" step="0.01" oninput="updateFutureOpExTotal()"></div>
+            <div class="form-group"><label class="form-label">Future Other (monthly $)</label><input class="form-input" type="number" id="f-future-opex-other" step="0.01" oninput="updateFutureOpExTotal()"></div>
+          </div>
+        </details>
+      </div>
       <div class="form-group" style="display:flex;align-items:center;gap:10px;padding:10px 0">
         <input type="checkbox" id="f-check-lease" style="width:16px;height:16px;cursor:pointer;accent-color:var(--accent)">
         <label for="f-check-lease" style="font-size:13px;font-weight:500;cursor:pointer">Check Lease if Renewed — verify terms before next increase</label>
@@ -1054,6 +1077,17 @@ function updateCamTotal(){
   if(el) el.value = total > 0 ? total.toFixed(2) : '';
 }
 
+function updateFutureOpExTotal(){
+  const tax   = parseFloat(document.getElementById('f-future-prop-tax')?.value)||0;
+  const ins   = parseFloat(document.getElementById('f-future-prop-insurance')?.value)||0;
+  const cam   = parseFloat(document.getElementById('f-future-cam')?.value)||0;
+  const util  = parseFloat(document.getElementById('f-future-utilities')?.value)||0;
+  const other = parseFloat(document.getElementById('f-future-opex-other')?.value)||0;
+  const total = tax + ins + cam + util + other;
+  const el = document.getElementById('f-opex-inc-amt');
+  if(el) el.value = total > 0 ? total.toFixed(2) : '';
+}
+
 function calcAlertDate(notifyDate){
   if(!notifyDate) return null;
   const d = new Date(notifyDate + 'T12:00:00');
@@ -1194,6 +1228,9 @@ function leaseToSP(l) {
     "Landlord": l.landlord||"", "Renewal": l.renewal||"",
     "RentIncDate": l.rentIncDate?l.rentIncDate+"T12:00:00Z":null, "RentIncAmount": l.rentIncAmount||"",
     "OpexIncDate": l.opexIncDate?l.opexIncDate+"T12:00:00Z":null, "OpexIncAmount": l.opexIncAmount||"",
+    "FutureCAM": l.futureCAM||0, "FuturePropTax": l.futurePropTax||0,
+    "FuturePropInsurance": l.futurePropInsurance||0, "FutureUtilities": l.futureUtilities||0,
+    "FutureOpExOther": l.futureOpExOther||0,
     "Director": l.director||"", "DirectorEmail": l.directorEmail||"",
     "ROM": l.rom||"", "ROMEmail": l.romEmail||"",
     "AIM": l.aim||"", "AIMEmail": l.aimEmail||"",
@@ -1246,6 +1283,9 @@ function spToLease(item) {
     notifyDate:d(item.NotifyDate), landlord:item.Landlord||"", renewal:item.Renewal||"",
     rentIncDate:d(item.RentIncDate), rentIncAmount:item.RentIncAmount||"",
     opexIncDate:d(item.OpexIncDate), opexIncAmount:item.OpexIncAmount||"",
+    futureCAM:item.FutureCAM||0, futurePropTax:item.FuturePropTax||0,
+    futurePropInsurance:item.FuturePropInsurance||0, futureUtilities:item.FutureUtilities||0,
+    futureOpExOther:item.FutureOpExOther||0,
     renewalNotifyDate:d(item.RenewalNotifyDate),
     director:clean(item.Director), directorEmail:clean(item.DirectorEmail),
     rom:clean(item.ROM), romEmail:clean(item.ROMEmail),
@@ -1839,7 +1879,9 @@ function exportCSV(){
     'sqft','baseRent','propTax','propInsurance','camDetail','utilities','opExOther','cam',
     'paymentType',
     'expiryDate','notifyDate','renewalNotifyDate','renewal',
-    'rentIncDate','rentIncAmount','opexIncDate','opexIncAmount','checkLease',
+    'rentIncDate','rentIncAmount','opexIncDate','opexIncAmount',
+    'futurePropTax','futurePropInsurance','futureCAM','futureUtilities','futureOpExOther',
+    'checkLease',
     'director','directorEmail','rom','romEmail','aim','aimEmail',
     'notes','rentReviewNotes','dateAdded'
   ];
@@ -1856,7 +1898,7 @@ function openAddModal(){
   document.getElementById('modal-title').textContent='Add New Lease';
   currentDocs = [];
   renderDocsList();
-  ['f-location','f-address','f-city','f-state','f-zip','f-sqft','f-base-rent','f-cam','f-prop-tax','f-prop-insurance','f-cam-detail','f-utilities','f-opex-other','f-rent-inc','f-rent-inc-amt','f-opex-inc','f-opex-inc-amt','f-expiry','f-notify','f-renewal','f-renewal-notify','f-landlord','f-broker-info','f-landlord-contact','f-director','f-director-email','f-rom','f-rom-email','f-aim','f-aim-email','f-notes','f-rr-notes','f-check-lease'].forEach(id=>{
+  ['f-location','f-address','f-city','f-state','f-zip','f-sqft','f-base-rent','f-cam','f-prop-tax','f-prop-insurance','f-cam-detail','f-utilities','f-opex-other','f-rent-inc','f-rent-inc-amt','f-opex-inc','f-opex-inc-amt','f-future-prop-tax','f-future-prop-insurance','f-future-cam','f-future-utilities','f-future-opex-other','f-expiry','f-notify','f-renewal','f-renewal-notify','f-landlord','f-broker-info','f-landlord-contact','f-director','f-director-email','f-rom','f-rom-email','f-aim','f-aim-email','f-notes','f-rr-notes','f-check-lease'].forEach(id=>{
     const e=document.getElementById(id); if(e)e.value='';
   });
   const pt=document.getElementById('f-payment-type'); if(pt) pt.value='';
@@ -1873,7 +1915,7 @@ function openEditModal(id){
   editingId=id;
   const l=leases.find(x=>x.id===id); if(!l)return;
   document.getElementById('modal-title').textContent='Edit — '+l.location;
-  const map={'f-locnum':'locNum','f-prop-tax':'propTax','f-prop-insurance':'propInsurance','f-cam-detail':'camDetail','f-utilities':'utilities','f-opex-other':'opExOther','f-location':'location','f-address':'address','f-city':'city','f-state':'state','f-zip':'zip','f-sqft':'sqft','f-base-rent':'baseRent','f-cam':'cam','f-rent-inc':'rentIncDate','f-rent-inc-amt':'rentIncAmount','f-opex-inc':'opexIncDate','f-opex-inc-amt':'opexIncAmount','f-expiry':'expiryDate','f-notify':'notifyDate','f-renewal':'renewal','f-renewal-notify':'renewalNotifyDate','f-landlord':'landlord','f-broker-info':'brokerInfo','f-landlord-contact':'landlordContact','f-director':'director','f-director-email':'directorEmail','f-rom':'rom','f-rom-email':'romEmail','f-aim':'aim','f-aim-email':'aimEmail','f-notes':'notes','f-rr-notes':'rentReviewNotes'};
+  const map={'f-locnum':'locNum','f-prop-tax':'propTax','f-prop-insurance':'propInsurance','f-cam-detail':'camDetail','f-utilities':'utilities','f-opex-other':'opExOther','f-location':'location','f-address':'address','f-city':'city','f-state':'state','f-zip':'zip','f-sqft':'sqft','f-base-rent':'baseRent','f-cam':'cam','f-rent-inc':'rentIncDate','f-rent-inc-amt':'rentIncAmount','f-opex-inc':'opexIncDate','f-opex-inc-amt':'opexIncAmount','f-future-prop-tax':'futurePropTax','f-future-prop-insurance':'futurePropInsurance','f-future-cam':'futureCAM','f-future-utilities':'futureUtilities','f-future-opex-other':'futureOpExOther','f-expiry':'expiryDate','f-notify':'notifyDate','f-renewal':'renewal','f-renewal-notify':'renewalNotifyDate','f-landlord':'landlord','f-broker-info':'brokerInfo','f-landlord-contact':'landlordContact','f-director':'director','f-director-email':'directorEmail','f-rom':'rom','f-rom-email':'romEmail','f-aim':'aim','f-aim-email':'aimEmail','f-notes':'notes','f-rr-notes':'rentReviewNotes'};
   const chkEl = document.getElementById('f-check-lease'); if(chkEl) chkEl.checked = !!l.checkLease;
   Object.entries(map).forEach(([fid,k])=>{
     const e=document.getElementById(fid); if(!e)return;
@@ -1912,6 +1954,11 @@ function saveLease(){
     opExOther:parseFloat(g('f-opex-other'))||0,
     rentIncDate:g('f-rent-inc')||null, rentIncAmount:g('f-rent-inc-amt'),
     opexIncDate:g('f-opex-inc')||null, opexIncAmount:g('f-opex-inc-amt'),
+    futurePropTax:parseFloat(g('f-future-prop-tax'))||0,
+    futurePropInsurance:parseFloat(g('f-future-prop-insurance'))||0,
+    futureCAM:parseFloat(g('f-future-cam'))||0,
+    futureUtilities:parseFloat(g('f-future-utilities'))||0,
+    futureOpExOther:parseFloat(g('f-future-opex-other'))||0,
     checkLease: document.getElementById('f-check-lease')?.checked || false,
     expiryDate:expiryVal, notifyDate:notifyVal,
     renewalNotifyDate: isMTM ? null : (calcAlertDate(g('f-notify'))||g('f-renewal-notify')||null),
@@ -2571,7 +2618,7 @@ function renderRRStep2(){
   const spig = spigActiveLeases();
 
   const rentIncs = spig.filter(l => l.rentIncDate && parseFloat(l.rentIncAmount) > 0 && rrIncreaseInWindow(l.rentIncDate, tm));
-  const camIncs  = spig.filter(l => l.opexIncDate && parseFloat(l.opexIncAmount) > 0 && rrIncreaseInWindow(l.opexIncDate, tm));
+  const camIncs  = spig.filter(l => l.opexIncDate && (parseFloat(l.opexIncAmount) > 0 || l.futureCAM||l.futurePropTax||l.futurePropInsurance||l.futureUtilities||l.futureOpExOther) && rrIncreaseInWindow(l.opexIncDate, tm));
 
   const total = rentIncs.length + camIncs.length;
   setRRBadge(2, total, total > 0 ? 'warn' : null);
@@ -2599,16 +2646,37 @@ function renderRRStep2(){
 
   if(camIncs.length){
     html += `<div style="padding:8px 16px;background:var(--info-light);font-size:11px;font-weight:600;color:var(--info);${rentIncs.length?'border-top:1px solid var(--border)':''}">CAM / OpEx Increases — ${camIncs.length} location${camIncs.length>1?'s':''}</div>`;
-    html += `<div class="rr-col-head increase"><span>Location</span><span>Landlord</span><span>Eff. Date</span><span>Current CAM</span><span>New CAM</span><span></span></div>`;
-    html += camIncs.map(l=>`
-      <div class="rr-row increase">
-        <div>${locTag(l)}</div>
-        <div style="font-size:11px">${l.landlord||'—'}</div>
-        <div class="rr-date">${fmtDate(l.opexIncDate)}</div>
-        <div class="rr-money">${fmtMoney(l.cam)}</div>
-        <div class="rr-money" style="color:var(--info)">$${parseFloat(l.opexIncAmount).toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2})}</div>
-        <div><button class="apply-btn cam" onclick="openApplyIncrease(${l.id},'cam')">Apply</button></div>
-      </div>`).join('');
+    html += camIncs.map(l=>{
+      const hasBreakdown = l.futurePropTax||l.futurePropInsurance||l.futureCAM||l.futureUtilities||l.futureOpExOther;
+      const breakdownRows = hasBreakdown ? `
+        <div style="grid-column:span 6;padding:8px 0 0 0">
+          <table style="width:100%;font-size:11px;border-collapse:collapse">
+            <thead><tr style="color:var(--muted);font-size:10px;text-transform:uppercase;letter-spacing:.04em">
+              <th style="text-align:left;padding:3px 8px;font-weight:600"></th>
+              <th style="text-align:right;padding:3px 8px;font-weight:600">Current</th>
+              <th style="text-align:right;padding:3px 8px;font-weight:600">New</th>
+            </tr></thead>
+            <tbody>
+              ${l.propTax||l.futurePropTax?`<tr><td style="padding:2px 8px;color:var(--muted)">Prop Tax</td><td style="text-align:right;padding:2px 8px;font-family:var(--mono)">${fmtMoney(l.propTax)}</td><td style="text-align:right;padding:2px 8px;font-family:var(--mono);color:var(--info);font-weight:600">${fmtMoney(l.futurePropTax)}</td></tr>`:''}
+              ${l.propInsurance||l.futurePropInsurance?`<tr><td style="padding:2px 8px;color:var(--muted)">Insurance</td><td style="text-align:right;padding:2px 8px;font-family:var(--mono)">${fmtMoney(l.propInsurance)}</td><td style="text-align:right;padding:2px 8px;font-family:var(--mono);color:var(--info);font-weight:600">${fmtMoney(l.futurePropInsurance)}</td></tr>`:''}
+              ${l.camDetail||l.futureCAM?`<tr><td style="padding:2px 8px;color:var(--muted)">CAM</td><td style="text-align:right;padding:2px 8px;font-family:var(--mono)">${fmtMoney(l.camDetail)}</td><td style="text-align:right;padding:2px 8px;font-family:var(--mono);color:var(--info);font-weight:600">${fmtMoney(l.futureCAM)}</td></tr>`:''}
+              ${l.utilities||l.futureUtilities?`<tr><td style="padding:2px 8px;color:var(--muted)">Utilities</td><td style="text-align:right;padding:2px 8px;font-family:var(--mono)">${fmtMoney(l.utilities)}</td><td style="text-align:right;padding:2px 8px;font-family:var(--mono);color:var(--info);font-weight:600">${fmtMoney(l.futureUtilities)}</td></tr>`:''}
+              ${l.opExOther||l.futureOpExOther?`<tr><td style="padding:2px 8px;color:var(--muted)">Other</td><td style="text-align:right;padding:2px 8px;font-family:var(--mono)">${fmtMoney(l.opExOther)}</td><td style="text-align:right;padding:2px 8px;font-family:var(--mono);color:var(--info);font-weight:600">${fmtMoney(l.futureOpExOther)}</td></tr>`:''}
+              <tr style="border-top:1px solid var(--border)"><td style="padding:3px 8px;font-weight:600">Total</td><td style="text-align:right;padding:3px 8px;font-family:var(--mono);font-weight:600">${fmtMoney(l.cam)}</td><td style="text-align:right;padding:3px 8px;font-family:var(--mono);color:var(--info);font-weight:700">${fmtMoney(parseFloat(l.opexIncAmount)||0)}</td></tr>
+            </tbody>
+          </table>
+        </div>` : '';
+      return `
+        <div class="rr-row increase" style="${hasBreakdown?'grid-template-columns:90px 1fr 130px 130px 130px auto;flex-wrap:wrap':''}">
+          <div>${locTag(l)}</div>
+          <div style="font-size:11px">${l.landlord||'—'}</div>
+          <div class="rr-date">${fmtDate(l.opexIncDate)}</div>
+          <div class="rr-money">${fmtMoney(l.cam)}</div>
+          <div class="rr-money" style="color:var(--info)">$${parseFloat(l.opexIncAmount||0).toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2})}</div>
+          <div><button class="apply-btn cam" onclick="openApplyIncrease(${l.id},'cam')">Apply</button></div>
+          ${breakdownRows}
+        </div>`;
+    }).join('');
   }
 
   body.innerHTML = html;
@@ -2829,9 +2897,26 @@ function openApplyIncrease(leaseId, type){
   // Clear next-increase fields
   document.getElementById('rr-next-date').value = '';
   document.getElementById('rr-next-amount').value = '';
+  // Show/hide OpEx breakdown section
+  const breakdownSection = document.getElementById('rr-next-opex-breakdown');
+  if(breakdownSection) breakdownSection.style.display = isRent ? 'none' : 'block';
+  ['rr-next-prop-tax','rr-next-prop-insurance','rr-next-cam','rr-next-utilities','rr-next-opex-other'].forEach(id=>{
+    const el = document.getElementById(id); if(el) el.value='';
+  });
 
   document.getElementById('rr-increase-modal').classList.add('open');
   document.getElementById('rr-inc-confirm-btn').textContent = 'Confirm & Apply';
+}
+
+function rrCalcNextOpEx(){
+  const tax   = parseFloat(document.getElementById('rr-next-prop-tax')?.value)||0;
+  const ins   = parseFloat(document.getElementById('rr-next-prop-insurance')?.value)||0;
+  const cam   = parseFloat(document.getElementById('rr-next-cam')?.value)||0;
+  const util  = parseFloat(document.getElementById('rr-next-utilities')?.value)||0;
+  const other = parseFloat(document.getElementById('rr-next-opex-other')?.value)||0;
+  const total = tax + ins + cam + util + other;
+  const el = document.getElementById('rr-next-amount');
+  if(el) el.value = total > 0 ? total.toFixed(2) : '';
 }
 
 function rrSyncCheckLease(checked){
@@ -2874,10 +2959,23 @@ async function confirmApplyIncrease(){
     l.rentIncDate   = nextDate;
     l.rentIncAmount = nextAmount;
   } else {
-    // For CAM, update the total cam field
-    l.cam          = newVal;
-    l.opexIncDate  = nextDate;
+    // Push future breakdown fields into current breakdown fields
+    if(l.futurePropTax||l.futurePropInsurance||l.futureCAM||l.futureUtilities||l.futureOpExOther){
+      l.propTax       = l.futurePropTax||0;
+      l.propInsurance = l.futurePropInsurance||0;
+      l.camDetail     = l.futureCAM||0;
+      l.utilities     = l.futureUtilities||0;
+      l.opExOther     = l.futureOpExOther||0;
+    }
+    l.cam           = newVal;
+    l.opexIncDate   = nextDate;
     l.opexIncAmount = nextAmount;
+    // Save next future breakdown from modal inputs
+    l.futurePropTax       = parseFloat(document.getElementById('rr-next-prop-tax')?.value)||0;
+    l.futurePropInsurance = parseFloat(document.getElementById('rr-next-prop-insurance')?.value)||0;
+    l.futureCAM           = parseFloat(document.getElementById('rr-next-cam')?.value)||0;
+    l.futureUtilities     = parseFloat(document.getElementById('rr-next-utilities')?.value)||0;
+    l.futureOpExOther     = parseFloat(document.getElementById('rr-next-opex-other')?.value)||0;
   }
 
   try {

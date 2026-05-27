@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Lease Manager — 74 Locations</title>
-<!-- v5.6 - Fixed zero-skipping bug in leaseToSP — numeric fields now always saved including $0 -->
+<!-- v5.7 - Fixed pre-fill logic: falls back to current values when future fields are 0 -->
 <style>
 @import url('https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=DM+Sans:wght@300;400;500;600&display=swap');
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
@@ -2902,13 +2902,13 @@ function openApplyIncrease(leaseId, type){
   const breakdownSection = document.getElementById('rr-next-opex-breakdown');
   if(breakdownSection) breakdownSection.style.display = isRent ? 'none' : 'block';
   if(!isRent){
-    // Pre-fill future breakdown with current values — user only needs to change what's increasing
+    // Pre-fill future breakdown — use future values if set, otherwise fall back to current values
     const prefill = {
-      'rr-next-prop-tax':       l.futurePropTax       || l.propTax       || 0,
-      'rr-next-prop-insurance': l.futurePropInsurance || l.propInsurance || 0,
-      'rr-next-cam':            l.futureCAM           || l.camDetail     || 0,
-      'rr-next-utilities':      l.futureUtilities     || l.utilities     || 0,
-      'rr-next-opex-other':     l.futureOpExOther     || l.opExOther     || 0,
+      'rr-next-prop-tax':       l.futurePropTax       > 0 ? l.futurePropTax       : (l.propTax       || 0),
+      'rr-next-prop-insurance': l.futurePropInsurance > 0 ? l.futurePropInsurance : (l.propInsurance || 0),
+      'rr-next-cam':            l.futureCAM           > 0 ? l.futureCAM           : (l.camDetail     || 0),
+      'rr-next-utilities':      l.futureUtilities     > 0 ? l.futureUtilities     : (l.utilities     || 0),
+      'rr-next-opex-other':     l.futureOpExOther     > 0 ? l.futureOpExOther     : (l.opExOther     || 0),
     };
     Object.entries(prefill).forEach(([id, val]) => {
       const el = document.getElementById(id);

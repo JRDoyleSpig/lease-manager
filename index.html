@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Lease Manager — 74 Locations</title>
-<!-- v5.7 - Fixed pre-fill logic: falls back to current values when future fields are 0 -->
+<!-- v5.8 - Fixed month selector resetting on render; expanded to 6 months -->
 <style>
 @import url('https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=DM+Sans:wght@300;400;500;600&display=swap');
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
@@ -2487,15 +2487,16 @@ let rrPendingIncrease = null; // {leaseId, type:'rent'|'cam', newVal, newDate}
 function initRRMonthSelect(){
   const sel = document.getElementById('rr-month-select');
   if(!sel) return;
+  // Only build options if not already populated — prevents resetting user selection on re-render
+  if(sel.options.length > 0) return;
   const now = new Date();
-  sel.innerHTML = '';
-  for(let i = 0; i < 4; i++){
+  for(let i = 0; i < 6; i++){
     const d = new Date(now.getFullYear(), now.getMonth() + i, 1);
     const label = d.toLocaleString('default',{month:'long',year:'numeric'});
     const val = `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}`;
     const opt = document.createElement('option');
     opt.value = val; opt.textContent = label;
-    if(i === 1) opt.selected = true; // default to next month (what you're reviewing now)
+    if(i === 1) opt.selected = true; // default to next month
     sel.appendChild(opt);
   }
 }

@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Lease Manager — 74 Locations</title>
-<!-- v5.3 - Added OpEx increase breakdown fields (FutureCAM, FuturePropTax, FuturePropInsurance, FutureUtilities, FutureOpExOther) -->
+<!-- v5.4 - Added OpEx increase breakdown fields; Check Lease hidden for OpEx increases; added next increase note -->
 <style>
 @import url('https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=DM+Sans:wght@300;400;500;600&display=swap');
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
@@ -623,7 +623,7 @@ body{font-family:var(--sans);background:var(--bg);color:var(--text);font-size:14
     <div id="rr-inc-check-lease-note" style="display:none;background:var(--warn-light);border:1px solid var(--warn);border-radius:6px;padding:10px 14px;margin-bottom:16px;font-size:12px;color:var(--warn);font-weight:500">
       ⚠ <strong>Check Lease if Renewed</strong> is flagged for this location. Verify the lease document for renewal terms and confirm whether a next increase applies before proceeding.
     </div>
-    <div style="display:flex;align-items:center;gap:10px;padding:10px 0 16px 0;border-bottom:1px solid var(--border);margin-bottom:16px">
+    <div id="rr-inc-check-lease-row" style="display:flex;align-items:center;gap:10px;padding:10px 0 16px 0;border-bottom:1px solid var(--border);margin-bottom:16px">
       <input type="checkbox" id="rr-inc-check-lease-cb" style="width:16px;height:16px;cursor:pointer;accent-color:var(--accent)" onchange="rrSyncCheckLease(this.checked)">
       <label for="rr-inc-check-lease-cb" style="font-size:13px;font-weight:500;cursor:pointer;color:var(--text)">Check Lease if Renewed</label>
     </div>
@@ -640,7 +640,8 @@ body{font-family:var(--sans);background:var(--bg);color:var(--text);font-size:14
     </div>
     <!-- Future OpEx breakdown — only shown for CAM increases -->
     <div id="rr-next-opex-breakdown" style="display:none;margin-top:4px">
-      <div style="font-size:11px;font-weight:600;color:var(--info);text-transform:uppercase;letter-spacing:.04em;margin-bottom:8px">Next OpEx Breakdown (auto-calculates total above)</div>
+      <div style="font-size:11px;font-weight:600;color:var(--info);text-transform:uppercase;letter-spacing:.04em;margin-bottom:4px">Next OpEx Breakdown (auto-calculates total above)</div>
+      <div style="font-size:11px;color:var(--muted);margin-bottom:10px;font-style:italic">Enter next scheduled increase if defined in lease. Leave blank if unknown or not yet established.</div>
       <div class="rr-inc-grid" style="grid-template-columns:1fr 1fr 1fr">
         <div><label class="rr-inc-label">Prop Tax</label><input class="rr-inc-input" type="number" id="rr-next-prop-tax" step="0.01" placeholder="0.00" oninput="rrCalcNextOpEx()"></div>
         <div><label class="rr-inc-label">Insurance</label><input class="rr-inc-input" type="number" id="rr-next-prop-insurance" step="0.01" placeholder="0.00" oninput="rrCalcNextOpEx()"></div>
@@ -2887,9 +2888,11 @@ function openApplyIncrease(leaseId, type){
     `${l.landlord||'Unknown landlord'} · WR #${l.locNum||'—'} · ${l.city}, ${l.state}`;
   document.getElementById('rr-inc-modal-note').innerHTML =
     `Effective <strong>${fmtDate(incDate)}</strong>: ${typeLabel} changes from <strong>${fmtMoney(currentVal)}</strong> → <strong>${fmtMoney(newVal)}</strong>/mo`;
-  // Show Check Lease flag if set on this lease
+  // Show Check Lease flag if set on this lease (rent only)
   const rrChkNote = document.getElementById('rr-inc-check-lease-note');
-  if(rrChkNote) rrChkNote.style.display = l.checkLease ? 'block' : 'none';
+  const rrChkRow  = document.getElementById('rr-inc-check-lease-row');
+  if(rrChkRow) rrChkRow.style.display = isRent ? 'flex' : 'none';
+  if(rrChkNote) rrChkNote.style.display = (isRent && l.checkLease) ? 'block' : 'none';
   // Sync checkbox state
   const rrCb = document.getElementById('rr-inc-check-lease-cb');
   if(rrCb) rrCb.checked = !!l.checkLease;

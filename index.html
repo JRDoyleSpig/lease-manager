@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Lease Manager — 74 Locations</title>
-<!-- v5.8 - Fixed month selector resetting on render; expanded to 6 months -->
+<!-- v5.9 - Added Original Lease Start Date field -->
 <style>
 @import url('https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=DM+Sans:wght@300;400;500;600&display=swap');
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
@@ -799,6 +799,7 @@ body{font-family:var(--sans);background:var(--bg);color:var(--text);font-size:14
     </div>
     <div class="form-section">Lease Dates</div>
     <div class="form-grid">
+      <div class="form-group"><label class="form-label">Original Lease Start Date</label><input class="form-input" type="date" id="f-lease-start"></div>
       <div class="form-group">
         <label class="form-label">Lease Expiration</label>
         <div style="display:flex;align-items:center;gap:10px">
@@ -908,6 +909,7 @@ const ALL_COLS = [
   {id:'opexInc',  label:'OpEx Inc',               def:true},
   {id:'newOpex',  label:'New OpEx',               def:true},
   {id:'checkLease',label:'Check Lease if Renewed', def:true},
+  {id:'leaseStartDate', label:'Original Lease Start Date', def:true},
   {id:'director', label:'Director',               def:true},
   {id:'rom',      label:'ROM',                    def:true},
   {id:'aim',      label:'AIM',                    def:true},
@@ -1229,6 +1231,7 @@ function leaseToSP(l) {
     "Landlord": l.landlord||"", "Renewal": l.renewal||"",
     "RentIncDate": l.rentIncDate?l.rentIncDate+"T12:00:00Z":null, "RentIncAmount": l.rentIncAmount||"",
     "OpexIncDate": l.opexIncDate?l.opexIncDate+"T12:00:00Z":null, "OpexIncAmount": l.opexIncAmount||"",
+    "LeaseStartDate": l.leaseStartDate?l.leaseStartDate+"T12:00:00Z":null,
     "FutureCAM": l.futureCAM||0, "FuturePropTax": l.futurePropTax||0,
     "FuturePropInsurance": l.futurePropInsurance||0, "FutureUtilities": l.futureUtilities||0,
     "FutureOpExOther": l.futureOpExOther||0,
@@ -1282,6 +1285,7 @@ function spToLease(item) {
     notifyDate:d(item.NotifyDate), landlord:item.Landlord||"", renewal:item.Renewal||"",
     rentIncDate:d(item.RentIncDate), rentIncAmount:item.RentIncAmount||"",
     opexIncDate:d(item.OpexIncDate), opexIncAmount:item.OpexIncAmount||"",
+    leaseStartDate:d(item.LeaseStartDate),
     futureCAM:item.FutureCAM||0, futurePropTax:item.FuturePropTax||0,
     futurePropInsurance:item.FuturePropInsurance||0, futureUtilities:item.FutureUtilities||0,
     futureOpExOther:item.FutureOpExOther||0,
@@ -1484,6 +1488,7 @@ const SORT_KEYS={
   expiryDate:l=>l.expiryDate==='Month to Month'?'9999-12-31':(l.expiryDate||'9999-12-31'),
   notifyDate:l=>l.notifyDate||'9999-12-31',
   rentIncDate:l=>l.rentIncDate||'9999-12-31',
+  leaseStartDate:l=>l.leaseStartDate||'9999-12-31',
   renewalAlert:l=>l.renewalNotifyDate||'9999-12-31',
   opexIncDate:l=>l.opexIncDate||'9999-12-31',
   newRent:l=>parseFloat(l.rentIncAmount)||0,
@@ -1670,7 +1675,7 @@ function renderLeaseTable(){
     +(col('opexInc')?thSort('opexIncDate','OpEx Inc'):'')
     +(col('newOpex')?thSort('newOpex','New OpEx'):'')
       +(col('checkLease')?'<th style="text-align:center">Check Lease</th>':'')
-    +(col('director')?thSort('director','Director'):'')
+    +(col('leaseStartDate')?thSort('leaseStartDate','Lease Start Date'):'')
     +(col('rom')?thSort('rom','ROM'):'')
     +(col('aim')?thSort('aim','AIM'):'')
     +(col('brokerInfo')?thSort('brokerInfo','Broker Info'):'')
@@ -1713,6 +1718,7 @@ function renderLeaseTable(){
       +(col('opexInc')?'<td style="font-family:var(--mono);font-size:11px;white-space:nowrap">'+(l.opexIncDate?fmtDate(l.opexIncDate):'—')+'</td>':'')
       +(col('newOpex')?'<td style="font-family:var(--mono);font-size:11px;white-space:nowrap">'+(l.opexIncAmount?'$'+l.opexIncAmount:'—')+'</td>':'')
         +(col('checkLease')?'<td style="text-align:center">'+(l.checkLease?'<span style="color:var(--accent-mid);font-size:14px">✓</span>':'')+'</td>':'')
+      +(col('leaseStartDate')?'<td style="font-family:var(--mono);font-size:11px;white-space:nowrap">'+(l.leaseStartDate?fmtDate(l.leaseStartDate):'—')+'</td>':'')
       +(col('director')?'<td style="font-size:11px;min-width:100px;max-width:130px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+dirHtml+'</td>':'')
       +(col('rom')?'<td style="font-size:11px;min-width:100px;max-width:130px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+romHtml+'</td>':'')
       +(col('aim')?'<td style="font-size:11px;min-width:100px;max-width:130px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+(l.aim?'<span style="font-weight:500">'+l.aim+'</span>'+(l.aimEmail?'<br><span style="font-size:10px;color:#6B3FA0">'+l.aimEmail+'</span>':''):'—')+'</td>':'')
@@ -1880,7 +1886,7 @@ function exportCSV(){
     'expiryDate','notifyDate','renewalNotifyDate','renewal',
     'rentIncDate','rentIncAmount','opexIncDate','opexIncAmount',
     'futurePropTax','futurePropInsurance','futureCAM','futureUtilities','futureOpExOther',
-    'checkLease',
+    'checkLease','leaseStartDate',
     'director','directorEmail','rom','romEmail','aim','aimEmail',
     'notes','rentReviewNotes','dateAdded'
   ];
@@ -1897,7 +1903,7 @@ function openAddModal(){
   document.getElementById('modal-title').textContent='Add New Lease';
   currentDocs = [];
   renderDocsList();
-  ['f-location','f-address','f-city','f-state','f-zip','f-sqft','f-base-rent','f-cam','f-prop-tax','f-prop-insurance','f-cam-detail','f-utilities','f-opex-other','f-rent-inc','f-rent-inc-amt','f-opex-inc','f-opex-inc-amt','f-future-prop-tax','f-future-prop-insurance','f-future-cam','f-future-utilities','f-future-opex-other','f-expiry','f-notify','f-renewal','f-renewal-notify','f-landlord','f-broker-info','f-landlord-contact','f-director','f-director-email','f-rom','f-rom-email','f-aim','f-aim-email','f-notes','f-rr-notes','f-check-lease'].forEach(id=>{
+  ['f-location','f-address','f-city','f-state','f-zip','f-sqft','f-base-rent','f-cam','f-prop-tax','f-prop-insurance','f-cam-detail','f-utilities','f-opex-other','f-rent-inc','f-rent-inc-amt','f-opex-inc','f-opex-inc-amt','f-future-prop-tax','f-future-prop-insurance','f-future-cam','f-future-utilities','f-future-opex-other','f-expiry','f-notify','f-renewal','f-renewal-notify','f-landlord','f-broker-info','f-landlord-contact','f-director','f-director-email','f-rom','f-rom-email','f-aim','f-aim-email','f-notes','f-rr-notes','f-check-lease','f-lease-start'].forEach(id=>{
     const e=document.getElementById(id); if(e)e.value='';
   });
   const pt=document.getElementById('f-payment-type'); if(pt) pt.value='';
@@ -1914,7 +1920,7 @@ function openEditModal(id){
   editingId=id;
   const l=leases.find(x=>x.id===id); if(!l)return;
   document.getElementById('modal-title').textContent='Edit — '+l.location;
-  const map={'f-locnum':'locNum','f-prop-tax':'propTax','f-prop-insurance':'propInsurance','f-cam-detail':'camDetail','f-utilities':'utilities','f-opex-other':'opExOther','f-location':'location','f-address':'address','f-city':'city','f-state':'state','f-zip':'zip','f-sqft':'sqft','f-base-rent':'baseRent','f-cam':'cam','f-rent-inc':'rentIncDate','f-rent-inc-amt':'rentIncAmount','f-opex-inc':'opexIncDate','f-opex-inc-amt':'opexIncAmount','f-future-prop-tax':'futurePropTax','f-future-prop-insurance':'futurePropInsurance','f-future-cam':'futureCAM','f-future-utilities':'futureUtilities','f-future-opex-other':'futureOpExOther','f-expiry':'expiryDate','f-notify':'notifyDate','f-renewal':'renewal','f-renewal-notify':'renewalNotifyDate','f-landlord':'landlord','f-broker-info':'brokerInfo','f-landlord-contact':'landlordContact','f-director':'director','f-director-email':'directorEmail','f-rom':'rom','f-rom-email':'romEmail','f-aim':'aim','f-aim-email':'aimEmail','f-notes':'notes','f-rr-notes':'rentReviewNotes'};
+  const map={'f-locnum':'locNum','f-prop-tax':'propTax','f-prop-insurance':'propInsurance','f-cam-detail':'camDetail','f-utilities':'utilities','f-opex-other':'opExOther','f-location':'location','f-address':'address','f-city':'city','f-state':'state','f-zip':'zip','f-sqft':'sqft','f-base-rent':'baseRent','f-cam':'cam','f-rent-inc':'rentIncDate','f-rent-inc-amt':'rentIncAmount','f-opex-inc':'opexIncDate','f-opex-inc-amt':'opexIncAmount','f-future-prop-tax':'futurePropTax','f-future-prop-insurance':'futurePropInsurance','f-future-cam':'futureCAM','f-future-utilities':'futureUtilities','f-future-opex-other':'futureOpExOther','f-expiry':'expiryDate','f-notify':'notifyDate','f-renewal':'renewal','f-renewal-notify':'renewalNotifyDate','f-landlord':'landlord','f-broker-info':'brokerInfo','f-landlord-contact':'landlordContact','f-director':'director','f-director-email':'directorEmail','f-rom':'rom','f-rom-email':'romEmail','f-aim':'aim','f-aim-email':'aimEmail','f-notes':'notes','f-rr-notes':'rentReviewNotes','f-lease-start':'leaseStartDate'};
   const chkEl = document.getElementById('f-check-lease'); if(chkEl) chkEl.checked = !!l.checkLease;
   Object.entries(map).forEach(([fid,k])=>{
     const e=document.getElementById(fid); if(!e)return;
@@ -1953,6 +1959,7 @@ function saveLease(){
     opExOther:parseFloat(g('f-opex-other'))||0,
     rentIncDate:g('f-rent-inc')||null, rentIncAmount:g('f-rent-inc-amt'),
     opexIncDate:g('f-opex-inc')||null, opexIncAmount:g('f-opex-inc-amt'),
+    leaseStartDate:g('f-lease-start')||null,
     futurePropTax:parseFloat(g('f-future-prop-tax'))||0,
     futurePropInsurance:parseFloat(g('f-future-prop-insurance'))||0,
     futureCAM:parseFloat(g('f-future-cam'))||0,
@@ -2085,6 +2092,7 @@ function renderStatusTable(status){
     +(col('opexInc')?thSortS('opexIncDate','OpEx Inc'):'')
     +(col('newOpex')?thSort('newOpex','New OpEx'):'')
       +(col('checkLease')?'<th style="text-align:center">Check Lease</th>':'')
+    +(col('leaseStartDate')?thSortS('leaseStartDate','Lease Start Date'):'')
     +(col('director')?thSortS('director','Director'):'')
     +(col('rom')?thSortS('rom','ROM'):'')
     +(col('aim')?thSortS('aim','AIM'):'')
@@ -2128,6 +2136,7 @@ function renderStatusTable(status){
         +(col('opexInc')?'<td style="font-family:var(--mono);font-size:11px;white-space:nowrap">'+(l.opexIncDate?fmtDate(l.opexIncDate):'—')+'</td>':'')
         +(col('newOpex')?'<td style="font-family:var(--mono);font-size:11px;white-space:nowrap">'+(l.opexIncAmount?'$'+l.opexIncAmount:'—')+'</td>':'')
         +(col('checkLease')?'<td style="text-align:center">'+(l.checkLease?'<span style="color:var(--accent-mid);font-size:14px">✓</span>':'')+'</td>':'')
+        +(col('leaseStartDate')?'<td style="font-family:var(--mono);font-size:11px;white-space:nowrap">'+(l.leaseStartDate?fmtDate(l.leaseStartDate):'—')+'</td>':'')
         +(col('director')?'<td style="font-size:11px;max-width:130px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+dirHtml+'</td>':'')
         +(col('rom')?'<td style="font-size:11px;max-width:130px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+romHtml+'</td>':'')
         +(col('aim')?'<td style="font-size:11px;max-width:130px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+(l.aim?'<span style="font-weight:500">'+l.aim+'</span>'+(l.aimEmail?'<br><span style="font-size:10px;color:#6B3FA0">'+l.aimEmail+'</span>':''):'—')+'</td>':'')
@@ -2394,6 +2403,7 @@ function renderCompanyTable(){
     +'<th>New Base Rent</th>'
     +thSortC('opexIncDate','OpEx Inc')
     +'<th>New OpEx</th>'
+    +'<th>Lease Start Date</th>'
     +thSortC('director','Director')
     +thSortC('rom','ROM')
     +'<th></th></tr></thead><tbody>' +
@@ -2426,6 +2436,7 @@ function renderCompanyTable(){
       +'<td style="font-family:var(--mono);font-size:11px;white-space:nowrap">'+(l.rentIncAmount?'$'+l.rentIncAmount:'—')+'</td>'
       +'<td style="font-family:var(--mono);font-size:11px;white-space:nowrap">'+(l.opexIncDate?fmtDate(l.opexIncDate):'—')+'</td>'
       +'<td style="font-family:var(--mono);font-size:11px;white-space:nowrap">'+(l.opexIncAmount?'$'+l.opexIncAmount:'—')+'</td>'
+      +'<td style="font-family:var(--mono);font-size:11px;white-space:nowrap">'+(l.leaseStartDate?fmtDate(l.leaseStartDate):'—')+'</td>'
       +'<td style="font-size:11px;min-width:100px;max-width:130px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+dirHtml+'</td>'
       +'<td style="font-size:11px;min-width:100px;max-width:130px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+romHtml+'</td>'
       +'<td><div class="row-actions">'+(l.leaseDocs&&l.leaseDocs.length?'<button class="btn sm" onclick="showLeaseDocs('+l.id+',this)" title="View Documents">📄</button>':'')+'<button class="btn sm" onclick="openEditModal('+l.id+')">Edit</button><button class="btn sm" style="color:var(--danger)" onclick="deleteLease('+l.id+')">Del</button></div></td>'

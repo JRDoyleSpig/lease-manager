@@ -1481,7 +1481,8 @@ function calcLeaseTermMonths(startDate, expiryDate){
   const s = new Date(startDate + 'T12:00:00');
   const e = new Date(expiryDate + 'T12:00:00');
   if(isNaN(s) || isNaN(e) || e <= s) return null;
-  const months = (e.getFullYear() - s.getFullYear()) * 12 + (e.getMonth() - s.getMonth());
+  // Count inclusive months — both start month and end month count
+  const months = (e.getFullYear() - s.getFullYear()) * 12 + (e.getMonth() - s.getMonth()) + 1;
   return months > 0 ? months : null;
 }
 

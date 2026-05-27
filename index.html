@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Lease Manager — 74 Locations</title>
-<!-- v5.4 - Added OpEx increase breakdown fields; Check Lease hidden for OpEx increases; added next increase note -->
+<!-- v5.5 - Pre-fill future OpEx breakdown with current values in apply modal -->
 <style>
 @import url('https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=DM+Sans:wght@300;400;500;600&display=swap');
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
@@ -2900,12 +2900,28 @@ function openApplyIncrease(leaseId, type){
   // Clear next-increase fields
   document.getElementById('rr-next-date').value = '';
   document.getElementById('rr-next-amount').value = '';
-  // Show/hide OpEx breakdown section
+  // Show/hide OpEx breakdown section and pre-fill with current values for CAM increases
   const breakdownSection = document.getElementById('rr-next-opex-breakdown');
   if(breakdownSection) breakdownSection.style.display = isRent ? 'none' : 'block';
-  ['rr-next-prop-tax','rr-next-prop-insurance','rr-next-cam','rr-next-utilities','rr-next-opex-other'].forEach(id=>{
-    const el = document.getElementById(id); if(el) el.value='';
-  });
+  if(!isRent){
+    // Pre-fill future breakdown with current values — user only needs to change what's increasing
+    const prefill = {
+      'rr-next-prop-tax':       l.futurePropTax       || l.propTax       || 0,
+      'rr-next-prop-insurance': l.futurePropInsurance || l.propInsurance || 0,
+      'rr-next-cam':            l.futureCAM           || l.camDetail     || 0,
+      'rr-next-utilities':      l.futureUtilities     || l.utilities     || 0,
+      'rr-next-opex-other':     l.futureOpExOther     || l.opExOther     || 0,
+    };
+    Object.entries(prefill).forEach(([id, val]) => {
+      const el = document.getElementById(id);
+      if(el) el.value = val > 0 ? val : '';
+    });
+    rrCalcNextOpEx();
+  } else {
+    ['rr-next-prop-tax','rr-next-prop-insurance','rr-next-cam','rr-next-utilities','rr-next-opex-other'].forEach(id=>{
+      const el = document.getElementById(id); if(el) el.value='';
+    });
+  }
 
   document.getElementById('rr-increase-modal').classList.add('open');
   document.getElementById('rr-inc-confirm-btn').textContent = 'Confirm & Apply';

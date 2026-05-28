@@ -28,7 +28,7 @@ body{font-family:var(--sans);background:var(--bg);color:var(--text);font-size:14
 .nav-icon{width:16px;height:16px;flex-shrink:0}
 .nav-badge{margin-left:auto;background:var(--danger);color:#fff;font-size:10px;border-radius:10px;padding:1px 6px;font-weight:600}
 .nav-badge.warn{background:var(--warn)}
-.content{flex:1;padding:16px;display:flex;flex-direction:column;gap:16px;min-height:calc(100vh - 44px)}
+.content{flex:1;overflow-y:visible;padding:16px;display:flex;flex-direction:column;gap:16px;min-height:calc(100vh - 44px)}
 .stats-row{display:grid;grid-template-columns:repeat(6,minmax(0,1fr));gap:12px}
 .stat-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:16px}
 .stat-label{font-size:11px;color:var(--muted);letter-spacing:.04em;text-transform:uppercase;margin-bottom:6px}
@@ -62,7 +62,7 @@ body{font-family:var(--sans);background:var(--bg);color:var(--text);font-size:14
 .days-red{color:var(--danger)}
 .days-warn{color:var(--warn)}
 .days-ok{color:var(--accent)}
-.table-wrap{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);overflow-x:auto;overflow-y:auto;max-height:calc(100vh - 200px)}
+.table-wrap{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);overflow-x:auto;overflow-y:auto;height:calc(100vh - 220px);min-height:300px}
 .table-wrap::-webkit-scrollbar{width:8px;height:12px;display:block}
 .table-wrap::-webkit-scrollbar-track{background:var(--surface2)}
 .table-wrap::-webkit-scrollbar-thumb{background:#aaa;border-radius:6px;border:2px solid var(--surface2)}
@@ -417,7 +417,7 @@ body{font-family:var(--sans);background:var(--bg);color:var(--text);font-size:14
         <span class="section-title">Soonest Expiring</span>
         <button class="btn sm" onclick="showView('expiring',document.querySelector('[data-view=expiring]'))">View all</button>
       </div>
-      <div class="table-wrap"><table class="lease-table" id="recent-table"></table></div>
+      <div class="table-wrap" style="height:340px"><table class="lease-table" id="recent-table"></table></div>
     </div>
   </div>
 </div>

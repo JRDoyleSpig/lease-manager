@@ -2186,7 +2186,6 @@ function renderStatusTable(status){
         +'</tr>';
     }).join('') : '<tr><td colspan="30" class="empty">No leases found.</td></tr>')
     +'</tbody>';
-  setTimeout(initScrollMirrors, 50);
 }
 
 function showView(name, el){
@@ -2197,7 +2196,6 @@ function showView(name, el){
   document.querySelectorAll('.nav-item').forEach(n=>n.classList.remove('active'));
   if(el)el.classList.add('active');
   if(name==='notifications')renderNotifSettings();
-  setTimeout(initScrollMirrors,50);
   if(name==='staff'){renderStaffView();}
   if(name==='alerts')renderAllAlerts();
   if(name==='leases')renderLeaseTable();

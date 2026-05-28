@@ -28,7 +28,7 @@ body{font-family:var(--sans);background:var(--bg);color:var(--text);font-size:14
 .nav-icon{width:16px;height:16px;flex-shrink:0}
 .nav-badge{margin-left:auto;background:var(--danger);color:#fff;font-size:10px;border-radius:10px;padding:1px 6px;font-weight:600}
 .nav-badge.warn{background:var(--warn)}
-.content{flex:1;overflow-y:auto;padding:16px;display:flex;flex-direction:column;gap:16px;min-height:calc(100vh - 44px)}
+.content{flex:1;padding:16px;display:flex;flex-direction:column;gap:16px;min-height:calc(100vh - 44px)}
 .stats-row{display:grid;grid-template-columns:repeat(6,minmax(0,1fr));gap:12px}
 .stat-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:16px}
 .stat-label{font-size:11px;color:var(--muted);letter-spacing:.04em;text-transform:uppercase;margin-bottom:6px}
@@ -62,14 +62,14 @@ body{font-family:var(--sans);background:var(--bg);color:var(--text);font-size:14
 .days-red{color:var(--danger)}
 .days-warn{color:var(--warn)}
 .days-ok{color:var(--accent)}
-.table-wrap{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);overflow-x:auto;overflow-y:visible}
-.table-wrap::-webkit-scrollbar{height:12px;display:block}
+.table-wrap{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);overflow-x:auto;overflow-y:auto;max-height:calc(100vh - 200px)}
+.table-wrap::-webkit-scrollbar{width:8px;height:12px;display:block}
 .table-wrap::-webkit-scrollbar-track{background:var(--surface2)}
 .table-wrap::-webkit-scrollbar-thumb{background:#aaa;border-radius:6px;border:2px solid var(--surface2)}
 .table-wrap::-webkit-scrollbar-thumb:hover{background:#888}
 * { scrollbar-width:thin; scrollbar-color:#aaa var(--surface2); }
 .lease-table{width:100%;border-collapse:collapse;font-size:12px}
-.lease-table th{background:var(--surface2);padding:6px 8px;text-align:left;font-size:11px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.05em;border-bottom:1px solid var(--border);white-space:nowrap}
+.lease-table th{background:var(--surface2);padding:6px 8px;text-align:left;font-size:11px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.05em;border-bottom:1px solid var(--border);white-space:nowrap;position:sticky;top:0;z-index:3}
 .lease-table td{padding:6px 8px;border-bottom:1px solid var(--border);vertical-align:middle;white-space:nowrap}
 .lease-table tr:last-child td{border-bottom:none}
 .lease-table tr:hover td{background:var(--surface2)}
@@ -152,10 +152,11 @@ body{font-family:var(--sans);background:var(--bg);color:var(--text);font-size:14
 .lease-table th.frozen, .lease-table td.frozen {
   position:sticky;
   background:var(--surface2);
-  z-index:2;
+  z-index:4;
 }
 .lease-table td.frozen {
   background:var(--surface);
+  z-index:2;
 }
 .lease-table tr:hover td.frozen {
   background:var(--surface2);
@@ -165,12 +166,7 @@ body{font-family:var(--sans);background:var(--bg);color:var(--text);font-size:14
 .col-num    { left:28px; width:62px; min-width:62px; border-right:none; }
 .col-loc    { left:90px; min-width:140px; border-right:2px solid var(--border); }
 
-.scroll-mirror-wrap { overflow-x:auto; overflow-y:hidden; height:14px; border:1px solid var(--border); border-bottom:none; border-radius:var(--radius) var(--radius) 0 0; background:var(--surface2); position:sticky; top:0; z-index:10; }
-.scroll-mirror-wrap::-webkit-scrollbar { height:14px; display:block; }
-.scroll-mirror-wrap::-webkit-scrollbar-track { background:var(--surface2); }
-.scroll-mirror-wrap::-webkit-scrollbar-thumb { background:#999; border-radius:6px; border:2px solid var(--surface2); }
-.scroll-mirror-wrap::-webkit-scrollbar-thumb:hover { background:#555; }
-.scroll-mirror-inner { height:1px; }
+
 
 .col-toggle-btn{background:var(--surface);border:1px solid var(--border);border-radius:6px;padding:5px 12px;font-size:12px;font-family:var(--sans);cursor:pointer;color:var(--text)}
 .col-toggle-btn:hover{background:var(--surface2)}
@@ -381,8 +377,7 @@ body{font-family:var(--sans);background:var(--bg);color:var(--text);font-size:14
     </div>
   </div>
   <div style="font-size:11px;color:var(--muted);margin-bottom:4px">Active leases only. Click column header to sort.</div>
-  <div class="scroll-mirror-wrap" id="mirror-active"><div class="scroll-mirror-inner"></div></div>
-  <div class="table-wrap" style="border-radius:0 0 var(--radius) var(--radius)"><table class="lease-table" id="active-table"></table></div>
+  <div class="table-wrap"><table class="lease-table" id="active-table"></table></div>
 </div>
 
 <!-- INACTIVE LEASES -->
@@ -403,8 +398,7 @@ body{font-family:var(--sans);background:var(--bg);color:var(--text);font-size:14
     </div>
   </div>
   <div style="font-size:11px;color:var(--muted);margin-bottom:4px">Inactive leases only. Click column header to sort.</div>
-  <div class="scroll-mirror-wrap" id="mirror-inactive"><div class="scroll-mirror-inner"></div></div>
-  <div class="table-wrap" style="border-radius:0 0 var(--radius) var(--radius)"><table class="lease-table" id="inactive-table"></table></div>
+  <div class="table-wrap"><table class="lease-table" id="inactive-table"></table></div>
 </div>
 
 <!-- DASHBOARD -->
@@ -469,8 +463,7 @@ body{font-family:var(--sans);background:var(--bg);color:var(--text);font-size:14
     </div>
   </div>
   <div style="font-size:11px;color:var(--muted);margin-top:8px;margin-bottom:4px">Click any column header to sort. Click again to reverse.</div>
-  <div class="scroll-mirror-wrap" id="mirror-full"><div class="scroll-mirror-inner"></div></div>
-  <div class="table-wrap" style="margin-top:0;border-radius:0 0 var(--radius) var(--radius)">
+  <div class="table-wrap" style="margin-top:0">
     <table class="lease-table" id="full-table"></table>
   </div>
 </div>
@@ -676,8 +669,7 @@ body{font-family:var(--sans);background:var(--bg);color:var(--text);font-size:14
     </div>
   </div>
   <div style="font-size:11px;color:var(--muted);margin-bottom:4px">Click any column header to sort.</div>
-  <div class="scroll-mirror-wrap" id="mirror-company"><div class="scroll-mirror-inner"></div></div>
-  <div class="table-wrap" style="border-radius:0 0 var(--radius) var(--radius)"><table class="lease-table" id="company-table"></table></div>
+  <div class="table-wrap"><table class="lease-table" id="company-table"></table></div>
 </div>
 
 <div id="view-staff" class="hidden">
@@ -2076,7 +2068,6 @@ function setSortColStatus(c){if(sortCol===c)sortDir*=-1;else{sortCol=c;sortDir=1
 function renderStatusTable(status){
   currentStatusView = status;
   const tableId = status+'-table';
-  const mirrorId = 'mirror-'+status;
   const tbl = document.getElementById(tableId);
   if(!tbl) return;
   const search = (document.getElementById(status+'-search')?.value||'').toLowerCase();
@@ -2525,39 +2516,8 @@ function toggleSidebar(){
 }
 
 
-function initScrollMirrors(){
-  document.querySelectorAll('.table-wrap').forEach(wrap => {
-    const mirror = wrap.previousElementSibling;
-    if(!mirror || !mirror.classList.contains('scroll-mirror-wrap')) return;
-    const inner = mirror.querySelector('.scroll-mirror-inner');
-    
-    function syncWidth(){
-      inner.style.width = wrap.scrollWidth + 'px';
-    }
-    syncWidth();
-    
-    let syncing = false;
-    mirror.addEventListener('scroll', () => {
-      if(syncing) return;
-      syncing = true;
-      wrap.scrollLeft = mirror.scrollLeft;
-      syncing = false;
-    });
-    wrap.addEventListener('scroll', () => {
-      if(syncing) return;
-      syncing = true;
-      mirror.scrollLeft = wrap.scrollLeft;
-      syncing = false;
-    });
-
-    // Re-sync width when table content changes
-    new MutationObserver(syncWidth).observe(wrap, {childList:true, subtree:true});
-  });
-}
-
 loadColPrefs();
 // Init handled by window.load event above
-setTimeout(initScrollMirrors, 100);
 
 // ── RENT REVIEW ───────────────────────────────────────────────────────────────
 

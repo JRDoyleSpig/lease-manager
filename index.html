@@ -589,7 +589,7 @@ body{font-family:var(--sans);background:var(--bg);color:var(--text);font-size:14
       <div class="rr-step-num" id="rr-num6">6</div>
       <div class="rr-step-label">
         <div class="rr-step-title">NetSuite True-Up</div>
-        <div class="rr-step-sub">Compare NetSuite payments against lease database</div>
+        <div class="rr-step-sub">Compare NetSuite payments against SPIG lease database</div>
       </div>
       <div class="rr-step-badge"><span class="rr-count" id="rr-badge6">—</span><span class="rr-chevron" id="rr-chev6">▶</span></div>
     </div>
@@ -3455,8 +3455,8 @@ function parseNetSuiteCSV(text){
 }
 
 function findLeaseByNum(num){
-  // Try exact locNum match
-  let l=leases.find(x=>{
+  // Try exact locNum match — SPIG only
+  let l=leases.find(x=>{if(getCompany(x)!=='spig') return false;
     const n=String(x.locNum||'').trim();
     return n===num||n===num.padStart(2,'0');
   });
@@ -3465,7 +3465,7 @@ function findLeaseByNum(num){
 
 function findLeaseByCity(cityName){
   const city=cityName.toLowerCase().replace(/[-\/]/g,' ').trim();
-  return leases.find(l=>{
+  return leases.find(l=>{if(getCompany(l)!=='spig') return false;
     const loc=(l.location||'').toLowerCase().replace(/[-\/]/g,' ');
     const lCity=(l.city||'').toLowerCase();
     return loc.includes(city)||city.includes(loc.split(',')[0])||lCity.includes(city)||city.includes(lCity);
@@ -3502,7 +3502,7 @@ function parseAndCompare(text){
   }
 
   // Find active DB leases not in NetSuite
-  leases.filter(l=>(l.leaseStatus||'Active').toLowerCase()==='active'&&(l.baseRent||0)>0).forEach(l=>{
+  leases.filter(l=>(l.leaseStatus||'Active').toLowerCase()==='active'&&(l.baseRent||0)>0&&getCompany(l)==='spig').forEach(l=>{
     const key=l.id||l.location;
     if(!matchedLocNums.has(key)){
       rows.push({nsNum:l.locNum||'—',workroom:l.location,cityName:l.location,vendors:[],nsTotal:null,dbLease:l,dbTotal:getDBTotal(l),diff:null,status:'not_in_ns'});

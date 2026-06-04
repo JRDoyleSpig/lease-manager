@@ -3112,80 +3112,85 @@ function renderRentReview(){
 
 <script>
 // ── MAP VIEW ──────────────────────────────────────────────────────────────────
-const HARDCODED_COORDS = {
-  "Buffalo":{lat:42.845,lng:-78.737},
-  "Austin":{lat:30.508,lng:-97.679},
-  "Roanoke":{lat:37.271,lng:-79.941},
-  "Gulfport":{lat:30.367,lng:-89.093},
-  "Fort Walton":{lat:30.406,lng:-86.619},
-  "Abilene":{lat:32.459,lng:-99.733},
-  "Bluefield":{lat:37.667,lng:-80.999},
-  "Shreveport":{lat:32.516,lng:-93.732},
-  "Waynesboro Warehouse":{lat:38.195,lng:-79.003},
-  "Grand Forks":{lat:47.925,lng:-97.033},
-  "Hickory":{lat:35.733,lng:-81.342},
-  "Chattanooga":{lat:34.914,lng:-85.111},
-  "Franklin":{lat:35.184,lng:-83.381},
-  "Lubbock":{lat:33.578,lng:-101.855},
-  "Myrtle Beach":{lat:33.878,lng:-78.615},
-  "Fargo":{lat:46.877,lng:-96.79},
-  "PFT - Raleigh":{lat:35.779,lng:-78.638},
-  "Pensacola":{lat:30.421,lng:-87.217},
-  "Clarksville":{lat:36.53,lng:-87.36},
-  "Bismarck":{lat:46.808,lng:-100.784},
-  "Mobile":{lat:30.549,lng:-88.173},
-  "Fredericksburg":{lat:38.202,lng:-77.61},
-  "Norcross":{lat:33.941,lng:-84.214},
-  "Jacksonville":{lat:34.754,lng:-77.43},
-  "Baton Rouge":{lat:30.452,lng:-91.187},
-  "Lafayette":{lat:30.148,lng:-91.97},
-  "Hattiesburg":{lat:31.327,lng:-89.29},
-  "Twin Cities":{lat:45.064,lng:-93.208},
-  "DFW":{lat:32.746,lng:-97.011},
-  "Odessa":{lat:31.846,lng:-102.368},
-  "Lexington":{lat:38.041,lng:-84.504},
-  "Jackson, TN":{lat:35.615,lng:-88.814},
-  "PFT - Tampa":{lat:27.951,lng:-82.457},
-  "San Antonio":{lat:29.424,lng:-98.494},
-  "Asheville":{lat:35.595,lng:-82.552},
-  "Greenville":{lat:34.939,lng:-82.227},
-  "Weslaco":{lat:26.16,lng:-97.991},
-  "Knoxville":{lat:35.961,lng:-83.921},
-  "Meridian":{lat:32.771,lng:-89.117},
-  "College Station":{lat:30.628,lng:-96.334},
-  "Texarkana":{lat:33.442,lng:-94.128},
-  "Tri-Cities":{lat:36.548,lng:-82.562},
-  "Memphis":{lat:35.15,lng:-90.049},
-  "Corpus Christi":{lat:27.801,lng:-97.396},
-  "PFT - Jacksonville FL":{lat:29.895,lng:-81.315},
-  "Rochester":{lat:43.157,lng:-77.609},
-  "PFT - Phoenix":{lat:33.448,lng:-112.074},
-  "New Orleans":{lat:29.855,lng:-89.989},
-  "Houston":{lat:29.76,lng:-95.37},
-  "Lindale":{lat:32.351,lng:-95.301},
-  "Chantilly":{lat:38.784,lng:-77.617},
-  "Temple":{lat:31.098,lng:-97.343},
-  "Charlotte":{lat:35.227,lng:-80.843},
-  "ERX - Boone":{lat:36.217,lng:-81.675},
-  "Hagerstown":{lat:39.602,lng:-77.826},
-  "Charleston":{lat:38.35,lng:-81.633},
-  "Amarillo":{lat:35.222,lng:-101.831},
-  "Beaumont":{lat:29.885,lng:-93.94},
-  "Wilmington":{lat:34.226,lng:-77.945},
-  "Paducah":{lat:37.083,lng:-88.6},
-  "Jackson, MS":{lat:32.274,lng:-90.133},
-  "Nashville":{lat:36.163,lng:-86.782},
-  "Richmond":{lat:37.541,lng:-77.436},
-  "Waldorf":{lat:38.625,lng:-76.934},
-  "Syracuse":{lat:43.048,lng:-76.147},
-  "Baltimore":{lat:39.29,lng:-76.612},
-  "Center":{lat:31.796,lng:-94.178},
-  "Lynchburg":{lat:37.357,lng:-78.821},
-  "Cookeville":{lat:36.162,lng:-85.502},
-  "San Angelo":{lat:31.464,lng:-100.437},
-  "Clovis":{lat:34.405,lng:-103.205},
-  "ERX - Greensboro":{lat:36.12,lng:-80.087},
-  "Waynesboro Office":{lat:38.195,lng:-79.003}
+
+// Pre-seeded coordinates for existing locations (keyed by address string)
+// New locations will be geocoded automatically via Census Bureau API
+const MAP_SEED_CACHE = {
+  "3240 clinton street|west seneca|ny|14224":{"lat": 42.845, "lng": -78.737},
+  "2116 picadilly drive|round rock|tx|78664":{"lat": 30.508, "lng": -97.679},
+  "1715 granby street suite d|roanoke|va|24012":{"lat": 37.271, "lng": -79.941},
+  "1485 34th street|gulfport|ms|39501":{"lat": 30.367, "lng": -89.093},
+  "658-b lovejoy road nw|fort walton beach|fl|32548":{"lat": 30.406, "lng": -86.619},
+  "498 s. access road|tye|tx|79563":{"lat": 32.459, "lng": -99.733},
+  "707 industrial park road|beaver|wv|25813":{"lat": 37.667, "lng": -80.999},
+  "4708 viking drive, building c|bossier city|la|70518":{"lat": 32.516, "lng": -93.732},
+  "52 lodge lane, unit 6 building r|verona|va|24482":{"lat": 38.195, "lng": -79.003},
+  "3140 gateway drive, suite c|grand forks|nd|58203":{"lat": 47.925, "lng": -97.033},
+  "1722 tate blvd se|hickory|nc|28602":{"lat": 35.733, "lng": -81.342},
+  "53 south commerce drive|ringgold|ga|30736":{"lat": 34.914, "lng": -85.111},
+  "64 sloan industrial park|franklin|nc|28734":{"lat": 35.184, "lng": -83.381},
+  "12104 us highway 87, suite 6001|lubbock|tx|79423":{"lat": 33.578, "lng": -101.855},
+  "4315 magnum street, unit b&c|little river|sc|29566":{"lat": 33.878, "lng": -78.615},
+  "2323 16th avenue south, suite 101|moorhead|mn|56560":{"lat": 46.877, "lng": -96.79},
+  "3215 wellington court, suite 101|raleigh|nc|27615":{"lat": 35.779, "lng": -78.638},
+  "9900 old palafox street, suite f|pensacola|fl|32514":{"lat": 30.421, "lng": -87.217},
+  "621-b providence blvd|clarksville|tn|37042":{"lat": 36.53, "lng": -87.36},
+  "1347 s. 22nd street, suite 30|bismarck|nd|58504":{"lat": 46.808, "lng": -100.784},
+  "5775 i-10 industrial parkway north|theodore|al|36582":{"lat": 30.549, "lng": -88.173},
+  "230 industrial drive, suite m&n|spotsylvania|va|22408":{"lat": 38.202, "lng": -77.61},
+  "3170 reps miller road|norcross|ga|30071":{"lat": 33.941, "lng": -84.214},
+  "1404 piney green road|jacksonville|nc|28546":{"lat": 34.754, "lng": -77.43},
+  "10142 patriot drive|baton rouge|la|70816":{"lat": 30.452, "lng": -91.187},
+  "205 jared drive|broussard|la|70518":{"lat": 30.148, "lng": -91.97},
+  "2001 country club road|hattiesburg|ms|39401":{"lat": 31.327, "lng": -89.29},
+  "99 5th ave nw|new brighton|mn|55112":{"lat": 45.064, "lng": -93.208},
+  "2005 108th street, suite 501|grand prairie|tx|75050":{"lat": 32.746, "lng": -97.011},
+  "1716 & 1718 e. 2nd street|odessa|tx|76761":{"lat": 31.846, "lng": -102.368},
+  "1033 trotwood drive|lexington|ky|40511":{"lat": 38.041, "lng": -84.504},
+  "123 ragland road, building f, unit 5-6|jackson|tn|38305":{"lat": 35.615, "lng": -88.814},
+  "207 kelsey lane, suite a|tampa|fl|33619":{"lat": 27.951, "lng": -82.457},
+  "210 lanark drive, suite 221|san antonio|tx|78218":{"lat": 29.424, "lng": -98.494},
+  "504-507 elk park drive|asheville|nc|28804":{"lat": 35.595, "lng": -82.552},
+  "65 concourse way|greer|sc|29650":{"lat": 34.939, "lng": -82.227},
+  "1504 industrial drive|weslaco|tx|78596":{"lat": 26.16, "lng": -97.991},
+  "2718 john deere drive, suite 101|knoxville|tn|37917":{"lat": 35.961, "lng": -83.921},
+  "910 carter ave|philadelphia|ms|39350":{"lat": 32.771, "lng": -89.117},
+  "12903 state highway 30, suite 400|college station|tx|77845":{"lat": 30.628, "lng": -96.334},
+  "7117 alumax road, suite c|nash|tx|75569":{"lat": 33.442, "lng": -94.128},
+  "2045 brookside lane, suite a|kingsport|tn|37660":{"lat": 36.548, "lng": -82.562},
+  "3092 connahbrook drive|memphis|tn|38116":{"lat": 35.15, "lng": -90.049},
+  "3758-b wow road|corpus christi|tx|78413":{"lat": 27.801, "lng": -97.396},
+  "6370 us 1 north, unit 5|st. augustine|fl|32095":{"lat": 29.895, "lng": -81.315},
+  "1128 lexington ave bldg 4|rochester|ny|14606":{"lat": 43.157, "lng": -77.609},
+  "3210 east roeser road, suite 17|phoenix|az|85040":{"lat": 33.448, "lng": -112.074},
+  "2215 engineers road, suite g|belle chasse|la|70037":{"lat": 29.855, "lng": -89.989},
+  "331-335 garden oaks blvd|houston|tx|77018":{"lat": 29.76, "lng": -95.37},
+  "4548 cantina drive|tyler|tx|75708":{"lat": 32.351, "lng": -95.301},
+  "7699 limestone drive, suite 120|gainesville|va|20155":{"lat": 38.784, "lng": -77.617},
+  "5570 kegley lane, suite 101|temple|tx|76502":{"lat": 31.098, "lng": -97.343},
+  "1921 freedom drive|charlotte|nc|28208":{"lat": 35.227, "lng": -80.843},
+  "199 jefferson road, suite c|boone|nc|28607":{"lat": 36.217, "lng": -81.675},
+  "10312 governor lane blvd|williamsport|md|21795":{"lat": 39.602, "lng": -77.826},
+  "1410 bigley ave|charleston|wv|25302":{"lat": 38.35, "lng": -81.633},
+  "8101 s. soncy road #300|amarillo|tx|79119":{"lat": 35.222, "lng": -101.831},
+  "105 w. highway 365, suite 300|port arthur|tx|77640":{"lat": 29.885, "lng": -93.94},
+  "3232-1 kitty hawk rd|wilmington|nc|28405":{"lat": 34.226, "lng": -77.945},
+  "116 main street|paducah|ky|42001":{"lat": 37.083, "lng": -88.6},
+  "305 babbin wells road, suite b|pearl|ms|39208":{"lat": 32.274, "lng": -90.133},
+  "600 airpark center drive, suite 606|nashville|tn|37217":{"lat": 36.163, "lng": -86.782},
+  "5320 s. laburnum ave|henrico|va|23231":{"lat": 37.541, "lng": -77.436},
+  "3480 rockefeller court, suite f-h|waldorf|md|20602":{"lat": 38.625, "lng": -76.934},
+  "209 wavel street|syracuse|ny|13206":{"lat": 43.048, "lng": -76.147},
+  "1540 caton center drive, suite a-c|baltimore|md|21227":{"lat": 39.29, "lng": -76.612},
+  "296 county road 1548|center|tx|75935":{"lat": 31.796, "lng": -94.178},
+  "1067 old courthouse road, #1-3|appomattox|va|24522":{"lat": 37.357, "lng": -78.821},
+  "1225 shag rag road|cookeville|tn|38506":{"lat": 36.162, "lng": -85.502},
+  "5973a knickerbocker road|san angelo|tx|76904":{"lat": 31.464, "lng": -100.437},
+  "1001 mitchell street, unit 7|clovis|nm|88102":{"lat": 34.405, "lng": -103.205},
+  "742 park lawn court, unit a|kernersville|nc|27284":{"lat": 36.12, "lng": -80.087},
+  "19b ransier drive, suite 4|seneca|ny|14224":{"lat": 42.845, "lng": -78.737},
+  "1834 ferguson lane, suite 1400|austin|tx|78754":{"lat": 30.508, "lng": -97.679},
+  "50 lodge lane, unit #112|verona|va|24482":{"lat": 38.195, "lng": -79.003}
 };
 
 let leafletLoaded = false;
@@ -3195,6 +3200,11 @@ let mapCurrentFilter = 'all';
 let mapCurrentStatus = 'active';
 const MAP_COMPANY_COLORS = { spig:'#1256A4', pft:'#1D9E75', erx:'#BA7517' };
 const MAP_COMPANY_LABELS = { spig:'SPIG', pft:'PFT', erx:'ERX' };
+const GEOCODE_CACHE_KEY = 'spig_geocode_v2';
+
+function addrKey(l){
+  return [(l.address||'').trim().toLowerCase(),(l.city||'').trim().toLowerCase(),(l.state||'').trim().toLowerCase(),String(l.zip||'').trim()].join('|');
+}
 
 function loadLeaflet(cb){
   if(leafletLoaded){ cb(); return; }
@@ -3205,59 +3215,115 @@ function loadLeaflet(cb){
   const scr=document.createElement('script');
   scr.src='https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js';
   scr.onload=()=>{ leafletLoaded=true; cb(); };
-  scr.onerror=()=>{ showMapError('Could not load map library. Check internet connection.'); };
+  scr.onerror=()=>{ showMapMsg('Could not load map library. Check internet connection.','warn'); };
   document.head.appendChild(scr);
 }
 
-function showMapError(msg){
+function showMapMsg(msg, type){
   const el=document.getElementById('geocode-error');
-  if(el){ el.textContent=msg; el.style.display='block'; }
+  if(!el) return;
+  el.textContent=msg;
+  el.style.display=msg?'block':'none';
+  el.style.background=type==='warn'?'var(--warn-light)':'var(--accent-light)';
+  el.style.color=type==='warn'?'var(--warn)':'var(--accent)';
 }
 
 function getLeaseStatus(l){
   const s=(l.leaseStatus||'Active').toLowerCase();
-  return (s===''||s==='undefined') ? 'active' : s;
+  return (s===''||s==='undefined')?'active':s;
 }
 
-function getCoords(l){
-  return HARDCODED_COORDS[l.location] || null;
+async function geocodeAddress(l){
+  const params=new URLSearchParams({
+    street:l.address||'', city:l.city||'', state:l.state||'',
+    zip:String(l.zip||''), benchmark:'Public_AR_Current', format:'json'
+  });
+  try{
+    const r=await fetch('https://geocoding.geo.census.gov/geocoder/locations/address?'+params);
+    if(!r.ok) throw new Error('HTTP '+r.status);
+    const d=await r.json();
+    const m=d?.result?.addressMatches;
+    if(m&&m.length>0) return {lat:m[0].coordinates.y, lng:m[0].coordinates.x};
+  } catch(e){}
+  // Fallback: Nominatim
+  try{
+    const q=encodeURIComponent([l.address,l.city,l.state,l.zip].filter(Boolean).join(', '));
+    const r=await fetch('https://nominatim.openstreetmap.org/search?q='+q+'&format=json&limit=1&countrycodes=us');
+    const d=await r.json();
+    if(d&&d[0]) return {lat:parseFloat(d[0].lat),lng:parseFloat(d[0].lon)};
+  } catch(e){}
+  return null;
 }
 
-function initMapView(){
-  loadLeaflet(()=>{
-    setTimeout(()=>{
-      const mapEl=document.getElementById('lease-map');
-      if(!mapEl) return;
-      if(!mapInstance){
-        try{
-          mapInstance=L.map('lease-map').setView([37.5,-95.5],4);
-          L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{
-            attribution:'© <a href="https://openstreetmap.org">OpenStreetMap</a>',
-            maxZoom:18
-          }).addTo(mapInstance);
-        } catch(e){ showMapError('Map init failed: '+e.message); return; }
-      } else {
-        mapInstance.invalidateSize();
+async function initMapView(){
+  if(!leases||leases.length===0){
+    showMapMsg('No lease data loaded yet. Please wait and try again.','warn'); return;
+  }
+  loadLeaflet(async ()=>{
+    await new Promise(r=>setTimeout(r,200));
+
+    // Merge seed cache into localStorage on first run
+    let cache={};
+    try{ cache=JSON.parse(localStorage.getItem(GEOCODE_CACHE_KEY)||'{}'); } catch(e){}
+    let seeded=false;
+    for(const [k,v] of Object.entries(MAP_SEED_CACHE)){
+      if(!cache[k]){ cache[k]=v; seeded=true; }
+    }
+    if(seeded) localStorage.setItem(GEOCODE_CACHE_KEY,JSON.stringify(cache));
+
+    // Init map
+    const mapEl=document.getElementById('lease-map');
+    if(!mapEl) return;
+    if(!mapInstance){
+      try{
+        mapInstance=L.map('lease-map').setView([37.5,-95.5],4);
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{
+          attribution:'© <a href="https://openstreetmap.org">OpenStreetMap</a>',maxZoom:18
+        }).addTo(mapInstance);
+      } catch(e){ showMapMsg('Map init failed: '+e.message,'warn'); return; }
+    } else {
+      mapInstance.invalidateSize();
+    }
+
+    // Find uncached leases (new locations)
+    const toGeocode=leases.filter(l=>{ const k=addrKey(l); return !cache[k]&&(l.address||l.city); });
+
+    if(toGeocode.length>0){
+      const prog=document.getElementById('geocode-progress');
+      const countEl=document.getElementById('geocode-count');
+      const totalEl=document.getElementById('geocode-total');
+      if(prog){ prog.style.display='block'; }
+      if(totalEl) totalEl.textContent=toGeocode.length;
+
+      for(let i=0;i<toGeocode.length;i++){
+        const l=toGeocode[i];
+        if(countEl) countEl.textContent=i+1;
+        const coords=await geocodeAddress(l);
+        if(coords) cache[addrKey(l)]=coords;
+        await new Promise(r=>setTimeout(r,300));
       }
-      renderMapPins(mapCurrentFilter, mapCurrentStatus);
-    }, 200);
+      localStorage.setItem(GEOCODE_CACHE_KEY,JSON.stringify(cache));
+      if(prog) prog.style.display='none';
+    }
+
+    renderMapPins(mapCurrentFilter, mapCurrentStatus);
   });
 }
 
 function renderMapPins(company, status){
   if(!mapInstance) return;
-  mapCurrentFilter=company;
-  mapCurrentStatus=status;
+  mapCurrentFilter=company; mapCurrentStatus=status;
   mapMarkers.forEach(m=>mapInstance.removeLayer(m));
   mapMarkers=[];
+  let cache={};
+  try{ cache=JSON.parse(localStorage.getItem(GEOCODE_CACHE_KEY)||'{}'); } catch(e){}
   let count=0;
 
   leases.forEach(l=>{
     const co=getCompany(l);
     if(company!=='all'&&co!==company) return;
-    const ls=getLeaseStatus(l);
-    if(status!=='all'&&ls!==status) return;
-    const coords=getCoords(l);
+    if(status!=='all'&&getLeaseStatus(l)!==status) return;
+    const coords=cache[addrKey(l)];
     if(!coords) return;
     count++;
 
@@ -3272,30 +3338,26 @@ function renderMapPins(company, status){
       '<div style="display:inline-block;font-size:10px;font-weight:600;letter-spacing:.05em;padding:2px 7px;border-radius:10px;background:'+color+'22;color:'+color+';margin-bottom:6px">'+(MAP_COMPANY_LABELS[co]||co.toUpperCase())+'</div>'+
       '<div style="font-size:12px;color:#555;line-height:1.5">'+(addr||'Address not available')+'</div></div>';
 
-    const marker=L.marker([coords.lat,coords.lng],{icon}).bindPopup(popup);
-    marker.addTo(mapInstance);
-    mapMarkers.push(marker);
+    L.marker([coords.lat,coords.lng],{icon}).bindPopup(popup).addTo(mapInstance);
+    mapMarkers.push(L.marker([coords.lat,coords.lng],{icon}));
   });
 
-  ['all','spig','pft','erx'].forEach(c=>{
-    const btn=document.getElementById('map-filter-'+c);
-    if(btn) btn.classList.toggle('primary',c===company);
-  });
-  ['active','inactive','all'].forEach(s=>{
-    const btn=document.getElementById('map-status-'+s);
-    if(btn) btn.classList.toggle('primary',s===status);
-  });
-
-  const countEl=document.getElementById('map-pin-count');
-  if(countEl) countEl.textContent=count+' location'+(count!==1?'s':'')+' shown';
+  ['all','spig','pft','erx'].forEach(c=>{ const b=document.getElementById('map-filter-'+c); if(b) b.classList.toggle('primary',c===company); });
+  ['active','inactive','all'].forEach(s=>{ const b=document.getElementById('map-status-'+s); if(b) b.classList.toggle('primary',s===status); });
+  const ce=document.getElementById('map-pin-count');
+  if(ce) ce.textContent=count+' location'+(count!==1?'s':'')+' shown';
 }
 
-function filterMapPins(company){ renderMapPins(company, mapCurrentStatus); }
-function setMapStatus(status){ renderMapPins(mapCurrentFilter, status); }
-function clearGeocodeCache(){ renderMapPins(mapCurrentFilter, mapCurrentStatus); }
-
-
-
+function filterMapPins(company){ renderMapPins(company,mapCurrentStatus); }
+function setMapStatus(status){ renderMapPins(mapCurrentFilter,status); }
+function clearGeocodeCache(){
+  if(!confirm('Clear geocode cache and re-geocode all locations on next open?')) return;
+  localStorage.removeItem(GEOCODE_CACHE_KEY);
+  mapMarkers.forEach(m=>mapInstance&&mapInstance.removeLayer(m));
+  mapMarkers=[];
+  const ce=document.getElementById('map-pin-count'); if(ce) ce.textContent='';
+  initMapView();
+}
 </script>
 
 <!-- STAFF MODAL -->

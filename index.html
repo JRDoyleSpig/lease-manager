@@ -736,6 +736,10 @@ body{font-family:var(--sans);background:var(--bg);color:var(--text);font-size:14
       <button class="btn sm" id="map-filter-spig" onclick="filterMapPins('spig')">SPIG</button>
       <button class="btn sm" id="map-filter-pft" onclick="filterMapPins('pft')">PFT</button>
       <button class="btn sm" id="map-filter-erx" onclick="filterMapPins('erx')">ERX</button>
+      <span style="width:1px;height:20px;background:var(--border);margin:0 6px;display:inline-block;"></span>
+      <button class="btn sm primary" id="map-status-active" onclick="setMapStatus('active')">Active</button>
+      <button class="btn sm" id="map-status-inactive" onclick="setMapStatus('inactive')">Inactive</button>
+      <button class="btn sm" id="map-status-all" onclick="setMapStatus('all')">All</button>
       <button class="btn sm" id="map-clear-cache" onclick="clearGeocodeCache()" style="margin-left:8px;color:var(--muted)">↺ Re-geocode</button>
     </div>
   </div>
@@ -746,8 +750,8 @@ body{font-family:var(--sans);background:var(--bg);color:var(--text);font-size:14
   <div id="lease-map" style="height:calc(100vh - 220px);min-height:400px;border-radius:var(--radius);border:1px solid var(--border);z-index:1;"></div>
   <div style="margin-top:8px;display:flex;gap:16px;font-size:11px;color:var(--muted)">
     <span><span style="display:inline-block;width:10px;height:10px;border-radius:50%;background:#1256A4;margin-right:4px;"></span>SPIG</span>
-    <span><span style="display:inline-block;width:10px;height:10px;border-radius:50%;background:#BA7517;margin-right:4px;"></span>PFT</span>
-    <span><span style="display:inline-block;width:10px;height:10px;border-radius:50%;background:#1D9E75;margin-right:4px;"></span>ERX</span>
+    <span><span style="display:inline-block;width:10px;height:10px;border-radius:50%;background:#1D9E75;margin-right:4px;"></span>PFT</span>
+    <span><span style="display:inline-block;width:10px;height:10px;border-radius:50%;background:#BA7517;margin-right:4px;"></span>ERX</span>
     <span id="map-pin-count" style="margin-left:auto;"></span>
   </div>
 </div>
@@ -3114,7 +3118,8 @@ let mapInstance = null;
 let mapMarkers = [];
 let geocodeCache = {};
 let mapCurrentFilter = 'all';
-const MAP_COMPANY_COLORS = { spig:'#1256A4', pft:'#BA7517', erx:'#1D9E75' };
+let mapCurrentStatus = 'active';
+const MAP_COMPANY_COLORS = { spig:'#1256A4', pft:'#1D9E75', erx:'#BA7517' };
 const MAP_COMPANY_LABELS = { spig:'SPIG', pft:'PFT', erx:'ERX' };
 
 function loadLeaflet(cb){
@@ -3126,79 +3131,146 @@ function loadLeaflet(cb){
   const scr=document.createElement('script');
   scr.src='https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js';
   scr.onload=()=>{ leafletLoaded=true; cb(); };
+  scr.onerror=()=>{ showMapError('Failed to load map library. Check your internet connection.'); };
   document.head.appendChild(scr);
 }
 
-async function initMapView(){
-  loadLeaflet(async ()=>{
-    try{ geocodeCache=JSON.parse(localStorage.getItem('spig_geocode_cache')||'{}'); }
-    catch(e){ geocodeCache={}; }
-    if(!mapInstance){
-      mapInstance=L.map('lease-map').setView([37.5,-95.5],4);
-      L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{
-        attribution:'© <a href="https://openstreetmap.org">OpenStreetMap</a> contributors',
-        maxZoom:18
-      }).addTo(mapInstance);
-    } else {
-      mapInstance.invalidateSize();
+function showMapError(msg){
+  const el=document.getElementById('geocode-error');
+  if(el){ el.textContent=msg; el.style.display='block'; }
+}
+
+async function geocodeWithCensus(l){
+  if(!l.address && !l.city) return null;
+  const params=new URLSearchParams({
+    street: l.address||'',
+    city:   l.city||'',
+    state:  l.state||'',
+    zip:    String(l.zip||''),
+    benchmark:'Public_AR_Current',
+    format:'json'
+  });
+  try{
+    const r=await fetch('https://geocoding.geo.census.gov/geocoder/locations/address?'+params.toString());
+    const d=await r.json();
+    if(d.result&&d.result.addressMatches&&d.result.addressMatches.length>0){
+      const m=d.result.addressMatches[0];
+      return {lat:m.coordinates.y, lng:m.coordinates.x};
     }
+  } catch(e){}
+  return null;
+}
+
+async function initMapView(){
+  if(!leases||leases.length===0){
+    showMapError('No lease data loaded yet. Please wait for data to load from SharePoint and try again.');
+    return;
+  }
+  loadLeaflet(async ()=>{
+    // Wait for DOM to render before initializing map
+    await new Promise(r=>setTimeout(r,150));
+
+    try{
+      geocodeCache=JSON.parse(localStorage.getItem('spig_geocode_cache')||'{}');
+    } catch(e){ geocodeCache={}; }
+
+    const mapEl=document.getElementById('lease-map');
+    if(!mapEl){ showMapError('Map container not found.'); return; }
+
+    if(!mapInstance){
+      try{
+        mapInstance=L.map('lease-map',{zoomControl:true}).setView([37.5,-95.5],4);
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{
+          attribution:'© <a href="https://openstreetmap.org">OpenStreetMap</a> contributors',
+          maxZoom:18
+        }).addTo(mapInstance);
+      } catch(e){ showMapError('Map failed to initialize: '+e.message); return; }
+    } else {
+      setTimeout(()=>mapInstance.invalidateSize(),200);
+    }
+
+    // Geocode missing locations
     const toGeocode=leases.filter(l=>{ const key=String(l.id||l.location); return !geocodeCache[key]&&(l.address||l.city); });
+
     if(toGeocode.length>0){
       const prog=document.getElementById('geocode-progress');
       const countEl=document.getElementById('geocode-count');
       const totalEl=document.getElementById('geocode-total');
-      prog.style.display='block';
-      totalEl.textContent=toGeocode.length;
+      if(prog) prog.style.display='block';
+      if(totalEl) totalEl.textContent=toGeocode.length;
+
       for(let i=0;i<toGeocode.length;i++){
-        const l=toGeocode[i]; countEl.textContent=i+1;
-        const q=[l.address,l.city,l.state,l.zip].filter(Boolean).join(', ');
-        try{
-          const r=await fetch('https://nominatim.openstreetmap.org/search?q='+encodeURIComponent(q)+'&format=json&limit=1&countrycodes=us');
-          const d=await r.json();
-          if(d&&d[0]){ geocodeCache[String(l.id||l.location)]={lat:parseFloat(d[0].lat),lng:parseFloat(d[0].lon)}; }
-        } catch(e){}
-        await new Promise(r=>setTimeout(r,1100));
+        const l=toGeocode[i];
+        if(countEl) countEl.textContent=i+1;
+        const coords=await geocodeWithCensus(l);
+        if(coords) geocodeCache[String(l.id||l.location)]=coords;
+        await new Promise(r=>setTimeout(r,200));
       }
       localStorage.setItem('spig_geocode_cache',JSON.stringify(geocodeCache));
-      prog.style.display='none';
+      if(prog) prog.style.display='none';
     }
-    renderMapPins(mapCurrentFilter);
+
+    renderMapPins(mapCurrentFilter, mapCurrentStatus);
   });
 }
 
-function renderMapPins(company){
+function getLeaseStatus(l){
+  const s=(l.leaseStatus||'Active').toLowerCase();
+  return (s===''||s==='undefined') ? 'active' : s;
+}
+
+function renderMapPins(company, status){
   if(!mapInstance) return;
   mapCurrentFilter=company;
+  mapCurrentStatus=status;
   mapMarkers.forEach(m=>mapInstance.removeLayer(m));
   mapMarkers=[];
   let count=0;
+
   leases.forEach(l=>{
     const co=getCompany(l);
     if(company!=='all'&&co!==company) return;
+    const ls=getLeaseStatus(l);
+    if(status!=='all'&&ls!==status) return;
+
     const key=String(l.id||l.location);
     const coords=geocodeCache[key];
     if(!coords) return;
     count++;
+
     const color=MAP_COMPANY_COLORS[co]||'#888';
     const icon=L.divIcon({
       html:'<div style="width:13px;height:13px;border-radius:50%;background:'+color+';border:2.5px solid #fff;box-shadow:0 1px 5px rgba(0,0,0,.45);"></div>',
       className:'',iconSize:[13,13],iconAnchor:[6,6],popupAnchor:[0,-8]
     });
     const addr=[l.address,l.city,l.state].filter(Boolean).join(', ');
-    const popup='<div style="font-family:system-ui,sans-serif;min-width:180px;padding:2px 0"><div style="font-weight:600;font-size:13px;color:#111;margin-bottom:3px">'+( l.location||'—')+'</div><div style="display:inline-block;font-size:10px;font-weight:600;letter-spacing:.05em;padding:2px 7px;border-radius:10px;background:'+color+'22;color:'+color+';margin-bottom:6px">'+(MAP_COMPANY_LABELS[co]||co.toUpperCase())+'</div><div style="font-size:12px;color:#555;line-height:1.5">'+(addr||'Address not available')+'</div></div>';
+    const popup='<div style="font-family:system-ui,sans-serif;min-width:180px;padding:2px 0">'+
+      '<div style="font-weight:600;font-size:13px;color:#111;margin-bottom:3px">'+(l.location||'—')+'</div>'+
+      '<div style="display:inline-block;font-size:10px;font-weight:600;letter-spacing:.05em;padding:2px 7px;border-radius:10px;background:'+color+'22;color:'+color+';margin-bottom:6px">'+(MAP_COMPANY_LABELS[co]||co.toUpperCase())+'</div>'+
+      '<div style="font-size:12px;color:#555;line-height:1.5">'+(addr||'Address not available')+'</div></div>';
+
     const marker=L.marker([coords.lat,coords.lng],{icon}).bindPopup(popup);
     marker.addTo(mapInstance);
     mapMarkers.push(marker);
   });
+
+  // Update company filter buttons
   ['all','spig','pft','erx'].forEach(c=>{
     const btn=document.getElementById('map-filter-'+c);
     if(btn) btn.classList.toggle('primary',c===company);
   });
+  // Update status filter buttons
+  ['active','inactive','all'].forEach(s=>{
+    const btn=document.getElementById('map-status-'+s);
+    if(btn) btn.classList.toggle('primary',s===status);
+  });
+
   const countEl=document.getElementById('map-pin-count');
   if(countEl) countEl.textContent=count+' location'+(count!==1?'s':'')+' shown';
 }
 
-function filterMapPins(company){ renderMapPins(company); }
+function filterMapPins(company){ renderMapPins(company, mapCurrentStatus); }
+function setMapStatus(status){ renderMapPins(mapCurrentFilter, status); }
 
 function clearGeocodeCache(){
   if(!confirm('This will re-geocode all locations on next map open. Continue?')) return;

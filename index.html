@@ -3110,6 +3110,7 @@ function renderRentReview(){
 }
 </script>
 
+<script>
 // ── MAP VIEW ──────────────────────────────────────────────────────────────────
 const HARDCODED_COORDS = {
   "Buffalo":{lat:42.845,lng:-78.737},
@@ -3294,6 +3295,8 @@ function setMapStatus(status){ renderMapPins(mapCurrentFilter, status); }
 function clearGeocodeCache(){ renderMapPins(mapCurrentFilter, mapCurrentStatus); }
 
 
+
+</script>
 
 <!-- STAFF MODAL -->
 <div class="modal-backdrop" id="staff-modal" onclick="if(event.target===this)closeStaffModal()">

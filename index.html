@@ -342,6 +342,11 @@ body{font-family:var(--sans);background:var(--bg);color:var(--text);font-size:14
     <svg class="nav-icon" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 16 16"><rect x="1" y="2" width="14" height="12" rx="1"/><path d="M4 6h8M4 9h5"/><circle cx="11.5" cy="9.5" r="2.5"/><path d="M13.5 11.5l1.5 1.5"/></svg>
     <span class="nav-label"> Rent Review</span>
   </div>
+  <div class="sidebar-section">Resources</div>
+  <div class="nav-item" data-view="help" onclick="showView('help',this)">
+    <svg class="nav-icon" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 16 16"><circle cx="8" cy="8" r="6"/><path d="M6 6a2 2 0 114 0c0 1.5-2 2-2 3"/><circle cx="8" cy="12.5" r=".75" fill="currentColor" stroke="none"/></svg>
+    <span class="nav-label"> Help & Training</span>
+  </div>
   <div class="sidebar-section">Settings</div>
   <div class="nav-item" data-view="staff" onclick="showView('staff',this)">
     <svg class="nav-icon" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 16 16"><circle cx="6" cy="5" r="3"/><path d="M1 14c0-3 2-5 5-5s5 2 5 5"/><circle cx="12" cy="5" r="2"/><path d="M12 10c2 0 3 1 3 3"/></svg>
@@ -751,6 +756,277 @@ body{font-family:var(--sans);background:var(--bg);color:var(--text);font-size:14
     <span><span style="display:inline-block;width:10px;height:10px;border-radius:50%;background:#1D9E75;margin-right:4px;"></span>PFT</span>
     <span><span style="display:inline-block;width:10px;height:10px;border-radius:50%;background:#BA7517;margin-right:4px;"></span>ERX</span>
     <span id="map-pin-count" style="margin-left:auto;"></span>
+  </div>
+</div>
+
+
+<div id="view-help" class="hidden">
+  <div style="max-width:860px;margin:0 auto;padding-bottom:40px;">
+
+    <!-- Header -->
+    <div style="background:var(--accent);color:#fff;border-radius:var(--radius);padding:24px 28px;margin-bottom:24px;">
+      <div style="font-size:20px;font-weight:600;margin-bottom:4px;">Lease Manager — Help & Training</div>
+      <div style="font-size:13px;opacity:.85;">Complete reference guide for the SPIG Lease Manager database. Built and maintained by the Facilities Manager.</div>
+    </div>
+
+        <!-- Section helper -->
+    <style>
+      .help-section{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);margin-bottom:16px;overflow:hidden;}
+      .help-section-header{padding:14px 20px;font-size:13px;font-weight:600;cursor:pointer;display:flex;align-items:center;justify-content:space-between;user-select:none;}
+      .help-section-header:hover{background:var(--surface2);}
+      .help-section-body{padding:0 20px 18px;font-size:13px;line-height:1.75;color:var(--text);display:none;}
+      .help-section-body.open{display:block;}
+      .help-chevron{transition:transform .2s;color:var(--muted);font-size:12px;}
+      .help-chevron.open{transform:rotate(90deg);}
+      .help-h3{font-weight:600;font-size:12px;text-transform:uppercase;letter-spacing:.06em;color:var(--accent);margin:16px 0 6px;}
+      .help-h3:first-child{margin-top:10px;}
+      .help-field{display:grid;grid-template-columns:160px 1fr;gap:8px;padding:5px 0;border-bottom:1px solid var(--border);}
+      .help-field:last-child{border-bottom:none;}
+      .help-field-name{font-weight:600;font-size:12px;color:var(--muted);padding-top:1px;}
+      .help-field-desc{font-size:12px;}
+      .help-pill{display:inline-block;padding:1px 8px;border-radius:10px;font-size:11px;font-weight:500;margin-right:4px;}
+      .help-step{display:flex;gap:12px;padding:8px 0;border-bottom:1px solid var(--border);}
+      .help-step:last-child{border-bottom:none;}
+      .help-step-num{width:24px;height:24px;border-radius:50%;background:var(--accent);color:#fff;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;flex-shrink:0;margin-top:1px;}
+      .help-tip{background:var(--accent-light);color:var(--accent);border-radius:6px;padding:8px 12px;font-size:12px;margin-top:10px;}
+    </style>
+
+    <!-- Overview -->
+    <div class="help-section">
+      <div class="help-section-header" onclick="toggleHelpSection(this)">
+        <span>📋 Overview — What Is This App?</span><span class="help-chevron">▶</span>
+      </div>
+      <div class="help-section-body open">
+        <p>The SPIG Lease Manager is a centralized database for tracking all commercial property leases across Service Pros Installation Group and its subsidiary brands — <strong>PF&T</strong> and <strong>ERX</strong>. It currently tracks <strong>~75 workroom locations</strong> across the United States.</p>
+        <p style="margin-top:10px;">The app is hosted on GitHub Pages and connects to a SharePoint list for live data storage. All changes made through the app (adding, editing leases) are saved directly to SharePoint in real time. The app is accessible to Directors, ROMs, AIMs, and C-Level leadership for read access, with Facilities Management controlling all edits.</p>
+        <div class="help-tip">💡 Data is read from SharePoint each time the app loads. If you just made a change, refresh the page to see it reflected.</div>
+        <div class="help-h3">Three Companies Tracked</div>
+        <div class="help-field"><span class="help-field-name"><span class="help-pill" style="background:#DEEAF8;color:#1256A4;">SPIG</span></span><span class="help-field-desc">Service Pros Installation Group — the primary company. Most locations belong to SPIG.</span></div>
+        <div class="help-field"><span class="help-field-name"><span class="help-pill" style="background:#E1F5EE;color:#1D9E75;">PF&T</span></span><span class="help-field-desc">Preferred Flooring & Tile — subsidiary brand. Location numbers are prefixed with PFT.</span></div>
+        <div class="help-field"><span class="help-field-name"><span class="help-pill" style="background:#FAEEDA;color:#BA7517;">ERX</span></span><span class="help-field-desc">ERX subsidiary brand. Location numbers are prefixed with ERX.</span></div>
+      </div>
+    </div>
+
+    <!-- Navigation -->
+    <div class="help-section">
+      <div class="help-section-header" onclick="toggleHelpSection(this)">
+        <span>🧭 Navigation — Sidebar & Views</span><span class="help-chevron">▶</span>
+      </div>
+      <div class="help-section-body">
+        <p>The sidebar on the left contains all navigation. Click any item to switch views. The sidebar can be collapsed using the <strong>◀</strong> button at the bottom to give more screen space to the main content.</p>
+        <div class="help-h3">Views</div>
+        <div class="help-field"><span class="help-field-name">Dashboard</span><span class="help-field-desc">Summary stats, active alerts, and soonest-expiring leases at a glance.</span></div>
+        <div class="help-field"><span class="help-field-name">All Leases</span><span class="help-field-desc">Full sortable, filterable table of every lease in the system.</span></div>
+        <div class="help-field"><span class="help-field-name">Active Leases</span><span class="help-field-desc">Shows only leases with Active status.</span></div>
+        <div class="help-field"><span class="help-field-name">Inactive Leases</span><span class="help-field-desc">Shows only leases with Inactive status.</span></div>
+        <div class="help-field"><span class="help-field-name">Alerts</span><span class="help-field-desc">All leases with upcoming expiration or renewal notice deadlines. Badge shows total count.</span></div>
+        <div class="help-field"><span class="help-field-name">By Expiry</span><span class="help-field-desc">Leases sorted and grouped by expiration date — useful for planning renewals.</span></div>
+        <div class="help-field"><span class="help-field-name">Map View</span><span class="help-field-desc">Interactive map showing all lease locations plotted by address, color-coded by company.</span></div>
+        <div class="help-h3">By Company</div>
+        <p>Expand SPIG, PF&T, or ERX in the sidebar to view Active or Inactive leases filtered to that company only.</p>
+        <div class="help-h3">Workflows & Settings</div>
+        <div class="help-field"><span class="help-field-name">Rent Review</span><span class="help-field-desc">Step-by-step monthly rent review workflow (see Rent Review section below).</span></div>
+        <div class="help-field"><span class="help-field-name">Staff Roster</span><span class="help-field-desc">Manage the list of Directors, ROMs, and AIMs used in lease assignments.</span></div>
+        <div class="help-field"><span class="help-field-name">Notifications</span><span class="help-field-desc">Configure alert thresholds and email notification settings.</span></div>
+      </div>
+    </div>
+
+    <!-- Dashboard -->
+    <div class="help-section">
+      <div class="help-section-header" onclick="toggleHelpSection(this)">
+        <span>📊 Dashboard</span><span class="help-chevron">▶</span>
+      </div>
+      <div class="help-section-body">
+        <p>The Dashboard is the home screen and provides an at-a-glance summary of the entire portfolio.</p>
+        <div class="help-h3">Stat Cards (Top Row)</div>
+        <div class="help-field"><span class="help-field-name">Locations</span><span class="help-field-desc">Total number of active lease locations currently in the system.</span></div>
+        <div class="help-field"><span class="help-field-name">Monthly Base Rent</span><span class="help-field-desc">Sum of base rent across all active locations for the current month.</span></div>
+        <div class="help-field"><span class="help-field-name">Total Rent</span><span class="help-field-desc">Base rent plus all OpEx charges (CAM, property tax, insurance, utilities, other).</span></div>
+        <div class="help-field"><span class="help-field-name">Expiring ≤90 Days</span><span class="help-field-desc">Count of leases expiring within the next 90 days. Shown in red when urgent.</span></div>
+        <div class="help-field"><span class="help-field-name">Avg Rent/SF</span><span class="help-field-desc">Average base rent per square foot across all active locations with square footage data.</span></div>
+        <div class="help-field"><span class="help-field-name">Total SF</span><span class="help-field-desc">Total combined square footage across all active locations.</span></div>
+        <div class="help-h3">Active Alerts Panel</div>
+        <p>Lists leases that need attention — either expiring soon or approaching their renewal notice deadline. Color coded: <span class="help-pill" style="background:#FCEBEB;color:#A32D2D;">Red</span> = expired or &lt;30 days, <span class="help-pill" style="background:#FAEEDA;color:#BA7517;">Amber</span> = 30–90 days, <span class="help-pill" style="background:#DEEAF8;color:#1256A4;">Blue</span> = 90+ days.</p>
+        <div class="help-h3">Soonest Expiring Panel</div>
+        <p>A quick-reference list of the next leases to expire, sorted by expiration date.</p>
+      </div>
+    </div>
+
+    <!-- Lease Table -->
+    <div class="help-section">
+      <div class="help-section-header" onclick="toggleHelpSection(this)">
+        <span>📋 All Leases — Table & Filters</span><span class="help-chevron">▶</span>
+      </div>
+      <div class="help-section-body">
+        <p>The All Leases view is the primary working table. It shows every lease in the system in a scrollable, sortable table.</p>
+        <div class="help-h3">Sorting</div>
+        <p>Click any column header to sort ascending. Click again to sort descending. An arrow indicator shows the active sort column and direction.</p>
+        <div class="help-h3">Filters</div>
+        <div class="help-field"><span class="help-field-name">Search</span><span class="help-field-desc">Type to filter by location name, address, or landlord in real time.</span></div>
+        <div class="help-field"><span class="help-field-name">Status</span><span class="help-field-desc">Filter by Active, Inactive, or Month-to-Month.</span></div>
+        <div class="help-field"><span class="help-field-name">Director</span><span class="help-field-desc">Filter to leases assigned to a specific Director.</span></div>
+        <div class="help-field"><span class="help-field-name">ROM</span><span class="help-field-desc">Filter to leases assigned to a specific Regional Operations Manager.</span></div>
+        <div class="help-field"><span class="help-field-name">AIM</span><span class="help-field-desc">Filter to leases assigned to a specific Area Installation Manager.</span></div>
+        <div class="help-field"><span class="help-field-name">Company</span><span class="help-field-desc">Filter to SPIG, PF&T, or ERX locations only.</span></div>
+        <div class="help-field"><span class="help-field-name">Active & Inactive</span><span class="help-field-desc">Toggle to show active only, inactive only, or both.</span></div>
+        <div class="help-h3">Column Visibility</div>
+        <p>Click the <strong>Columns</strong> button to show or hide individual columns. Useful for focusing on specific data or printing.</p>
+        <div class="help-h3">Opening a Lease Record</div>
+        <p>Click the <strong>Edit</strong> button on any row to open the full lease detail modal where all fields can be viewed and edited.</p>
+        <div class="help-tip">💡 The table defaults to showing Active & Inactive leases sorted by expiration date (soonest first).</div>
+      </div>
+    </div>
+
+    <!-- Lease Fields -->
+    <div class="help-section">
+      <div class="help-section-header" onclick="toggleHelpSection(this)">
+        <span>🗂️ Lease Data Fields — Full Glossary</span><span class="help-chevron">▶</span>
+      </div>
+      <div class="help-section-body">
+        <div class="help-h3">Location Information</div>
+        <div class="help-field"><span class="help-field-name">Location #</span><span class="help-field-desc">The WR (workroom) number assigned to the location. PFT locations are prefixed PFT-, ERX locations are prefixed ERX-.</span></div>
+        <div class="help-field"><span class="help-field-name">Location Name</span><span class="help-field-desc">The common name for the location (e.g. "Nashville", "Charlotte").</span></div>
+        <div class="help-field"><span class="help-field-name">Status</span><span class="help-field-desc">Active, Inactive, or Month-to-Month.</span></div>
+        <div class="help-field"><span class="help-field-name">Address / City / State / Zip</span><span class="help-field-desc">Full physical address of the leased property.</span></div>
+        <div class="help-field"><span class="help-field-name">Square Footage</span><span class="help-field-desc">Total leased square footage of the space.</span></div>
+        <div class="help-field"><span class="help-field-name">Company</span><span class="help-field-desc">Auto-determined from the location number prefix (SPIG, PF&T, or ERX).</span></div>
+        <div class="help-h3">Lease Dates</div>
+        <div class="help-field"><span class="help-field-name">Lease Start Date</span><span class="help-field-desc">The original date the lease began.</span></div>
+        <div class="help-field"><span class="help-field-name">Current Term Start</span><span class="help-field-desc">Start date of the current lease term (may differ from original if renewed).</span></div>
+        <div class="help-field"><span class="help-field-name">Current Term Length</span><span class="help-field-desc">Length of the current lease term in months.</span></div>
+        <div class="help-field"><span class="help-field-name">Expiration Date</span><span class="help-field-desc">The date the current lease term expires.</span></div>
+        <div class="help-field"><span class="help-field-name">Renewal Notice Deadline</span><span class="help-field-desc">The date by which notice must be given to renew. Missing this date can result in automatic renewal or loss of the space.</span></div>
+        <div class="help-field"><span class="help-field-name">Alert Month</span><span class="help-field-desc">Auto-calculated as the 20th of the month prior to the Renewal Notice Deadline. Used to trigger reminders.</span></div>
+        <div class="help-field"><span class="help-field-name">Renewal Terms</span><span class="help-field-desc">Any renewal options negotiated in the lease (e.g. "2-year option at same rate").</span></div>
+        <div class="help-h3">Financial — Rent</div>
+        <div class="help-field"><span class="help-field-name">Base Rent</span><span class="help-field-desc">Monthly base rent amount due to the landlord.</span></div>
+        <div class="help-field"><span class="help-field-name">Payment Type</span><span class="help-field-desc">How rent is paid — ACH (auto-debit), Check, Bank Draft, or Ramp (escalating).</span></div>
+        <div class="help-field"><span class="help-field-name">Rent Increase Date</span><span class="help-field-desc">The date the next scheduled rent increase takes effect.</span></div>
+        <div class="help-field"><span class="help-field-name">New Base Rent</span><span class="help-field-desc">The new base rent amount after the scheduled increase.</span></div>
+        <div class="help-h3">Financial — Operating Expenses (OpEx)</div>
+        <p>OpEx charges are additional monthly costs beyond base rent, billed by the landlord. The total CAM/OpEx column in the table is the sum of all items below.</p>
+        <div class="help-field"><span class="help-field-name">Property Tax</span><span class="help-field-desc">Monthly property tax pass-through from landlord.</span></div>
+        <div class="help-field"><span class="help-field-name">CAM</span><span class="help-field-desc">Common Area Maintenance — shared costs for building upkeep, parking, landscaping, etc.</span></div>
+        <div class="help-field"><span class="help-field-name">Insurance</span><span class="help-field-desc">Landlord's building insurance pass-through.</span></div>
+        <div class="help-field"><span class="help-field-name">Utilities</span><span class="help-field-desc">Utility charges billed through the landlord.</span></div>
+        <div class="help-field"><span class="help-field-name">Other OpEx</span><span class="help-field-desc">Any other miscellaneous operating expense charges.</span></div>
+        <div class="help-field"><span class="help-field-name">OpEx Increase Date</span><span class="help-field-desc">Date when OpEx charges are scheduled to change.</span></div>
+        <div class="help-h3">People</div>
+        <div class="help-field"><span class="help-field-name">Director</span><span class="help-field-desc">The Director responsible for this region/location.</span></div>
+        <div class="help-field"><span class="help-field-name">ROM</span><span class="help-field-desc">Regional Operations Manager for this location.</span></div>
+        <div class="help-field"><span class="help-field-name">AIM</span><span class="help-field-desc">Area Installation Manager for this location.</span></div>
+        <div class="help-field"><span class="help-field-name">Landlord</span><span class="help-field-desc">Name of the landlord entity or individual.</span></div>
+        <div class="help-field"><span class="help-field-name">Landlord Contact</span><span class="help-field-desc">Primary contact person at the landlord or property management company.</span></div>
+        <div class="help-field"><span class="help-field-name">Broker Info</span><span class="help-field-desc">Real estate broker involved in the lease, if applicable.</span></div>
+        <div class="help-h3">Notes</div>
+        <div class="help-field"><span class="help-field-name">Notes</span><span class="help-field-desc">General notes about the lease — history, special terms, issues, negotiations.</span></div>
+        <div class="help-field"><span class="help-field-name">Rent Review Notes</span><span class="help-field-desc">Notes specific to the monthly rent review process for this location.</span></div>
+        <div class="help-field"><span class="help-field-name">Check Lease if Renewed</span><span class="help-field-desc">Checkbox flag to indicate this lease needs to be pulled and reviewed if renewed.</span></div>
+      </div>
+    </div>
+
+    <!-- Map View -->
+    <div class="help-section">
+      <div class="help-section-header" onclick="toggleHelpSection(this)">
+        <span>🗺️ Map View</span><span class="help-chevron">▶</span>
+      </div>
+      <div class="help-section-body">
+        <p>The Map View plots all lease locations on an interactive map of the United States, color-coded by company.</p>
+        <div class="help-h3">Pin Colors</div>
+        <div class="help-field"><span class="help-field-name"><span class="help-pill" style="background:#DEEAF8;color:#1256A4;">● SPIG</span></span><span class="help-field-desc">Blue pins — Service Pros Installation Group locations.</span></div>
+        <div class="help-field"><span class="help-field-name"><span class="help-pill" style="background:#E1F5EE;color:#1D9E75;">● PF&T</span></span><span class="help-field-desc">Green pins — PF&T locations.</span></div>
+        <div class="help-field"><span class="help-field-name"><span class="help-pill" style="background:#FAEEDA;color:#BA7517;">● ERX</span></span><span class="help-field-desc">Amber pins — ERX locations.</span></div>
+        <div class="help-h3">Filters</div>
+        <div class="help-field"><span class="help-field-name">Company filter</span><span class="help-field-desc">All / SPIG / PFT / ERX — shows only pins for the selected company.</span></div>
+        <div class="help-field"><span class="help-field-name">Status filter</span><span class="help-field-desc">Active / Inactive / All — defaults to Active only.</span></div>
+        <div class="help-h3">Clicking a Pin</div>
+        <p>Click any pin to open a popup showing the location name, company badge, and full address.</p>
+        <div class="help-h3">New Locations</div>
+        <p>When a new lease is added to the system, it will automatically be geocoded (converted from address to map coordinates) the next time Map View is opened. A progress indicator will appear briefly while this happens, and the result is cached so it only occurs once.</p>
+        <div class="help-tip">💡 Use the ↺ Refresh button to clear the geocode cache and re-plot all locations — useful if an address was corrected in the database.</div>
+      </div>
+    </div>
+
+    <!-- Adding & Editing -->
+    <div class="help-section">
+      <div class="help-section-header" onclick="toggleHelpSection(this)">
+        <span>✏️ Adding & Editing Leases</span><span class="help-chevron">▶</span>
+      </div>
+      <div class="help-section-body">
+        <div class="help-h3">Adding a New Lease</div>
+        <p>Click <strong>+ Add Lease</strong> in the top right corner of the app. Fill in all available fields and click <strong>Save</strong>. The record is saved directly to SharePoint and will appear in all views immediately.</p>
+        <div class="help-h3">Editing an Existing Lease</div>
+        <p>Navigate to All Leases (or any filtered view), find the location, and click the <strong>Edit</strong> button on that row. Make your changes in the modal and click <strong>Save</strong>. Changes are written to SharePoint in real time.</p>
+        <div class="help-h3">Required Fields</div>
+        <p>Location Name and Expiration Date are the minimum required fields. All other fields are optional but should be completed as thoroughly as possible for the app to be most useful.</p>
+        <div class="help-tip">💡 Only Facilities Management should add or edit lease records. All edits are saved to the shared SharePoint database and are visible to everyone immediately.</div>
+      </div>
+    </div>
+
+    <!-- Alerts -->
+    <div class="help-section">
+      <div class="help-section-header" onclick="toggleHelpSection(this)">
+        <span>🔔 Alerts & Expiration Tracking</span><span class="help-chevron">▶</span>
+      </div>
+      <div class="help-section-body">
+        <p>The app tracks two critical dates per lease and generates alerts based on how close those dates are.</p>
+        <div class="help-h3">What Triggers an Alert</div>
+        <div class="help-field"><span class="help-field-name">Expiration Date</span><span class="help-field-desc">An alert fires when a lease is within 90 days of its expiration date.</span></div>
+        <div class="help-field"><span class="help-field-name">Renewal Notice</span><span class="help-field-desc">An alert fires when the renewal notice deadline is approaching. Missing this date can mean losing your renewal right or triggering an automatic renewal at unfavorable terms.</span></div>
+        <div class="help-h3">Alert Colors</div>
+        <div class="help-field"><span class="help-field-name"><span class="help-pill" style="background:#FCEBEB;color:#A32D2D;">Red</span></span><span class="help-field-desc">Expired or fewer than 30 days remaining. Requires immediate action.</span></div>
+        <div class="help-field"><span class="help-field-name"><span class="help-pill" style="background:#FAEEDA;color:#BA7517;">Amber</span></span><span class="help-field-desc">30–90 days remaining. Renewal discussion should be in progress.</span></div>
+        <div class="help-field"><span class="help-field-name"><span class="help-pill" style="background:#DEEAF8;color:#1256A4;">Blue</span></span><span class="help-field-desc">More than 90 days remaining. On radar but not yet urgent.</span></div>
+        <div class="help-tip">💡 The red badge on the Alerts sidebar item shows the total number of leases currently requiring attention.</div>
+      </div>
+    </div>
+
+    <!-- Rent Review -->
+    <div class="help-section">
+      <div class="help-section-header" onclick="toggleHelpSection(this)">
+        <span>💰 Monthly Rent Review Workflow</span><span class="help-chevron">▶</span>
+      </div>
+      <div class="help-section-body">
+        <p>The Rent Review workflow replicates the Facilities Manager's 7-step monthly process to verify and confirm all rent payments before they are processed. This is run each month around the 20th to prepare for 1st-of-month payments.</p>
+        <div class="help-h3">The 7 Steps</div>
+        <div class="help-step"><span class="help-step-num">1</span><div><strong>Pull Rent Worksheet</strong> — Export the memorized transaction worksheet from NetSuite. This shows what the system is currently set to pay each landlord.</div></div>
+        <div class="help-step"><span class="help-step-num">2</span><div><strong>Compare Base Rent</strong> — Cross-reference NetSuite amounts against the base rent recorded in the Lease Manager. Flag any discrepancies.</div></div>
+        <div class="help-step"><span class="help-step-num">3</span><div><strong>Check Rent Increases</strong> — Verify whether any scheduled rent increases are taking effect this month. Update NetSuite memorized transactions if needed.</div></div>
+        <div class="help-step"><span class="help-step-num">4</span><div><strong>Check OpEx</strong> — Review CAM, property tax, insurance, and other OpEx charges. Confirm amounts match invoices and lease terms.</div></div>
+        <div class="help-step"><span class="help-step-num">5</span><div><strong>Update SharePoint</strong> — Record any changes (new amounts, increase dates, notes) back into the Lease Manager database.</div></div>
+        <div class="help-step"><span class="help-step-num">6</span><div><strong>NetSuite True-Up</strong> — <em>Coming soon</em> — Will automate the reconciliation between Lease Manager data and NetSuite memorized transactions.</div></div>
+        <div class="help-step"><span class="help-step-num">7</span><div><strong>Sign Off</strong> — Final review and confirmation that all payments are correct and ready to process.</div></div>
+        <div class="help-tip">💡 Navigate to Rent Review in the sidebar to run this process interactively with the app's built-in workflow tool.</div>
+      </div>
+    </div>
+
+    <!-- Export -->
+    <div class="help-section">
+      <div class="help-section-header" onclick="toggleHelpSection(this)">
+        <span>📥 Exporting Data</span><span class="help-chevron">▶</span>
+      </div>
+      <div class="help-section-body">
+        <p>Click <strong>Export CSV</strong> in the top right corner to download a full export of all lease data as a CSV file. This file can be opened in Excel and includes all fields — location info, financial data, dates, staff assignments, and notes.</p>
+        <p style="margin-top:8px;">The export always reflects the current live data from SharePoint at the time of export.</p>
+        <div class="help-tip">💡 The CSV export is useful for sharing data with leadership, running custom analysis in Excel, or creating a backup snapshot of all lease records.</div>
+      </div>
+    </div>
+
+    <!-- Staff Roster -->
+    <div class="help-section">
+      <div class="help-section-header" onclick="toggleHelpSection(this)">
+        <span>👥 Staff Roster</span><span class="help-chevron">▶</span>
+      </div>
+      <div class="help-section-body">
+        <p>The Staff Roster stores the names and emails of all Directors, ROMs (Regional Operations Managers), and AIMs (Area Installation Managers). This roster powers the Director, ROM, and AIM dropdown filters throughout the app.</p>
+        <div class="help-h3">Roles</div>
+        <div class="help-field"><span class="help-field-name">Director</span><span class="help-field-desc">Senior leadership responsible for a group of regions.</span></div>
+        <div class="help-field"><span class="help-field-name">ROM</span><span class="help-field-desc">Regional Operations Manager — oversees multiple workroom locations within a region.</span></div>
+        <div class="help-field"><span class="help-field-name">AIM</span><span class="help-field-desc">Area Installation Manager — day-to-day operational contact for one or more locations.</span></div>
+        <div class="help-tip">💡 The staff roster is stored in your browser's local storage. If you switch computers or clear your browser data, you will need to re-enter the roster. It is not stored in SharePoint.</div>
+      </div>
+    </div>
+
   </div>
 </div>
 
@@ -2220,7 +2496,7 @@ function renderStatusTable(status){
 }
 
 function showView(name, el){
-  ['dashboard','leases','active','inactive','alerts','expiring','map','staff','notifications','company','rentreview'].forEach(v=>{
+  ['dashboard','leases','active','inactive','alerts','expiring','map','help','staff','notifications','company','rentreview'].forEach(v=>{
     const el2=document.getElementById('view-'+v);
     if(el2) el2.classList.toggle('hidden',v!==name);
   });

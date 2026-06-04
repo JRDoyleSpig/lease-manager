@@ -3384,6 +3384,14 @@ function renderRentReview(){
     }
   });
 }
+// ── HELP VIEW ─────────────────────────────────────────────────────────────────
+function toggleHelpSection(header){
+  const body = header.nextElementSibling;
+  const chevron = header.querySelector('.help-chevron');
+  const isOpen = body.classList.contains('open');
+  body.classList.toggle('open', !isOpen);
+  if(chevron) chevron.classList.toggle('open', !isOpen);
+}
 </script>
 
 <script>

@@ -740,12 +740,10 @@ body{font-family:var(--sans);background:var(--bg);color:var(--text);font-size:14
       <button class="btn sm primary" id="map-status-active" onclick="setMapStatus('active')">Active</button>
       <button class="btn sm" id="map-status-inactive" onclick="setMapStatus('inactive')">Inactive</button>
       <button class="btn sm" id="map-status-all" onclick="setMapStatus('all')">All</button>
-      <button class="btn sm" id="map-clear-cache" onclick="clearGeocodeCache()" style="margin-left:8px;color:var(--muted)">↺ Re-geocode</button>
+      <button class="btn sm" id="map-clear-cache" onclick="clearGeocodeCache()" style="margin-left:8px;color:var(--muted)">↺ Refresh</button>
     </div>
   </div>
-  <div id="geocode-progress" style="display:none;background:var(--accent-light);color:var(--accent);border:1px solid var(--border);border-radius:8px;padding:10px 14px;margin-bottom:12px;font-size:13px;">
-    📍 Geocoding locations — <strong><span id="geocode-count">0</span> of <span id="geocode-total">0</span></strong> complete. This only happens once — results are cached locally.
-  </div>
+
   <div id="geocode-error" style="display:none;background:var(--warn-light);color:var(--warn);border:1px solid var(--border);border-radius:8px;padding:10px 14px;margin-bottom:12px;font-size:13px;"></div>
   <div id="lease-map" style="height:calc(100vh - 220px);min-height:400px;border-radius:var(--radius);border:1px solid var(--border);z-index:1;"></div>
   <div style="margin-top:8px;display:flex;gap:16px;font-size:11px;color:var(--muted)">
@@ -3113,10 +3111,85 @@ function renderRentReview(){
 </script>
 
 // ── MAP VIEW ──────────────────────────────────────────────────────────────────
+const HARDCODED_COORDS = {
+  "Buffalo":{lat:42.845,lng:-78.737},
+  "Austin":{lat:30.508,lng:-97.679},
+  "Roanoke":{lat:37.271,lng:-79.941},
+  "Gulfport":{lat:30.367,lng:-89.093},
+  "Fort Walton":{lat:30.406,lng:-86.619},
+  "Abilene":{lat:32.459,lng:-99.733},
+  "Bluefield":{lat:37.667,lng:-80.999},
+  "Shreveport":{lat:32.516,lng:-93.732},
+  "Waynesboro Warehouse":{lat:38.195,lng:-79.003},
+  "Grand Forks":{lat:47.925,lng:-97.033},
+  "Hickory":{lat:35.733,lng:-81.342},
+  "Chattanooga":{lat:34.914,lng:-85.111},
+  "Franklin":{lat:35.184,lng:-83.381},
+  "Lubbock":{lat:33.578,lng:-101.855},
+  "Myrtle Beach":{lat:33.878,lng:-78.615},
+  "Fargo":{lat:46.877,lng:-96.79},
+  "PFT - Raleigh":{lat:35.779,lng:-78.638},
+  "Pensacola":{lat:30.421,lng:-87.217},
+  "Clarksville":{lat:36.53,lng:-87.36},
+  "Bismarck":{lat:46.808,lng:-100.784},
+  "Mobile":{lat:30.549,lng:-88.173},
+  "Fredericksburg":{lat:38.202,lng:-77.61},
+  "Norcross":{lat:33.941,lng:-84.214},
+  "Jacksonville":{lat:34.754,lng:-77.43},
+  "Baton Rouge":{lat:30.452,lng:-91.187},
+  "Lafayette":{lat:30.148,lng:-91.97},
+  "Hattiesburg":{lat:31.327,lng:-89.29},
+  "Twin Cities":{lat:45.064,lng:-93.208},
+  "DFW":{lat:32.746,lng:-97.011},
+  "Odessa":{lat:31.846,lng:-102.368},
+  "Lexington":{lat:38.041,lng:-84.504},
+  "Jackson, TN":{lat:35.615,lng:-88.814},
+  "PFT - Tampa":{lat:27.951,lng:-82.457},
+  "San Antonio":{lat:29.424,lng:-98.494},
+  "Asheville":{lat:35.595,lng:-82.552},
+  "Greenville":{lat:34.939,lng:-82.227},
+  "Weslaco":{lat:26.16,lng:-97.991},
+  "Knoxville":{lat:35.961,lng:-83.921},
+  "Meridian":{lat:32.771,lng:-89.117},
+  "College Station":{lat:30.628,lng:-96.334},
+  "Texarkana":{lat:33.442,lng:-94.128},
+  "Tri-Cities":{lat:36.548,lng:-82.562},
+  "Memphis":{lat:35.15,lng:-90.049},
+  "Corpus Christi":{lat:27.801,lng:-97.396},
+  "PFT - Jacksonville FL":{lat:29.895,lng:-81.315},
+  "Rochester":{lat:43.157,lng:-77.609},
+  "PFT - Phoenix":{lat:33.448,lng:-112.074},
+  "New Orleans":{lat:29.855,lng:-89.989},
+  "Houston":{lat:29.76,lng:-95.37},
+  "Lindale":{lat:32.351,lng:-95.301},
+  "Chantilly":{lat:38.784,lng:-77.617},
+  "Temple":{lat:31.098,lng:-97.343},
+  "Charlotte":{lat:35.227,lng:-80.843},
+  "ERX - Boone":{lat:36.217,lng:-81.675},
+  "Hagerstown":{lat:39.602,lng:-77.826},
+  "Charleston":{lat:38.35,lng:-81.633},
+  "Amarillo":{lat:35.222,lng:-101.831},
+  "Beaumont":{lat:29.885,lng:-93.94},
+  "Wilmington":{lat:34.226,lng:-77.945},
+  "Paducah":{lat:37.083,lng:-88.6},
+  "Jackson, MS":{lat:32.274,lng:-90.133},
+  "Nashville":{lat:36.163,lng:-86.782},
+  "Richmond":{lat:37.541,lng:-77.436},
+  "Waldorf":{lat:38.625,lng:-76.934},
+  "Syracuse":{lat:43.048,lng:-76.147},
+  "Baltimore":{lat:39.29,lng:-76.612},
+  "Center":{lat:31.796,lng:-94.178},
+  "Lynchburg":{lat:37.357,lng:-78.821},
+  "Cookeville":{lat:36.162,lng:-85.502},
+  "San Angelo":{lat:31.464,lng:-100.437},
+  "Clovis":{lat:34.405,lng:-103.205},
+  "ERX - Greensboro":{lat:36.12,lng:-80.087},
+  "Waynesboro Office":{lat:38.195,lng:-79.003}
+};
+
 let leafletLoaded = false;
 let mapInstance = null;
 let mapMarkers = [];
-let geocodeCache = {};
 let mapCurrentFilter = 'all';
 let mapCurrentStatus = 'active';
 const MAP_COMPANY_COLORS = { spig:'#1256A4', pft:'#1D9E75', erx:'#BA7517' };
@@ -3131,7 +3204,7 @@ function loadLeaflet(cb){
   const scr=document.createElement('script');
   scr.src='https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js';
   scr.onload=()=>{ leafletLoaded=true; cb(); };
-  scr.onerror=()=>{ showMapError('Failed to load map library. Check your internet connection.'); };
+  scr.onerror=()=>{ showMapError('Could not load map library. Check internet connection.'); };
   document.head.appendChild(scr);
 }
 
@@ -3140,83 +3213,34 @@ function showMapError(msg){
   if(el){ el.textContent=msg; el.style.display='block'; }
 }
 
-async function geocodeWithCensus(l){
-  if(!l.address && !l.city) return null;
-  const params=new URLSearchParams({
-    street: l.address||'',
-    city:   l.city||'',
-    state:  l.state||'',
-    zip:    String(l.zip||''),
-    benchmark:'Public_AR_Current',
-    format:'json'
-  });
-  try{
-    const r=await fetch('https://geocoding.geo.census.gov/geocoder/locations/address?'+params.toString());
-    const d=await r.json();
-    if(d.result&&d.result.addressMatches&&d.result.addressMatches.length>0){
-      const m=d.result.addressMatches[0];
-      return {lat:m.coordinates.y, lng:m.coordinates.x};
-    }
-  } catch(e){}
-  return null;
-}
-
-async function initMapView(){
-  if(!leases||leases.length===0){
-    showMapError('No lease data loaded yet. Please wait for data to load from SharePoint and try again.');
-    return;
-  }
-  loadLeaflet(async ()=>{
-    // Wait for DOM to render before initializing map
-    await new Promise(r=>setTimeout(r,150));
-
-    try{
-      geocodeCache=JSON.parse(localStorage.getItem('spig_geocode_cache')||'{}');
-    } catch(e){ geocodeCache={}; }
-
-    const mapEl=document.getElementById('lease-map');
-    if(!mapEl){ showMapError('Map container not found.'); return; }
-
-    if(!mapInstance){
-      try{
-        mapInstance=L.map('lease-map',{zoomControl:true}).setView([37.5,-95.5],4);
-        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{
-          attribution:'© <a href="https://openstreetmap.org">OpenStreetMap</a> contributors',
-          maxZoom:18
-        }).addTo(mapInstance);
-      } catch(e){ showMapError('Map failed to initialize: '+e.message); return; }
-    } else {
-      setTimeout(()=>mapInstance.invalidateSize(),200);
-    }
-
-    // Geocode missing locations
-    const toGeocode=leases.filter(l=>{ const key=String(l.id||l.location); return !geocodeCache[key]&&(l.address||l.city); });
-
-    if(toGeocode.length>0){
-      const prog=document.getElementById('geocode-progress');
-      const countEl=document.getElementById('geocode-count');
-      const totalEl=document.getElementById('geocode-total');
-      if(prog) prog.style.display='block';
-      if(totalEl) totalEl.textContent=toGeocode.length;
-
-      for(let i=0;i<toGeocode.length;i++){
-        const l=toGeocode[i];
-        if(countEl) countEl.textContent=i+1;
-        const coords=await geocodeWithCensus(l);
-        if(coords) geocodeCache[String(l.id||l.location)]=coords;
-        await new Promise(r=>setTimeout(r,200));
-      }
-      localStorage.setItem('spig_geocode_cache',JSON.stringify(geocodeCache));
-      if(prog) prog.style.display='none';
-    }
-
-    renderMapPins(mapCurrentFilter, mapCurrentStatus);
-  });
-}
-
 function getLeaseStatus(l){
   const s=(l.leaseStatus||'Active').toLowerCase();
   return (s===''||s==='undefined') ? 'active' : s;
+}
+
+function getCoords(l){
+  return HARDCODED_COORDS[l.location] || null;
+}
+
+function initMapView(){
+  loadLeaflet(()=>{
+    setTimeout(()=>{
+      const mapEl=document.getElementById('lease-map');
+      if(!mapEl) return;
+      if(!mapInstance){
+        try{
+          mapInstance=L.map('lease-map').setView([37.5,-95.5],4);
+          L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{
+            attribution:'© <a href="https://openstreetmap.org">OpenStreetMap</a>',
+            maxZoom:18
+          }).addTo(mapInstance);
+        } catch(e){ showMapError('Map init failed: '+e.message); return; }
+      } else {
+        mapInstance.invalidateSize();
+      }
+      renderMapPins(mapCurrentFilter, mapCurrentStatus);
+    }, 200);
+  });
 }
 
 function renderMapPins(company, status){
@@ -3232,9 +3256,7 @@ function renderMapPins(company, status){
     if(company!=='all'&&co!==company) return;
     const ls=getLeaseStatus(l);
     if(status!=='all'&&ls!==status) return;
-
-    const key=String(l.id||l.location);
-    const coords=geocodeCache[key];
+    const coords=getCoords(l);
     if(!coords) return;
     count++;
 
@@ -3254,12 +3276,10 @@ function renderMapPins(company, status){
     mapMarkers.push(marker);
   });
 
-  // Update company filter buttons
   ['all','spig','pft','erx'].forEach(c=>{
     const btn=document.getElementById('map-filter-'+c);
     if(btn) btn.classList.toggle('primary',c===company);
   });
-  // Update status filter buttons
   ['active','inactive','all'].forEach(s=>{
     const btn=document.getElementById('map-status-'+s);
     if(btn) btn.classList.toggle('primary',s===status);
@@ -3271,17 +3291,7 @@ function renderMapPins(company, status){
 
 function filterMapPins(company){ renderMapPins(company, mapCurrentStatus); }
 function setMapStatus(status){ renderMapPins(mapCurrentFilter, status); }
-
-function clearGeocodeCache(){
-  if(!confirm('This will re-geocode all locations on next map open. Continue?')) return;
-  localStorage.removeItem('spig_geocode_cache');
-  geocodeCache={};
-  mapMarkers.forEach(m=>mapInstance&&mapInstance.removeLayer(m));
-  mapMarkers=[];
-  const countEl=document.getElementById('map-pin-count');
-  if(countEl) countEl.textContent='';
-  initMapView();
-}
+function clearGeocodeCache(){ renderMapPins(mapCurrentFilter, mapCurrentStatus); }
 
 
 

@@ -4015,9 +4015,7 @@ function generateNarrativeTemplate(btn,statusEl,narrativeEl){
 
   const changes=reconcRows.filter(r=>r.difference!==null&&Math.abs(r.difference)>0.50).sort((a,b)=>Math.abs(b.difference)-Math.abs(a.difference));
 
-  let narrative='Please see the total processed for '+month+''s rent below. Overall rent '+direction+' by '+fmt(totalDiff)+'.
-
-';
+  let narrative='Please see the total processed for '+month+"'s rent below. Overall rent "+direction+' by '+fmt(totalDiff)+'.\n\n';
 
   if(changes.length){
     const decreases=changes.filter(r=>r.difference<0);

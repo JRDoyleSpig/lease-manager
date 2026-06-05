@@ -4028,9 +4028,7 @@ function generateNarrativeTemplate(btn,statusEl,narrativeEl){
         const notes=lease?(lease.rentReviewNotes||lease.notes||''):'';
         return loc+(notes?' ('+notes+')':'')+(r.difference?': '+fmt(r.difference):'');
       });
-      narrative+=(decreases.length===1?'The decrease was driven by ':'The decreases were driven by ')+items.join('; ')+'.
-
-';
+      narrative+=(decreases.length===1?'The decrease was driven by ':'The decreases were driven by ')+items.join('; ')+'.\n\n';
     }
 
     if(increases.length){
@@ -4065,27 +4063,26 @@ async function generateNarrativeWithAI(apiKey,btn,statusEl,narrativeEl){
     const loc=lease?lease.location:r.name;
     const notes=lease?(lease.rentReviewNotes||lease.notes||''):'';
     return (r.difference>0?'INCREASE':'DECREASE')+': '+loc+' ('+r.name+') — '+(r.difference>0?'+':'')+fmt(r.difference)+' (from '+fmt(r.previousAmount)+' to '+fmt(r.amount)+')'+(notes?' — Notes: '+notes:'');
-  }).join('
-');
+  }).join('\n');
 
-  const prompt='You are helping a Facilities Manager write a monthly rent summary email to their CFO.
+  const prompt=`You are helping a Facilities Manager write a monthly rent summary email to their CFO.
 
-Month: '+month+'
-Current total: '+fmt(reconcCurrentTotal)+'
-Prior month total ('+prevMonth+'): '+fmt(reconcPrevTotal)+'
-Net change: '+(totalDiff<0?'decreased by':'increased by')+' '+fmt(totalDiff)+'
+Month: ${month}
+Current total: ${fmt(reconcCurrentTotal)}
+Prior month total (${prevMonth}): ${fmt(reconcPrevTotal)}
+Net change: ${totalDiff<0?'decreased by':'increased by'} ${fmt(totalDiff)}
 
 Significant changes:
-'+(changeLines||'No significant changes.')+'
+${changeLines||'No significant changes.'}
 
 Style example from a prior month:
 "Please see the total processed for June's rent below. Overall rent decreased by $20,200.64
 
-The decrease was primarily driven by Richmond's rent returning to normal following the $14,257.27 CAM reconciliation charge processed in May. Baltimore also returned to normal after the $3,940 repair bill that was included in May's rent. In addition, we received a $6,950 credit in Norcross and a $685 credit in DFW, both related to 2025 CAM reconciliations.
+The decrease was primarily driven by Richmond's rent returning to normal following the $14,257.27 CAM reconciliation charge processed in May. Baltimore also returned to normal after the $3,940 repair bill that was included in May's rent.
 
 Partially offsetting those decreases was a $3,390 CAM reconciliation charge for Fredericksburg."
 
-Write ONLY the body paragraph(s). No greeting, no dollar total lines, no sign-off. Be concise, use location names, reference specific dollar amounts.';
+Write ONLY the body paragraph(s). No greeting, no dollar total lines, no sign-off. Be concise, use location names, reference specific dollar amounts.`;
 
   try{
     const r=await fetch('https://api.anthropic.com/v1/messages',{
@@ -4111,16 +4108,16 @@ function copyFullEmail2(){
   const prevMonth=prevDate.toLocaleString('en-US',{month:'long',year:'numeric'});
   const fmt=v=>'$'+v.toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2});
   const narrative=document.getElementById('email2-narrative').value;
-  const full='JJ,
+  const full=`JJ,
 
-'+narrative+'
+${narrative}
 
-'+fmt(reconcCurrentTotal)+' - '+month+'
-'+fmt(reconcPrevTotal)+' - '+prevMonth+'
+${fmt(reconcCurrentTotal)} - ${month}
+${fmt(reconcPrevTotal)} - ${prevMonth}
 
 Thanks,
 
-J.R. Doyle';
+J.R. Doyle`;
   navigator.clipboard?navigator.clipboard.writeText(full).then(()=>{const m=document.getElementById('email2-copy-msg');if(m){m.style.display='block';setTimeout(()=>m.style.display='none',2000);}}).catch(()=>fallbackCopy(full)):fallbackCopy(full);
 }
 

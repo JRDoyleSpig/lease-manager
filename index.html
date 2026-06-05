@@ -647,6 +647,133 @@ body{font-family:var(--sans);background:var(--bg);color:var(--text);font-size:14
     </div>
     <div class="rr-body" id="rr-body7"></div>
   </div>
+
+  <!-- Step 8: Leaseholder Reconciliation -->
+  <div class="rr-step" id="rr-step8">
+    <div class="rr-step-header" onclick="toggleRRStep(8)">
+      <div class="rr-step-num" id="rr-num8">8</div>
+      <div class="rr-step-label">
+        <div class="rr-step-title">Leaseholder Reconciliation</div>
+        <div class="rr-step-sub">Paste NS bill payments — builds reconciliation and generates Excel</div>
+      </div>
+      <div class="rr-step-badge"><span class="rr-count" id="rr-badge8">—</span><span class="rr-chevron" id="rr-chev8">▶</span></div>
+    </div>
+    <div class="rr-body" id="rr-body8">
+      <div style="padding:16px;display:flex;flex-direction:column;gap:14px;">
+
+        <!-- Seed section -->
+        <div style="background:var(--surface2);border-radius:8px;padding:14px 16px;">
+          <div style="font-size:12px;font-weight:600;margin-bottom:6px;">Seed Prior Month (first time only)</div>
+          <div style="font-size:12px;color:var(--muted);margin-bottom:8px;">Upload last month's Leaseholder Reconciliation Excel to load Previous Amounts. Once seeded, amounts carry forward automatically each month.</div>
+          <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;">
+            <input type="file" id="reconc-seed-input" accept=".xlsx" onchange="loadReconcSeed(this)" style="font-size:12px;font-family:var(--sans);color:var(--text);">
+            <span id="reconc-seed-status" style="font-size:12px;color:var(--accent);font-weight:500;"></span>
+          </div>
+        </div>
+
+        <!-- NS paste -->
+        <div>
+          <div style="font-size:12px;font-weight:600;margin-bottom:4px;">Paste NS Processed Bill Payments</div>
+          <div style="font-size:12px;color:var(--muted);margin-bottom:8px;">In NetSuite, copy from "Name" through all rows down to the last vendor and paste below (Paste Special → Text).</div>
+          <textarea id="reconc-paste" placeholder="Paste NS data here..." style="width:100%;height:120px;font-size:12px;font-family:var(--mono);border:1px solid var(--border);border-radius:6px;padding:8px;resize:vertical;box-sizing:border-box;background:var(--surface);color:var(--text);"></textarea>
+          <div style="margin-top:8px;display:flex;gap:8px;">
+            <button class="btn primary" onclick="buildReconciliation()">Build Reconciliation</button>
+            <button class="btn" onclick="clearReconciliation()" style="color:var(--muted);">✕ Clear</button>
+          </div>
+        </div>
+
+        <!-- Status message -->
+        <div id="reconc-msg" style="display:none;border-radius:6px;padding:8px 12px;font-size:12px;"></div>
+
+        <!-- Results table -->
+        <div id="reconc-results" style="display:none;">
+          <div style="overflow-x:auto;border:1px solid var(--border);border-radius:8px;">
+            <table style="width:100%;border-collapse:collapse;font-size:12px;">
+              <thead>
+                <tr style="background:var(--surface2);">
+                  <th style="padding:7px 10px;text-align:left;font-size:11px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.05em;border-bottom:1px solid var(--border);">Vendor</th>
+                  <th style="padding:7px 10px;text-align:left;font-size:11px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.05em;border-bottom:1px solid var(--border);">Status</th>
+                  <th style="padding:7px 10px;text-align:left;font-size:11px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.05em;border-bottom:1px solid var(--border);">Check #</th>
+                  <th style="padding:7px 10px;text-align:right;font-size:11px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.05em;border-bottom:1px solid var(--border);">Amount</th>
+                  <th style="padding:7px 10px;text-align:right;font-size:11px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.05em;border-bottom:1px solid var(--border);">Prior Amount</th>
+                  <th style="padding:7px 10px;text-align:right;font-size:11px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.05em;border-bottom:1px solid var(--border);">Difference</th>
+                </tr>
+              </thead>
+              <tbody id="reconc-tbody"></tbody>
+            </table>
+          </div>
+          <div id="reconc-summary"></div>
+          <div style="margin-top:12px;display:flex;gap:8px;flex-wrap:wrap;">
+            <button class="btn primary" onclick="generateReconcExcel()">⬇ Download Excel</button>
+            <span style="font-size:11px;color:var(--muted);align-self:center;">Opens in Excel — formulas will recalculate on open</span>
+          </div>
+        </div>
+
+      </div>
+    </div>
+  </div>
+
+  <!-- Step 9: Email — Rent Ready to Process -->
+  <div class="rr-step" id="rr-step9">
+    <div class="rr-step-header" onclick="toggleRRStep(9)">
+      <div class="rr-step-num" id="rr-num9">9</div>
+      <div class="rr-step-label">
+        <div class="rr-step-title">Email — Rent Ready to Process</div>
+        <div class="rr-step-sub">Notify Matt & Mary that rent is ready to be processed</div>
+      </div>
+      <div class="rr-step-badge"><span class="rr-count" id="rr-badge9">—</span><span class="rr-chevron" id="rr-chev9">▶</span></div>
+    </div>
+    <div class="rr-body" id="rr-body9">
+      <div style="padding:16px;display:flex;flex-direction:column;gap:12px;">
+        <div style="background:var(--surface2);border-radius:6px;padding:10px 14px;font-size:12px;line-height:1.7;">
+          <strong>To:</strong> Matt Thomas, Mary White &nbsp;&nbsp;<strong>CC:</strong> Pam Jefferies<br>
+          <strong>Subject:</strong> <span id="email1-subject-display"></span>
+        </div>
+        <textarea id="email1-body" style="width:100%;height:150px;font-size:13px;font-family:var(--sans);border:1px solid var(--border);border-radius:6px;padding:10px;resize:none;box-sizing:border-box;background:var(--surface);color:var(--text);line-height:1.7;"></textarea>
+        <div style="display:flex;gap:8px;">
+          <button class="btn primary" onclick="copyEmail('email1-body')">Copy Email Body</button>
+          <button class="btn" onclick="refreshEmail1()">↺ Refresh</button>
+        </div>
+        <div id="email1-copy-msg" style="display:none;font-size:11px;color:var(--accent);">✓ Copied to clipboard</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Step 10: Email — Monthly Rent Summary -->
+  <div class="rr-step" id="rr-step10">
+    <div class="rr-step-header" onclick="toggleRRStep(10)">
+      <div class="rr-step-num" id="rr-num10">10</div>
+      <div class="rr-step-label">
+        <div class="rr-step-title">Email — Monthly Rent Summary</div>
+        <div class="rr-step-sub">Send month-over-month summary to JJ — AI drafts the narrative</div>
+      </div>
+      <div class="rr-step-badge"><span class="rr-count" id="rr-badge10">—</span><span class="rr-chevron" id="rr-chev10">▶</span></div>
+    </div>
+    <div class="rr-body" id="rr-body10">
+      <div style="padding:16px;display:flex;flex-direction:column;gap:12px;">
+        <div style="background:var(--surface2);border-radius:6px;padding:10px 14px;font-size:12px;line-height:1.7;">
+          <strong>To:</strong> James Pace (JJ), Pam Jefferies &nbsp;&nbsp;<strong>CC:</strong> Matt Thomas, Mary White<br>
+          <strong>Subject:</strong> <span id="email2-subject-display"></span>
+        </div>
+        <!-- Amounts display -->
+        <div id="email2-amounts-display" style="font-family:var(--mono);font-size:13px;line-height:2;padding:10px 14px;background:var(--surface2);border-radius:6px;"></div>
+        <!-- Narrative -->
+        <div>
+          <div style="display:flex;align-items:center;gap:10px;margin-bottom:8px;flex-wrap:wrap;">
+            <span style="font-size:12px;font-weight:600;">Narrative</span>
+            <button class="btn sm primary" id="email2-gen-btn" onclick="generateEmail2Narrative()">✦ Generate Narrative</button>
+            <span id="email2-gen-status" style="font-size:11px;color:var(--muted);"></span>
+          </div>
+          <textarea id="email2-narrative" placeholder="Complete Step 8 first, then click Generate Narrative..." style="width:100%;height:180px;font-size:13px;font-family:var(--sans);border:1px solid var(--border);border-radius:6px;padding:10px;resize:vertical;box-sizing:border-box;background:var(--surface);color:var(--text);line-height:1.7;"></textarea>
+        </div>
+        <div style="display:flex;gap:8px;">
+          <button class="btn primary" onclick="copyFullEmail2()">Copy Full Email</button>
+        </div>
+        <div id="email2-copy-msg" style="display:none;font-size:11px;color:var(--accent);">✓ Copied to clipboard</div>
+      </div>
+    </div>
+  </div>
+
 </div>
 
 <!-- Rent Increase Apply Modal -->
@@ -762,6 +889,16 @@ body{font-family:var(--sans);background:var(--bg);color:var(--text);font-size:14
     <div style="display:flex;gap:8px;padding-top:4px">
       <button class="btn primary" onclick="saveNotifSettings()">Save settings</button>
       <button class="btn" onclick="exportCSV()">Export all data as CSV</button>
+    </div>
+    <div class="form-section" style="margin-top:20px;">
+      <div class="form-section-title">AI Narrative (Optional)</div>
+      <div style="font-size:12px;color:var(--muted);margin-bottom:10px;">Add an Anthropic API key to enable AI-generated narratives in the Monthly Rent Summary email (Step 10). Without a key, a template narrative is generated instead. The key is stored only in your browser's local storage.</div>
+      <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;">
+        <input type="password" id="anthropic-key-input" placeholder="sk-ant-..." style="width:320px;max-width:100%;font-family:var(--mono);font-size:12px;padding:6px 10px;border:1px solid var(--border);border-radius:6px;background:var(--surface);color:var(--text);">
+        <button class="btn primary" onclick="saveAnthropicKey()">Save Key</button>
+        <button class="btn" onclick="clearAnthropicKey()" style="color:var(--muted);">Clear</button>
+        <span id="anthropic-key-status" style="font-size:12px;color:var(--accent);"></span>
+      </div>
     </div>
   </div>
 </div>
@@ -1028,7 +1165,10 @@ body{font-family:var(--sans);background:var(--bg);color:var(--text);font-size:14
         <div class="help-step"><span class="help-step-num">4</span><div><strong>Check OpEx</strong> — Review CAM, property tax, insurance, and other OpEx charges. Confirm amounts match invoices and lease terms.</div></div>
         <div class="help-step"><span class="help-step-num">5</span><div><strong>Update SharePoint</strong> — Record any changes (new amounts, increase dates, notes) back into the Lease Manager database.</div></div>
         <div class="help-step"><span class="help-step-num">6</span><div><strong>NetSuite True-Up</strong> — Upload the NetSuite Rent Review Results CSV (SPIG only). Each row matched 1-to-1 by WR# and landlord name. Satellites matched by landlord name fallback. Ramp leases excluded. Shows: ✓ Match, ✕ Mismatch, ⚠ Not in Database, — Not in NetSuite.</div></div>
-        <div class="help-step"><span class="help-step-num">7</span><div><strong>Sign Off</strong> — Final review and confirmation that all payments are correct and ready to process.</div></div>
+        <div class="help-step"><span class="help-step-num">7</span><div><strong>Bank Drafts</strong> — Review all SPIG leases on automatic bank draft. Verify each draft cleared and mark as reviewed.</div></div>
+        <div class="help-step"><span class="help-step-num">8</span><div><strong>Leaseholder Reconciliation</strong> — Upload prior month's reconciliation (first time only to seed Previous Amounts). Then paste the NS Processed Bill Payments data. App builds the reconciliation table showing each vendor's current amount, prior amount, and difference. Download generates an updated Excel file in the exact original format. Current amounts are auto-saved as next month's Previous Amounts.</div></div>
+        <div class="help-step"><span class="help-step-num">9</span><div><strong>Email — Rent Ready to Process</strong> — Pre-drafted email to Matt & Mary (CC Pam). Subject: "Rent is ready to be processed." Copy the body and send manually with the Leaseholder Reconciliation Excel attached.</div></div>
+        <div class="help-step"><span class="help-step-num">10</span><div><strong>Email — Monthly Rent Summary</strong> — Pre-drafted email to JJ & Pam (CC Matt & Mary). App pre-fills the month-over-month totals and generates a narrative draft explaining the variances using location names, amounts, and rent review notes. Edit the narrative as needed, then copy the full email.</div></div>
         <div class="help-tip">💡 Navigate to Rent Review in the sidebar to run this process interactively with the app's built-in workflow tool.</div>
       </div>
     </div>
@@ -3603,6 +3743,410 @@ function clearNSTrueUp(){
   document.getElementById('ns-results').style.display='none';
   const badge=document.getElementById('rr-badge6');
   if(badge){badge.textContent='—';badge.style.background='';badge.style.color='';}
+}
+
+// ── STEPS 8-10: LEASEHOLDER RECONCILIATION & EMAILS ──────────────────────────
+
+let sheetJSLoaded = false;
+let reconcSeedBuffer = null;
+let reconcPrevAmounts = {};
+let reconcNSRows = [];
+let reconcRows = [];
+let reconcCurrentTotal = 0;
+let reconcPrevTotal = 0;
+const RECONC_KEY = 'spig_reconc_prev_v2';
+
+function loadSheetJS(cb){
+  if(typeof XLSX !== 'undefined'){ cb(); return; }
+  const s=document.createElement('script');
+  s.src='https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js';
+  s.onload=cb;
+  s.onerror=()=>showReconcMsg('Failed to load Excel library. Check internet connection.','warn');
+  document.head.appendChild(s);
+}
+
+function showReconcMsg(msg, type){
+  const el=document.getElementById('reconc-msg');
+  if(!el) return;
+  el.textContent=msg;
+  el.style.display=msg?'block':'none';
+  el.style.background=type==='warn'?'var(--warn-light)':type==='ok'?'#E1F5EE':'var(--accent-light)';
+  el.style.color=type==='warn'?'var(--warn)':type==='ok'?'#0F6E56':'var(--accent)';
+}
+
+function loadReconcSeed(input){
+  const file=input.files[0]; if(!file) return;
+  loadSheetJS(()=>{
+    const reader=new FileReader();
+    reader.onload=e=>{
+      reconcSeedBuffer=e.target.result;
+      const wb=XLSX.read(new Uint8Array(reconcSeedBuffer),{type:'array'});
+      const ws=wb.Sheets[wb.SheetNames[0]];
+      const rows=XLSX.utils.sheet_to_json(ws,{header:1,defval:''});
+      const hdr=rows.findIndex(r=>String(r[0]).includes('Vendor Name'));
+      if(hdr<0){ showReconcMsg('Could not find Vendor Name header in spreadsheet','warn'); return; }
+      reconcPrevAmounts={};
+      for(let i=hdr+1;i<rows.length;i++){
+        const vendor=String(rows[i][0]||'').trim();
+        const amt=parseFloat(String(rows[i][3]||'0').replace(/,/g,''))||0;
+        if(vendor&&vendor!=='Total'&&vendor.length>1) reconcPrevAmounts[vendor]=amt;
+      }
+      localStorage.setItem(RECONC_KEY,JSON.stringify(reconcPrevAmounts));
+      const n=Object.keys(reconcPrevAmounts).length;
+      const statusEl=document.getElementById('reconc-seed-status');
+      if(statusEl) statusEl.textContent='✓ '+n+' vendors loaded from '+file.name;
+      showReconcMsg('Seed loaded — '+n+' previous amounts stored','ok');
+    };
+    reader.readAsArrayBuffer(file);
+  });
+}
+
+function parseNSPaste(text){
+  return text.split(/\r?\n/).filter(l=>l.trim()).map(line=>{
+    const cols=line.split('\t');
+    if(cols.length<3) return null;
+    const name=cols[0].trim();
+    const status=cols[1].trim();
+    const number=String(cols[2]||'').trim();
+    const amount=parseFloat(String(cols[3]||'0').replace(/[,$\s]/g,''))||0;
+    const errorMsg=String(cols[4]||'').trim();
+    if(!name||name.toLowerCase()==='name') return null; // skip header row
+    return {name,status,number,amount,errorMsg};
+  }).filter(Boolean);
+}
+
+function buildReconciliation(){
+  const pasteEl=document.getElementById('reconc-paste');
+  if(!pasteEl||!pasteEl.value.trim()){ showReconcMsg('Please paste NS data first','warn'); return; }
+
+  // Load prev amounts from storage if not in memory
+  if(!Object.keys(reconcPrevAmounts).length){
+    try{ reconcPrevAmounts=JSON.parse(localStorage.getItem(RECONC_KEY)||'{}'); }catch(e){}
+  }
+
+  reconcNSRows=parseNSPaste(pasteEl.value);
+  if(!reconcNSRows.length){ showReconcMsg('Could not parse any rows. Check the paste format.','warn'); return; }
+
+  reconcRows=reconcNSRows.map(r=>{
+    const prev=reconcPrevAmounts.hasOwnProperty(r.name)?reconcPrevAmounts[r.name]:null;
+    const diff=prev!==null?Math.round((r.amount-prev)*100)/100:null;
+    return {...r,previousAmount:prev,difference:diff};
+  });
+
+  // Save current amounts as next month's previous
+  const newAmts={};
+  reconcRows.forEach(r=>{ newAmts[r.name]=r.amount; });
+  localStorage.setItem(RECONC_KEY,JSON.stringify(newAmts));
+  reconcPrevAmounts=newAmts;
+
+  renderReconcTable(reconcRows);
+  showReconcMsg('','');
+}
+
+function renderReconcTable(rows){
+  const fmt=v=>v!=null?'$'+v.toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2}):'—';
+  reconcCurrentTotal=rows.reduce((s,r)=>s+r.amount,0);
+  reconcPrevTotal=rows.reduce((s,r)=>s+(r.previousAmount||0),0);
+  const totalDiff=Math.round((reconcCurrentTotal-reconcPrevTotal)*100)/100;
+
+  const tbody=rows.map(r=>{
+    const hasChange=r.difference!==null&&Math.abs(r.difference)>0.01;
+    const rowStyle=hasChange?(r.difference>0?'background:var(--warn-light)':'background:var(--danger-light)'):'';
+    const diffStr=r.difference!==null?(r.difference>0?'+':'')+fmt(r.difference):'—';
+    const diffColor=r.difference!==null&&r.difference>0?'color:var(--warn);font-weight:600':r.difference!==null&&r.difference<0?'color:var(--danger);font-weight:600':'color:var(--muted)';
+    return '<tr style="'+rowStyle+'"><td style="padding:6px 10px;border-bottom:1px solid var(--border);font-size:12px;">'+r.name+'</td>'+
+      '<td style="padding:6px 10px;border-bottom:1px solid var(--border);font-size:11px;color:var(--muted);">'+r.status+'</td>'+
+      '<td style="padding:6px 10px;border-bottom:1px solid var(--border);font-family:var(--mono);font-size:11px;">'+r.number+'</td>'+
+      '<td style="padding:6px 10px;border-bottom:1px solid var(--border);text-align:right;font-family:var(--mono);font-size:12px;">'+fmt(r.amount)+'</td>'+
+      '<td style="padding:6px 10px;border-bottom:1px solid var(--border);text-align:right;font-family:var(--mono);font-size:12px;color:var(--muted);">'+fmt(r.previousAmount)+'</td>'+
+      '<td style="padding:6px 10px;border-bottom:1px solid var(--border);text-align:right;font-family:var(--mono);font-size:12px;'+diffColor+'">'+diffStr+'</td></tr>';
+  }).join('');
+
+  document.getElementById('reconc-tbody').innerHTML=tbody;
+
+  const sign=totalDiff>=0?'+':'';
+  const diffColor2=totalDiff>=0?'color:var(--warn)':'color:var(--danger)';
+  document.getElementById('reconc-summary').innerHTML=
+    '<div style="display:flex;gap:16px;flex-wrap:wrap;padding:12px 4px;font-size:13px;border-top:1px solid var(--border);margin-top:4px;">'+
+    '<span><strong>'+rows.length+'</strong> vendors</span>'+
+    '<span style="margin-left:auto"><strong>Current: </strong>'+fmt(reconcCurrentTotal)+'</span>'+
+    '<span><strong>Prior: </strong>'+fmt(reconcPrevTotal)+'</span>'+
+    '<span style="'+diffColor2+'"><strong>Net: </strong>'+sign+fmt(Math.abs(totalDiff))+'</span></div>';
+
+  document.getElementById('reconc-results').style.display='block';
+
+  const badge=document.getElementById('rr-badge8');
+  if(badge){ badge.textContent=rows.length+' vendors'; badge.style.background='var(--accent-light)'; badge.style.color='var(--accent)'; }
+
+  // Populate email steps
+  refreshEmail1();
+  refreshEmail2Amounts();
+}
+
+function clearReconciliation(){
+  document.getElementById('reconc-paste').value='';
+  document.getElementById('reconc-results').style.display='none';
+  showReconcMsg('','');
+}
+
+function generateReconcExcel(){
+  if(!reconcRows.length){ showReconcMsg('Build the reconciliation first','warn'); return; }
+  if(!reconcSeedBuffer){ showReconcMsg('Upload the seed file to generate Excel in the original format','warn'); return; }
+
+  loadSheetJS(()=>{
+    const wb=XLSX.read(new Uint8Array(reconcSeedBuffer),{type:'array',cellStyles:true});
+    const wsName=wb.SheetNames[0];
+    const ws=wb.Sheets[wsName];
+
+    // Read sheet as array to find header row and data rows
+    const rowData=XLSX.utils.sheet_to_json(ws,{header:1,defval:''});
+    const hdrIdx=rowData.findIndex(r=>String(r[0]).includes('Vendor Name'));
+
+    if(hdrIdx>=0){
+      // Step 1: copy current Amount (col D=3) to Previous Amount (col F=5) as values
+      for(let i=hdrIdx+1;i<rowData.length;i++){
+        const vendor=String(rowData[i][0]||'').trim();
+        if(!vendor||vendor==='Total') continue;
+        const oldAmt=parseFloat(String(rowData[i][3]||'0').replace(/,/g,''))||0;
+        const prevCellRef=XLSX.utils.encode_cell({r:i,c:5});
+        if(!ws[prevCellRef]) ws[prevCellRef]={};
+        ws[prevCellRef].v=oldAmt; ws[prevCellRef].t='n'; ws[prevCellRef].w=oldAmt.toFixed(2);
+        // Remove formula if present
+        delete ws[prevCellRef].f;
+      }
+    }
+
+    // Step 2: Update Sheet3 with new NS data
+    const ws3Name=wb.SheetNames.find(n=>n==='Sheet3')||wb.SheetNames[1];
+    if(ws3Name&&wb.Sheets[ws3Name]){
+      const ws3=wb.Sheets[ws3Name];
+      const s3rows=XLSX.utils.sheet_to_json(ws3,{header:1,defval:''});
+      const s3hdr=s3rows.findIndex(r=>String(r[0]).toLowerCase()==='name'||String(r[0]).toLowerCase().includes('vendor'));
+      const dataStart=s3hdr>=0?s3hdr+1:1;
+
+      reconcNSRows.forEach((r,i)=>{
+        const row=dataStart+i;
+        const setC=(col,val)=>{
+          const ref=XLSX.utils.encode_cell({r:row,c:col});
+          ws3[ref]={v:val,t:typeof val==='number'?'n':'s',w:String(val)};
+        };
+        setC(0,r.name); setC(1,r.status); setC(2,r.number); setC(3,r.amount); setC(4,r.errorMsg||'');
+      });
+
+      // Update sheet range
+      const maxRow=dataStart+reconcNSRows.length;
+      ws3['!ref']=XLSX.utils.encode_range({s:{r:0,c:0},e:{r:maxRow,c:4}});
+    }
+
+    // Generate and download
+    const buf=XLSX.write(wb,{bookType:'xlsx',type:'array',cellStyles:true});
+    const blob=new Blob([buf],{type:'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'});
+    const url=URL.createObjectURL(blob);
+    const a=document.createElement('a');
+    const now=new Date();
+    const ds=(now.getMonth()+1)+'-'+now.getDate()+'-'+String(now.getFullYear()).slice(2);
+    a.href=url; a.download='Leaseholder_Reconciliation_-_'+ds+'.xlsx'; a.click();
+    URL.revokeObjectURL(url);
+    showReconcMsg('Excel downloaded — open in Excel to recalculate formulas','ok');
+  });
+}
+
+// ── STEP 9: EMAIL 1 ───────────────────────────────────────────────────────────
+function refreshEmail1(){
+  const now=new Date();
+  const month=now.toLocaleString('en-US',{month:'long'});
+  const subj=document.getElementById('email1-subject-display');
+  if(subj) subj.textContent='Rent is ready to be processed';
+  const body=document.getElementById('email1-body');
+  if(body) body.value='Good Morning,\n\n'+month+'s Rent is ready to be processed.\n\nThanks,\n\nJ.R. Doyle';
+  const badge=document.getElementById('rr-badge9');
+  if(badge){ badge.textContent='Ready'; badge.style.background='#E1F5EE'; badge.style.color='#0F6E56'; }
+}
+
+function copyEmail(id){
+  const el=document.getElementById(id);
+  if(!el) return;
+  el.select(); document.execCommand('copy');
+  const msgId=id==='email1-body'?'email1-copy-msg':'email2-copy-msg';
+  const msg=document.getElementById(msgId);
+  if(msg){ msg.style.display='block'; setTimeout(()=>msg.style.display='none',2000); }
+}
+
+// ── STEP 10: EMAIL 2 ──────────────────────────────────────────────────────────
+function refreshEmail2Amounts(){
+  const now=new Date();
+  const month=now.toLocaleString('en-US',{month:'long',year:'numeric'});
+  const prevDate=new Date(now.getFullYear(),now.getMonth()-1,1);
+  const prevMonth=prevDate.toLocaleString('en-US',{month:'long',year:'numeric'});
+  const fmt=v=>'$'+v.toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2});
+  const subj=document.getElementById('email2-subject-display');
+  if(subj) subj.textContent='Monthly Rent - '+month;
+  const amts=document.getElementById('email2-amounts-display');
+  if(amts) amts.innerHTML=fmt(reconcCurrentTotal)+' - '+month+'<br>'+fmt(reconcPrevTotal)+' - '+prevMonth;
+  const badge=document.getElementById('rr-badge10');
+  if(badge){ badge.textContent='Draft'; badge.style.background='var(--accent-light)'; badge.style.color='var(--accent)'; }
+}
+
+function generateEmail2Narrative(){
+  if(!reconcRows.length){
+    document.getElementById('email2-narrative').value='Please complete Step 8 (Reconciliation) first.';
+    return;
+  }
+  const btn=document.getElementById('email2-gen-btn');
+  const statusEl=document.getElementById('email2-gen-status');
+  const narrativeEl=document.getElementById('email2-narrative');
+  btn.disabled=true; btn.textContent='Generating...';
+  if(statusEl) statusEl.textContent='';
+
+  const apiKey=localStorage.getItem('spig_anthropic_key')||'';
+  if(apiKey){
+    generateNarrativeWithAI(apiKey,btn,statusEl,narrativeEl);
+  } else {
+    generateNarrativeTemplate(btn,statusEl,narrativeEl);
+  }
+}
+
+function generateNarrativeTemplate(btn,statusEl,narrativeEl){
+  const now=new Date();
+  const month=now.toLocaleString('en-US',{month:'long'});
+  const fmt=v=>'$'+Math.abs(v).toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2});
+  const totalDiff=reconcCurrentTotal-reconcPrevTotal;
+  const direction=totalDiff<0?'decreased':'increased';
+
+  const changes=reconcRows.filter(r=>r.difference!==null&&Math.abs(r.difference)>0.50).sort((a,b)=>Math.abs(b.difference)-Math.abs(a.difference));
+
+  let narrative='Please see the total processed for '+month+''s rent below. Overall rent '+direction+' by '+fmt(totalDiff)+'.
+
+';
+
+  if(changes.length){
+    const decreases=changes.filter(r=>r.difference<0);
+    const increases=changes.filter(r=>r.difference>0);
+
+    if(decreases.length){
+      const items=decreases.map(r=>{
+        const lease=findLeaseMatch(null,r.name);
+        const loc=lease?lease.location:r.name;
+        const notes=lease?(lease.rentReviewNotes||lease.notes||''):'';
+        return loc+(notes?' ('+notes+')':'')+(r.difference?': '+fmt(r.difference):'');
+      });
+      narrative+=(decreases.length===1?'The decrease was driven by ':'The decreases were driven by ')+items.join('; ')+'.
+
+';
+    }
+
+    if(increases.length){
+      const items=increases.map(r=>{
+        const lease=findLeaseMatch(null,r.name);
+        const loc=lease?lease.location:r.name;
+        const notes=lease?(lease.rentReviewNotes||lease.notes||''):'';
+        return loc+(notes?' ('+notes+')':'')+(r.difference?': +'+fmt(r.difference):'');
+      });
+      narrative+=(increases.length===1?'The increase was driven by ':'The increases were driven by ')+items.join('; ')+'.';
+    }
+  } else {
+    narrative+='No significant changes from prior month.';
+  }
+
+  narrativeEl.value=narrative;
+  btn.disabled=false; btn.textContent='✦ Generate Narrative';
+  if(statusEl) statusEl.textContent='Template generated — review and edit as needed';
+}
+
+async function generateNarrativeWithAI(apiKey,btn,statusEl,narrativeEl){
+  const now=new Date();
+  const month=now.toLocaleString('en-US',{month:'long'});
+  const prevMonth=new Date(now.getFullYear(),now.getMonth()-1,1).toLocaleString('en-US',{month:'long'});
+  const fmt=v=>'$'+Math.abs(v).toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2});
+  const totalDiff=reconcCurrentTotal-reconcPrevTotal;
+
+  const changes=reconcRows.filter(r=>r.difference!==null&&Math.abs(r.difference)>0.50).sort((a,b)=>Math.abs(b.difference)-Math.abs(a.difference));
+
+  const changeLines=changes.map(r=>{
+    const lease=findLeaseMatch(null,r.name);
+    const loc=lease?lease.location:r.name;
+    const notes=lease?(lease.rentReviewNotes||lease.notes||''):'';
+    return (r.difference>0?'INCREASE':'DECREASE')+': '+loc+' ('+r.name+') — '+(r.difference>0?'+':'')+fmt(r.difference)+' (from '+fmt(r.previousAmount)+' to '+fmt(r.amount)+')'+(notes?' — Notes: '+notes:'');
+  }).join('
+');
+
+  const prompt='You are helping a Facilities Manager write a monthly rent summary email to their CFO.
+
+Month: '+month+'
+Current total: '+fmt(reconcCurrentTotal)+'
+Prior month total ('+prevMonth+'): '+fmt(reconcPrevTotal)+'
+Net change: '+(totalDiff<0?'decreased by':'increased by')+' '+fmt(totalDiff)+'
+
+Significant changes:
+'+(changeLines||'No significant changes.')+'
+
+Style example from a prior month:
+"Please see the total processed for June's rent below. Overall rent decreased by $20,200.64
+
+The decrease was primarily driven by Richmond's rent returning to normal following the $14,257.27 CAM reconciliation charge processed in May. Baltimore also returned to normal after the $3,940 repair bill that was included in May's rent. In addition, we received a $6,950 credit in Norcross and a $685 credit in DFW, both related to 2025 CAM reconciliations.
+
+Partially offsetting those decreases was a $3,390 CAM reconciliation charge for Fredericksburg."
+
+Write ONLY the body paragraph(s). No greeting, no dollar total lines, no sign-off. Be concise, use location names, reference specific dollar amounts.';
+
+  try{
+    const r=await fetch('https://api.anthropic.com/v1/messages',{
+      method:'POST',
+      headers:{'Content-Type':'application/json','x-api-key':apiKey,'anthropic-version':'2023-06-01','anthropic-dangerous-direct-browser-access':'true'},
+      body:JSON.stringify({model:'claude-sonnet-4-20250514',max_tokens:800,messages:[{role:'user',content:prompt}]})
+    });
+    const d=await r.json();
+    const text=d.content?.find(b=>b.type==='text')?.text||'';
+    if(text){ narrativeEl.value=text; if(statusEl) statusEl.textContent='AI draft generated — review and edit'; }
+    else{ generateNarrativeTemplate(btn,statusEl,narrativeEl); if(statusEl) statusEl.textContent='AI unavailable — template generated instead'; }
+  }catch(e){
+    generateNarrativeTemplate(btn,statusEl,narrativeEl);
+    if(statusEl) statusEl.textContent='AI unavailable — template generated instead';
+  }
+  btn.disabled=false; btn.textContent='✦ Generate Narrative';
+}
+
+function copyFullEmail2(){
+  const now=new Date();
+  const month=now.toLocaleString('en-US',{month:'long',year:'numeric'});
+  const prevDate=new Date(now.getFullYear(),now.getMonth()-1,1);
+  const prevMonth=prevDate.toLocaleString('en-US',{month:'long',year:'numeric'});
+  const fmt=v=>'$'+v.toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2});
+  const narrative=document.getElementById('email2-narrative').value;
+  const full='JJ,
+
+'+narrative+'
+
+'+fmt(reconcCurrentTotal)+' - '+month+'
+'+fmt(reconcPrevTotal)+' - '+prevMonth+'
+
+Thanks,
+
+J.R. Doyle';
+  navigator.clipboard?navigator.clipboard.writeText(full).then(()=>{const m=document.getElementById('email2-copy-msg');if(m){m.style.display='block';setTimeout(()=>m.style.display='none',2000);}}).catch(()=>fallbackCopy(full)):fallbackCopy(full);
+}
+
+function fallbackCopy(text){
+  const ta=document.createElement('textarea');
+  ta.value=text; document.body.appendChild(ta); ta.select(); document.execCommand('copy');
+  document.body.removeChild(ta);
+  const m=document.getElementById('email2-copy-msg');
+  if(m){ m.style.display='block'; setTimeout(()=>m.style.display='none',2000); }
+}
+
+function saveAnthropicKey(){
+  const val=document.getElementById('anthropic-key-input').value.trim();
+  if(!val){ clearAnthropicKey(); return; }
+  localStorage.setItem('spig_anthropic_key',val);
+  const s=document.getElementById('anthropic-key-status');
+  if(s){ s.textContent='✓ Key saved'; setTimeout(()=>s.textContent='',2000); }
+}
+function clearAnthropicKey(){
+  localStorage.removeItem('spig_anthropic_key');
+  const inp=document.getElementById('anthropic-key-input');
+  if(inp) inp.value='';
+  const s=document.getElementById('anthropic-key-status');
+  if(s){ s.textContent='Key cleared'; setTimeout(()=>s.textContent='',2000); }
 }
 
 // ── HELP VIEW ─────────────────────────────────────────────────────────────────

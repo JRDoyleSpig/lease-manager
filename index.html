@@ -351,10 +351,6 @@ body{font-family:var(--sans);background:var(--bg);color:var(--text);font-size:14
     <svg class="nav-icon" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 16 16"><circle cx="6" cy="5" r="3"/><path d="M1 14c0-3 2-5 5-5s5 2 5 5"/><circle cx="12" cy="5" r="2"/><path d="M12 10c2 0 3 1 3 3"/></svg>
     <span class="nav-label"> Staff Roster</span>
   </div>
-  <div class="nav-item" data-view="notifications" onclick="showView('notifications',this)">
-    <svg class="nav-icon" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 16 16"><path d="M2 4h12v8a1 1 0 01-1 1H3a1 1 0 01-1-1V4z"/><path d="M2 4l6 5 6-5"/></svg>
-    <span class="nav-label"> Notifications</span>
-  </div>
   <div class="sidebar-toggle"><button class="sidebar-toggle-btn" onclick="toggleSidebar()" id="sidebar-toggle-btn">◀</button></div>
 </div>
 
@@ -858,7 +854,7 @@ body{font-family:var(--sans);background:var(--bg);color:var(--text);font-size:14
         <div class="help-h3">Active Alerts Panel</div>
         <p>Lists leases that need attention right now — expiring soon or approaching their renewal notice deadline. Color coded: <span class="help-pill" style="background:#FCEBEB;color:#A32D2D;">Red</span> = within 30 days (or expired), <span class="help-pill" style="background:#FAEEDA;color:#BA7517;">Amber</span> = 31–90 days. Sorted most urgent first.</p>
         <div class="help-h3">Upcoming Renewals Panel</div>
-        <p>Shows leases that have reached their internal Alert Month date but are not yet within 90 days of any hard deadline. These are leases where the leadership conversation about renewal or vacating should begin. When a lease advances into the 90-day window it moves to Active Alerts automatically.</p>
+        <p>Shows active leases with an expiration date between 91 and 180 days away — outside the immediate alert window but within the next 6 months. These are leases where the renewal conversation with leadership should be starting. Sorted by soonest expiring first. When a lease crosses into the 90-day window it moves to Active Alerts automatically.</p>
         <div class="help-h3">Soonest Expiring Panel</div>
         <p>A quick-reference list of the next leases to expire, sorted by expiration date.</p>
       </div>
@@ -989,7 +985,7 @@ body{font-family:var(--sans);background:var(--bg);color:var(--text);font-size:14
         <div class="help-h3">Alert Colors</div>
         <div class="help-field"><span class="help-field-name"><span class="help-pill" style="background:#FCEBEB;color:#A32D2D;">Red</span></span><span class="help-field-desc">Within 30 days of a deadline, or already expired. Requires immediate action.</span></div>
         <div class="help-field"><span class="help-field-name"><span class="help-pill" style="background:#FAEEDA;color:#BA7517;">Amber</span></span><span class="help-field-desc">31–90 days from a deadline. Action needed — negotiation or decision should be in progress.</span></div>
-        <div class="help-field"><span class="help-field-name"><span class="help-pill" style="background:#DEEAF8;color:#1256A4;">Blue</span></span><span class="help-field-desc">Alert Month has arrived but no hard deadlines are within 90 days yet. Shown on Dashboard "Upcoming Renewals" only — not on the Alerts page.</span></div>
+        <div class="help-field"><span class="help-field-name"><span class="help-pill" style="background:#DEEAF8;color:#1256A4;">Blue</span></span><span class="help-field-desc">Expiration is 91–180 days away. Shown on Dashboard "Upcoming Renewals" only — not on the Alerts page.</span></div>
         <div class="help-h3">Where Alerts Appear</div>
         <div class="help-field"><span class="help-field-name">Alerts Page</span><span class="help-field-desc">Red and Amber only. One card per location, all active alerts for that location grouped inside it. Sorted by most urgent first.</span></div>
         <div class="help-field"><span class="help-field-name">Dashboard — Active Alerts</span><span class="help-field-desc">Same as the Alerts page, showing the top 8 most urgent items.</span></div>
@@ -2077,29 +2073,25 @@ function renderDashboardAlerts(){
 function renderUpcomingRenewals(){
   const el=document.getElementById('dashboard-upcoming');
   if(!el) return;
-  // Leases where alert month has arrived but no active warn/danger alerts yet
+  // Leases expiring 91–180 days from today — past the alert window, within 6 months
   const upcoming=leases.filter(l=>{
     const ls=(l.leaseStatus===null||l.leaseStatus===undefined||l.leaseStatus===''||l.leaseStatus==='undefined')?'active':l.leaseStatus.toLowerCase();
     if(ls==='inactive') return false;
-    const rn=getDays(l.renewalNotifyDate);
-    if(rn===null||rn>0) return false; // alert month hasn't arrived
-    return getAlerts(l).length===0; // no active alerts
-  }).sort((a,b)=>{
-    const an=getDays(a.notifyDate)??99999;
-    const bn=getDays(b.notifyDate)??99999;
-    return an-bn;
-  });
+    if(!l.expiryDate||l.expiryDate==='Month to Month') return false;
+    const ex=getDays(l.expiryDate);
+    return ex!==null && ex>ALERT_WARN_DAYS && ex<=180;
+  }).sort((a,b)=>getDays(a.expiryDate)-getDays(b.expiryDate));
   if(!upcoming.length){
-    el.innerHTML='<div class="empty" style="padding:20px">No leases in planning stage</div>';
+    el.innerHTML='<div class="empty" style="padding:20px">No leases expiring in the next 6 months</div>';
     return;
   }
   el.innerHTML=upcoming.slice(0,6).map(l=>{
-    const no=getDays(l.notifyDate);
+    const ex=getDays(l.expiryDate);
     return`<div class="alert-row">
-      <span class="alert-pill pill-info">Renewal Planning</span>
+      <span class="alert-pill pill-info">Expiring Soon</span>
       <span style="font-weight:500">${l.location||l.city}, ${l.state}</span>
-      <span class="alert-date">${l.notifyDate?fmtDate(l.notifyDate):'—'}</span>
-      <span class="alert-days days-ok">${no!==null?no+'d to deadline':'—'}</span>
+      <span class="alert-date">${fmtDate(l.expiryDate)}</span>
+      <span class="alert-days days-ok">${ex}d away</span>
     </div>`;
   }).join('');
 }

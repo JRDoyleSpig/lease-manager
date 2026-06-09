@@ -1255,7 +1255,7 @@ body{font-family:var(--sans);background:var(--bg);color:var(--text);font-size:14
           <span class="help-step-num">10</span>
           <div><strong>Email — Monthly Rent Summary</strong> <span style="font-size:11px;background:var(--accent-light);color:var(--accent);padding:1px 7px;border-radius:10px;margin-left:4px;">App + Outlook</span><br>
           <strong>To:</strong> James Pace (JJ), Pam Jefferies &nbsp;|&nbsp; <strong>CC:</strong> Matt Thomas, Mary White &nbsp;|&nbsp; <strong>Subject:</strong> Monthly Rent - [Month Year]<br>
-          The app pre-fills the current and prior month totals from the reconciliation. Click <strong>Generate Narrative</strong> to draft the explanation — the app uses vendor change data, matched location names, and rent review notes to build the narrative. If an Anthropic API key is configured in Settings, Claude AI writes the draft; otherwise a structured template is generated. Edit the narrative as needed to explain credits, CAM reconciliations, or special circumstances. Click <strong>Copy Full Email</strong> to copy the complete assembled email including greeting, narrative, dollar totals, and sign-off. Paste into Outlook and send.</div>
+          The app pre-fills the current and prior month totals from the reconciliation. Click <strong>Generate Narrative</strong> to draft the explanation — the app uses vendor change data, matched location names, and rent review notes to build a structured narrative. Edit the narrative as needed to explain credits, CAM reconciliations, or special circumstances. Click <strong>Copy Full Email</strong> to copy the complete assembled email including greeting, narrative, dollar totals, and sign-off. Paste into Outlook and send.</div>
         </div>
 
         <div class="help-tip">💡 Navigate to Rent Review in the sidebar to run this process interactively with the app's built-in workflow tool.</div>
@@ -4176,21 +4176,6 @@ function fallbackCopy(text){
   document.body.removeChild(ta);
   const m=document.getElementById('email2-copy-msg');
   if(m){ m.style.display='block'; setTimeout(()=>m.style.display='none',2000); }
-}
-
-function saveAnthropicKey(){
-  const val=document.getElementById('anthropic-key-input').value.trim();
-  if(!val){ clearAnthropicKey(); return; }
-  localStorage.setItem('spig_anthropic_key',val);
-  const s=document.getElementById('anthropic-key-status');
-  if(s){ s.textContent='✓ Key saved'; setTimeout(()=>s.textContent='',2000); }
-}
-function clearAnthropicKey(){
-  localStorage.removeItem('spig_anthropic_key');
-  const inp=document.getElementById('anthropic-key-input');
-  if(inp) inp.value='';
-  const s=document.getElementById('anthropic-key-status');
-  if(s){ s.textContent='Key cleared'; setTimeout(()=>s.textContent='',2000); }
 }
 
 // ── HELP VIEW ─────────────────────────────────────────────────────────────────

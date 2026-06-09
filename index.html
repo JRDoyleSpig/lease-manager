@@ -2060,7 +2060,7 @@ function renderDashboardAlerts(){
     const tp={danger:0,warn:1};
     if(tp[a.type]!==tp[b.type]) return tp[a.type]-tp[b.type];
     return a.days-b.days;
-  }).slice(0,8);
+  });
   if(!all.length){el.innerHTML='<div class="empty">No active alerts</div>';return;}
   el.innerHTML=all.map(a=>`<div class="alert-row">
     <span class="alert-pill pill-${a.type}">${a.label}</span>
@@ -2085,7 +2085,7 @@ function renderUpcomingRenewals(){
     el.innerHTML='<div class="empty" style="padding:20px">No leases expiring in the next 6 months</div>';
     return;
   }
-  el.innerHTML=upcoming.slice(0,6).map(l=>{
+  el.innerHTML=upcoming.map(l=>{
     const ex=getDays(l.expiryDate);
     return`<div class="alert-row">
       <span class="alert-pill pill-info">Expiring Soon</span>

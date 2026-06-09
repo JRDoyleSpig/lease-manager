@@ -269,7 +269,6 @@ body{font-family:var(--sans);background:var(--bg);color:var(--text);font-size:14
   </div>
   <div class="topbar-actions">
     <button class="topbar-btn" onclick="exportCSV()">Export CSV</button>
-    <button class="topbar-btn" onclick="showView('notifications',document.querySelector('[data-view=notifications]'))">⚙ Settings</button>
     <button class="topbar-btn primary" onclick="openAddModal()">+ Add Lease</button>
   </div>
 </div>
@@ -421,12 +420,21 @@ body{font-family:var(--sans);background:var(--bg);color:var(--text);font-size:14
       </div>
       <div class="alerts-panel" id="dashboard-alerts"></div>
     </div>
-    <div>
-      <div class="section-header" style="margin-bottom:10px">
-        <span class="section-title">Soonest Expiring</span>
-        <button class="btn sm" onclick="showView('expiring',document.querySelector('[data-view=expiring]'))">View all</button>
+    <div style="display:flex;flex-direction:column;gap:16px">
+      <div>
+        <div class="section-header" style="margin-bottom:10px">
+          <span class="section-title">Upcoming Renewals</span>
+          <span style="font-size:11px;color:var(--muted)">Alert month reached — begin leadership discussion</span>
+        </div>
+        <div class="alerts-panel" id="dashboard-upcoming"></div>
       </div>
-      <div class="table-wrap" style="height:340px"><table class="lease-table" id="recent-table"></table></div>
+      <div>
+        <div class="section-header" style="margin-bottom:10px">
+          <span class="section-title">Soonest Expiring</span>
+          <button class="btn sm" onclick="showView('expiring',document.querySelector('[data-view=expiring]'))">View all</button>
+        </div>
+        <div class="table-wrap" style="height:220px"><table class="lease-table" id="recent-table"></table></div>
+      </div>
     </div>
   </div>
 </div>
@@ -481,9 +489,6 @@ body{font-family:var(--sans);background:var(--bg);color:var(--text);font-size:14
 <div id="view-alerts" class="hidden">
   <div class="section-header">
     <span class="section-title">Active Alerts</span>
-    <div class="section-actions">
-      <button class="btn primary" onclick="sendAlertEmail()">Send email digest via Outlook</button>
-    </div>
   </div>
   <div style="margin-top:12px" id="all-alerts-list"></div>
 </div>
@@ -735,36 +740,6 @@ body{font-family:var(--sans);background:var(--bg);color:var(--text);font-size:14
   </div>
 </div>
 
-<div id="view-notifications" class="hidden">
-  <div class="section-header" style="margin-bottom:12px">
-    <span class="section-title">Email Notification Settings</span>
-  </div>
-  <div class="notif-config">
-    <div class="form-group">
-      <label class="form-label">Your Outlook Email Address</label>
-      <input class="form-input" id="notif-email" placeholder="you@company.com" style="max-width:360px">
-    </div>
-    <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;max-width:500px">
-      <div class="form-group">
-        <label class="form-label">Review window (months before expiry)</label>
-        <input class="form-input" type="number" id="notif-review" value="6" min="1" max="12">
-      </div>
-      <div class="form-group">
-        <label class="form-label">Alert window (days before key dates)</label>
-        <input class="form-input" type="number" id="notif-pre" value="90" min="7" max="365">
-      </div>
-    </div>
-    <div class="form-section">Alert Triggers</div>
-    <div id="notif-toggles"></div>
-    <div class="info-box">
-      <strong>How Outlook email works:</strong> Click "Send email digest via Outlook" on the Alerts page. It opens a pre-composed email in Outlook with all active alerts ready to send to yourself. For automatic <em>daily</em> emails, save this file to a shared drive and ask your IT team to set up a Windows Scheduled Task that opens it each morning — it will auto-check alerts on load.
-    </div>
-    <div style="display:flex;gap:8px;padding-top:4px">
-      <button class="btn primary" onclick="saveNotifSettings()">Save settings</button>
-      <button class="btn" onclick="exportCSV()">Export all data as CSV</button>
-    </div>
-  </div>
-</div>
 
 <div id="view-map" class="hidden">
   <div class="section-header" style="margin-bottom:12px">
@@ -863,7 +838,6 @@ body{font-family:var(--sans);background:var(--bg);color:var(--text);font-size:14
         <div class="help-field"><span class="help-field-name">Help & Training</span><span class="help-field-desc">This manual. Full reference guide for the app and the complete monthly rent review SOP.</span></div>
         <div class="help-h3">Settings</div>
         <div class="help-field"><span class="help-field-name">Staff Roster</span><span class="help-field-desc">Manage the list of Directors, ROMs, and AIMs used in lease assignments. Stored in browser local storage — re-enter if you switch computers or clear browser data.</span></div>
-        <div class="help-field"><span class="help-field-name">Notifications</span><span class="help-field-desc">Configure alert thresholds and notification email address. Also contains the optional Anthropic API key setting — if entered, the Monthly Rent Summary email (Step 10) uses Claude AI to generate the narrative draft instead of a template.</span></div>
       </div>
     </div>
 
@@ -882,7 +856,9 @@ body{font-family:var(--sans);background:var(--bg);color:var(--text);font-size:14
         <div class="help-field"><span class="help-field-name">Avg Rent/SF</span><span class="help-field-desc">Average base rent per square foot across all active locations with square footage data.</span></div>
         <div class="help-field"><span class="help-field-name">Total SF</span><span class="help-field-desc">Total combined square footage across all active locations.</span></div>
         <div class="help-h3">Active Alerts Panel</div>
-        <p>Lists leases that need attention — either expiring soon or approaching their renewal notice deadline. Color coded: <span class="help-pill" style="background:#FCEBEB;color:#A32D2D;">Red</span> = expired or &lt;30 days, <span class="help-pill" style="background:#FAEEDA;color:#BA7517;">Amber</span> = 30–90 days, <span class="help-pill" style="background:#DEEAF8;color:#1256A4;">Blue</span> = 90+ days.</p>
+        <p>Lists leases that need attention right now — expiring soon or approaching their renewal notice deadline. Color coded: <span class="help-pill" style="background:#FCEBEB;color:#A32D2D;">Red</span> = within 30 days (or expired), <span class="help-pill" style="background:#FAEEDA;color:#BA7517;">Amber</span> = 31–90 days. Sorted most urgent first.</p>
+        <div class="help-h3">Upcoming Renewals Panel</div>
+        <p>Shows leases that have reached their internal Alert Month date but are not yet within 90 days of any hard deadline. These are leases where the leadership conversation about renewal or vacating should begin. When a lease advances into the 90-day window it moves to Active Alerts automatically.</p>
         <div class="help-h3">Soonest Expiring Panel</div>
         <p>A quick-reference list of the next leases to expire, sorted by expiration date.</p>
       </div>
@@ -1005,15 +981,20 @@ body{font-family:var(--sans);background:var(--bg);color:var(--text);font-size:14
         <span>🔔 Alerts & Expiration Tracking</span><span class="help-chevron">▶</span>
       </div>
       <div class="help-section-body">
-        <p>The app tracks two critical dates per lease and generates alerts based on how close those dates are.</p>
-        <div class="help-h3">What Triggers an Alert</div>
-        <div class="help-field"><span class="help-field-name">Expiration Date</span><span class="help-field-desc">An alert fires when a lease is within 90 days of its expiration date.</span></div>
-        <div class="help-field"><span class="help-field-name">Renewal Notice</span><span class="help-field-desc">An alert fires when the renewal notice deadline is approaching. Missing this date can mean losing your renewal right or triggering an automatic renewal at unfavorable terms.</span></div>
+        <p>The app tracks three key dates per lease that cascade in urgency. Think of them as three stages of the same renewal event.</p>
+        <div class="help-h3">The Three Dates</div>
+        <div class="help-field"><span class="help-field-name">Alert Month (Internal)</span><span class="help-field-desc">Auto-calculated as the 20th of the month prior to the Renewal Notice Deadline. When this date arrives, the lease appears in the Dashboard "Upcoming Renewals" panel — your signal to begin the leadership conversation about renewing or vacating.</span></div>
+        <div class="help-field"><span class="help-field-name">Renewal Notice Deadline</span><span class="help-field-desc">The date by which notice must be given to the landlord. When within 90 days, the lease moves to the Active Alerts page. Missing this date can mean losing your renewal right or triggering an automatic renewal at unfavorable terms.</span></div>
+        <div class="help-field"><span class="help-field-name">Lease Expiration</span><span class="help-field-desc">The date the current lease term ends. Alerts fire when within 90 days of expiration.</span></div>
         <div class="help-h3">Alert Colors</div>
-        <div class="help-field"><span class="help-field-name"><span class="help-pill" style="background:#FCEBEB;color:#A32D2D;">Red</span></span><span class="help-field-desc">Expired or fewer than 30 days remaining. Requires immediate action.</span></div>
-        <div class="help-field"><span class="help-field-name"><span class="help-pill" style="background:#FAEEDA;color:#BA7517;">Amber</span></span><span class="help-field-desc">30–90 days remaining. Renewal discussion should be in progress.</span></div>
-        <div class="help-field"><span class="help-field-name"><span class="help-pill" style="background:#DEEAF8;color:#1256A4;">Blue</span></span><span class="help-field-desc">More than 90 days remaining. On radar but not yet urgent.</span></div>
-        <div class="help-tip">💡 The red badge on the Alerts sidebar item shows the total number of leases currently requiring attention.</div>
+        <div class="help-field"><span class="help-field-name"><span class="help-pill" style="background:#FCEBEB;color:#A32D2D;">Red</span></span><span class="help-field-desc">Within 30 days of a deadline, or already expired. Requires immediate action.</span></div>
+        <div class="help-field"><span class="help-field-name"><span class="help-pill" style="background:#FAEEDA;color:#BA7517;">Amber</span></span><span class="help-field-desc">31–90 days from a deadline. Action needed — negotiation or decision should be in progress.</span></div>
+        <div class="help-field"><span class="help-field-name"><span class="help-pill" style="background:#DEEAF8;color:#1256A4;">Blue</span></span><span class="help-field-desc">Alert Month has arrived but no hard deadlines are within 90 days yet. Shown on Dashboard "Upcoming Renewals" only — not on the Alerts page.</span></div>
+        <div class="help-h3">Where Alerts Appear</div>
+        <div class="help-field"><span class="help-field-name">Alerts Page</span><span class="help-field-desc">Red and Amber only. One card per location, all active alerts for that location grouped inside it. Sorted by most urgent first.</span></div>
+        <div class="help-field"><span class="help-field-name">Dashboard — Active Alerts</span><span class="help-field-desc">Same as the Alerts page, showing the top 8 most urgent items.</span></div>
+        <div class="help-field"><span class="help-field-name">Dashboard — Upcoming Renewals</span><span class="help-field-desc">Blue stage only — Alert Month has arrived, no red or amber alerts yet.</span></div>
+        <div class="help-tip">💡 The red badge on the Alerts sidebar item shows the total count of active red and amber alerts across all locations.</div>
       </div>
     </div>
 
@@ -1651,7 +1632,9 @@ document.addEventListener('click',e=>{
   if(p&&p.classList.contains('open')&&!p.contains(e.target)&&!e.target.classList.contains('col-toggle-btn'))
     p.classList.remove('open');
 });
-let notifSettings = {email:'',reviewMonths:6,preDays:90,triggers:{leaseExpiry:true,notifyLandlord:true,rentIncrease:true,renewal:true}};
+// Alert thresholds (hardcoded)
+const ALERT_DANGER_DAYS = 30;
+const ALERT_WARN_DAYS = 90;
 
 // SHAREPOINT + MSAL
 const MSAL_CFG = { auth: { clientId: "d456144c-56d3-469b-8847-4d68d5263562", authority: "https://login.microsoftonline.com/bab151e3-6d5a-4c92-aaaa-fdbb501a398f", redirectUri: window.location.origin + window.location.pathname }, cache: { cacheLocation: "sessionStorage" } };
@@ -1857,7 +1840,6 @@ async function loadData() {
     } else {
       leases = all.map(spToLease);
     }
-    try{ const nk=["lm_notif","lm_notif_v2"]; for(const k of nk){const n=localStorage.getItem(k);if(n){Object.assign(notifSettings,JSON.parse(n));break;}} }catch(e){}
     renderAll();
     // One-time cleanup: fix any records with literal "undefined" in staff fields
     cleanUndefinedStaffFields(token);
@@ -1868,7 +1850,7 @@ async function loadData() {
 }
 
 function saveData() {
-  try{localStorage.setItem("lm_notif",JSON.stringify(notifSettings));}catch(e){}
+  // Reserved for future persistent settings
 }
 
 async function cleanUndefinedStaffFields(token) {
@@ -2017,30 +1999,26 @@ function thSortC(col,label){
 }
 
 function getStatus(l){
-  if(l.expiryDate==='Month to Month')return'mtm';
-  const ex=getDays(l.expiryDate),no=getDays(l.notifyDate),rd=notifSettings.reviewMonths*30,pd=notifSettings.preDays;
-  if((ex!==null&&ex>=0&&ex<=90)||(no!==null&&no>=0&&no<=30))return'critical';
-  if((ex!==null&&ex>=0&&ex<=rd)||(no!==null&&no>=0&&no<=pd))return'warning';
-  if(ex!==null&&ex<0)return'expired';
-  return'ok';
+  if(l.expiryDate==='Month to Month') return 'mtm';
+  const ex=getDays(l.expiryDate), no=getDays(l.notifyDate), rn=getDays(l.renewalNotifyDate);
+  // Critical: expired OR within 30 days of expiry/notice
+  if((ex!==null&&ex<=ALERT_DANGER_DAYS)||(no!==null&&no>=0&&no<=ALERT_DANGER_DAYS)) return 'critical';
+  // Warning: within 90 days of expiry/notice, OR alert month has arrived
+  if((ex!==null&&ex>ALERT_DANGER_DAYS&&ex<=ALERT_WARN_DAYS)||(no!==null&&no>ALERT_DANGER_DAYS&&no<=ALERT_WARN_DAYS)||(rn!==null&&rn<=0)) return 'warning';
+  return 'ok';
 }
 
 function getAlerts(l){
   const ls = (l.leaseStatus===null||l.leaseStatus===undefined||l.leaseStatus===''||l.leaseStatus==='undefined') ? 'active' : l.leaseStatus.toLowerCase();
   if(ls==='inactive') return [];
-  const a=[],pd=notifSettings.preDays,rd=notifSettings.reviewMonths*30;
-  const ex=getDays(l.expiryDate),no=getDays(l.notifyDate),ri=getDays(l.rentIncDate),rn=getDays(l.renewalNotifyDate);
-  if(notifSettings.triggers.leaseExpiry&&ex!==null&&ex>=0&&ex<=rd)
-    a.push({type:ex<=30?'danger':ex<=90?'warn':'info',label:'Lease Expiry',date:l.expiryDate,days:ex});
-  if(notifSettings.triggers.notifyLandlord&&no!==null&&no>=0&&no<=pd)
-    a.push({type:no<=14?'danger':'warn',label:'Notify Landlord',date:l.notifyDate,days:no});
-  if(notifSettings.triggers.rentIncrease&&ri!==null&&ri>=0&&ri<=pd)
-    a.push({type:ri<=30?'warn':'info',label:'Base Rent Increase',date:l.rentIncDate,days:ri});
-  const oi=getDays(l.opexIncDate);
-  if(notifSettings.triggers.rentIncrease&&oi!==null&&oi>=0&&oi<=pd)
-    a.push({type:oi<=30?'warn':'info',label:'OpEx Increase',date:l.opexIncDate,days:oi});
-  if(notifSettings.triggers.renewal&&rn!==null&&rn>=0&&rn<=pd)
-    a.push({type:rn<=30?'warn':'info',label:'Renewal Notify',date:l.renewalNotifyDate,days:rn});
+  const a=[];
+  const ex=getDays(l.expiryDate), no=getDays(l.notifyDate);
+  // Lease expiration: alert if within 90 days OR already expired
+  if(ex!==null && ex<=ALERT_WARN_DAYS)
+    a.push({type:ex<=ALERT_DANGER_DAYS?'danger':'warn', label:'Lease Expiry', date:l.expiryDate, days:ex});
+  // Notice to landlord deadline: alert if within 90 days (upcoming only)
+  if(no!==null && no>=0 && no<=ALERT_WARN_DAYS)
+    a.push({type:no<=ALERT_DANGER_DAYS?'danger':'warn', label:'Notice Deadline', date:l.notifyDate, days:no});
   return a;
 }
 
@@ -2074,22 +2052,56 @@ function renderStats(){
     <div class="stat-card"><div class="stat-label">Monthly Base Rent</div>${baseRows}</div>
     <div class="stat-card"><div class="stat-label">Monthly CAM / OpEx</div>${camRows}</div>
     <div class="stat-card accent"><div class="stat-label">Monthly Total Rent</div>${totRows}</div>`;
-  const allA=leases.flatMap(l=>getAlerts(l).map(a=>({...a,lease:l})));
+  const allA=leases.flatMap(l=>getAlerts(l));
   const badge=document.getElementById('alert-badge');
   badge.textContent=allA.length;
-  badge.className='nav-badge'+(allA.some(a=>a.type==='danger')?'':' warn');
+  badge.className='nav-badge'+(allA.length===0||allA.every(a=>a.type==='warn')?' warn':'');
 }
 
 function renderDashboardAlerts(){
   const el=document.getElementById('dashboard-alerts');
-  const all=leases.flatMap(l=>getAlerts(l).map(a=>({...a,lease:l}))).sort((a,b)=>a.days-b.days).slice(0,8);
+  const all=leases.flatMap(l=>getAlerts(l).map(a=>({...a,lease:l}))).sort((a,b)=>{
+    const tp={danger:0,warn:1};
+    if(tp[a.type]!==tp[b.type]) return tp[a.type]-tp[b.type];
+    return a.days-b.days;
+  }).slice(0,8);
   if(!all.length){el.innerHTML='<div class="empty">No active alerts</div>';return;}
   el.innerHTML=all.map(a=>`<div class="alert-row">
     <span class="alert-pill pill-${a.type}">${a.label}</span>
     <span>${a.lease.location||a.lease.city}, ${a.lease.state}</span>
     <span class="alert-date">${fmtDate(a.date)}</span>
-    <span class="alert-days ${a.days<=30?'days-red':a.days<=60?'days-warn':'days-ok'}">${a.days}d</span>
+    <span class="alert-days ${a.days<=ALERT_DANGER_DAYS?'days-red':'days-warn'}">${a.days>=0?a.days+'d':Math.abs(a.days)+'d OD'}</span>
   </div>`).join('');
+}
+
+function renderUpcomingRenewals(){
+  const el=document.getElementById('dashboard-upcoming');
+  if(!el) return;
+  // Leases where alert month has arrived but no active warn/danger alerts yet
+  const upcoming=leases.filter(l=>{
+    const ls=(l.leaseStatus===null||l.leaseStatus===undefined||l.leaseStatus===''||l.leaseStatus==='undefined')?'active':l.leaseStatus.toLowerCase();
+    if(ls==='inactive') return false;
+    const rn=getDays(l.renewalNotifyDate);
+    if(rn===null||rn>0) return false; // alert month hasn't arrived
+    return getAlerts(l).length===0; // no active alerts
+  }).sort((a,b)=>{
+    const an=getDays(a.notifyDate)??99999;
+    const bn=getDays(b.notifyDate)??99999;
+    return an-bn;
+  });
+  if(!upcoming.length){
+    el.innerHTML='<div class="empty" style="padding:20px">No leases in planning stage</div>';
+    return;
+  }
+  el.innerHTML=upcoming.slice(0,6).map(l=>{
+    const no=getDays(l.notifyDate);
+    return`<div class="alert-row">
+      <span class="alert-pill pill-info">Renewal Planning</span>
+      <span style="font-weight:500">${l.location||l.city}, ${l.state}</span>
+      <span class="alert-date">${l.notifyDate?fmtDate(l.notifyDate):'—'}</span>
+      <span class="alert-days days-ok">${no!==null?no+'d to deadline':'—'}</span>
+    </div>`;
+  }).join('');
 }
 
 function renderRecentTable(){
@@ -2233,11 +2245,26 @@ function renderLeaseTable(){
 
 function renderAllAlerts(){
   const el=document.getElementById('all-alerts-list');
-  const all=leases.flatMap(l=>getAlerts(l).map(a=>({...a,lease:l}))).sort((a,b)=>a.days-b.days);
+  const all=leases.flatMap(l=>getAlerts(l).map(a=>({...a,lease:l})));
   if(!all.length){el.innerHTML='<div class="alerts-panel"><div class="empty">No active alerts — all clear!</div></div>';return;}
+  // Group by lease
   const byLease={};
   all.forEach(a=>{const k=a.lease.id;if(!byLease[k])byLease[k]=[];byLease[k].push(a);});
-  el.innerHTML=Object.entries(byLease).map(([id,alerts])=>{
+  // Sort alerts within each card: danger first, then by days ascending
+  const typePriority={danger:0,warn:1};
+  Object.values(byLease).forEach(alerts=>{
+    alerts.sort((a,b)=>{
+      if(typePriority[a.type]!==typePriority[b.type]) return typePriority[a.type]-typePriority[b.type];
+      return a.days-b.days;
+    });
+  });
+  // Sort cards: most urgent first (danger before warn, then closest days)
+  const sorted=Object.entries(byLease).sort(([,alertsA],[,alertsB])=>{
+    const topA=alertsA[0], topB=alertsB[0];
+    if(typePriority[topA.type]!==typePriority[topB.type]) return typePriority[topA.type]-typePriority[topB.type];
+    return topA.days-topB.days;
+  });
+  el.innerHTML=sorted.map(([id,alerts])=>{
     const l=alerts[0].lease;
     return`<div class="alerts-panel" style="margin-bottom:12px">
       <div class="alerts-header">
@@ -2246,9 +2273,9 @@ function renderAllAlerts(){
       </div>
       ${alerts.map(a=>`<div class="alert-row">
         <span class="alert-pill pill-${a.type}">${a.label}</span>
-        <span>${a.type==='danger'?'Immediate action required':a.type==='warn'?'Action needed soon':'Plan ahead'}</span>
+        <span>${a.type==='danger'?'Immediate action required':'Action needed soon'}</span>
         <span class="alert-date">${fmtDate(a.date)}</span>
-        <span class="alert-days ${a.days<=30?'days-red':a.days<=60?'days-warn':'days-ok'}">${a.days} days away</span>
+        <span class="alert-days ${a.days<=ALERT_DANGER_DAYS?'days-red':'days-warn'}">${a.days>=0?a.days+' days away':Math.abs(a.days)+' days overdue'}</span>
       </div>`).join('')}
       ${l.notes?`<div style="padding:8px 16px;font-size:11px;color:var(--muted);border-top:1px solid var(--border)">Note: ${l.notes}</div>`:''}
     </div>`;
@@ -2289,88 +2316,6 @@ function renderExpiryView(){
       </table></div>
     </div>`;
   }).join('');
-}
-
-function renderNotifSettings(){
-  document.getElementById('notif-email').value=notifSettings.email||'';
-  document.getElementById('notif-review').value=notifSettings.reviewMonths;
-  document.getElementById('notif-pre').value=notifSettings.preDays;
-  const labs={leaseExpiry:{l:'Lease expiration alerts',s:'Alert as lease expiry approaches review window'},notifyLandlord:{l:'Notify landlord deadline',s:'Alert before landlord notification due date'},rentIncrease:{l:'Rent increase dates',s:'Alert before base rent increases'},renewal:{l:'Renewal notification dates',s:'Alert before renewal option deadlines'}};
-  document.getElementById('notif-toggles').innerHTML=Object.entries(labs).map(([k,v])=>`
-    <div class="notif-row">
-      <div><div class="notif-label">${v.l}</div><div class="notif-sub">${v.s}</div></div>
-      <label class="toggle"><input type="checkbox" ${notifSettings.triggers[k]?'checked':''} onchange="notifSettings.triggers['${k}']=this.checked"><span class="toggle-slider"></span></label>
-    </div>`).join('');
-}
-
-// ── ACTIONS ──────────────────────────────────────────────────────────────────
-function saveNotifSettings(){
-  notifSettings.email=document.getElementById('notif-email').value;
-  notifSettings.reviewMonths=parseInt(document.getElementById('notif-review').value)||6;
-  notifSettings.preDays=parseInt(document.getElementById('notif-pre').value)||90;
-  saveData(); renderAll();
-  const b=event.target; b.textContent='Saved!'; setTimeout(()=>b.textContent='Save settings',1800);
-}
-
-function sendAlertEmail(){
-  const email=notifSettings.email;
-  if(!email){alert('Please set your email address in Notification Settings first.');return;}
-  const all=leases.flatMap(l=>getAlerts(l).map(a=>({...a,lease:l}))).sort((a,b)=>a.days-b.days);
-  if(!all.length){alert('No active alerts to send!');return;}
-
-  // Build CC list from Director + ROM emails on affected leases
-  const ccEmails=[];
-  all.forEach(a=>{
-    if(a.lease.directorEmail&&!ccEmails.includes(a.lease.directorEmail))ccEmails.push(a.lease.directorEmail);
-    if(a.lease.romEmail&&!ccEmails.includes(a.lease.romEmail))ccEmails.push(a.lease.romEmail);
-  });
-
-  // Group alerts by lease for cleaner email
-  const byLease={};
-  all.forEach(a=>{const k=a.lease.id;if(!byLease[k])byLease[k]=[];byLease[k].push(a);});
-
-  const subj=`Lease Manager — ${all.length} Action Item(s) — ${new Date().toLocaleDateString()}`;
-
-  let body='LEASE MANAGER — ACTION REQUIRED\n'+'='.repeat(65)+'\n';
-  body+='Generated: '+new Date().toLocaleString()+'\n';
-  body+='Total alerts: '+all.length+'\n';
-  body+='='.repeat(65)+'\n\n';
-
-  Object.values(byLease).forEach(alerts=>{
-    const l=alerts[0].lease;
-    body+='LOCATION: '+(l.location||l.city)+', '+l.state+(l.locNum?' (WR #'+l.locNum+')':'')+'\n';
-    body+='-'.repeat(55)+'\n';
-    body+='Address:         '+(l.address||'N/A')+', '+(l.city||'')+', '+(l.state||'')+' '+(l.zip||'')+'\n';
-    body+='Landlord:        '+(l.landlord||'N/A')+'\n';
-    if(l.director) body+='Director:        '+l.director+(l.directorEmail?' <'+l.directorEmail+'>':'')+'\n';
-    if(l.rom)      body+='ROM:             '+l.rom+(l.romEmail?' <'+l.romEmail+'>':'')+'\n';
-    body+='\n';
-    body+='--- LEASE DETAILS ---\n';
-    if(l.sqft)       body+='Square Footage:  '+Number(l.sqft).toLocaleString()+' SF\n';
-    if(l.baseRent)   body+='Base Rent:       $'+Number(l.baseRent).toLocaleString()+'/mo';
-    if(l.sqft&&l.baseRent) body+='  ($'+(l.baseRent*12/l.sqft).toFixed(2)+'/SF/yr)';
-    if(l.baseRent)   body+='\n';
-    if(l.cam)        body+='CAM / OpEx:      $'+Number(l.cam).toLocaleString()+'/mo';
-    if(l.sqft&&l.cam) body+='  ($'+(l.cam*12/l.sqft).toFixed(2)+'/SF/yr)';
-    if(l.cam)        body+='\n';
-    if(l.expiryDate) body+='Lease Expires:   '+fmtDate(l.expiryDate)+'\n';
-    if(l.notifyDate) body+='Notify Landlord: '+fmtDate(l.notifyDate)+'\n';
-    if(l.renewal)    body+='Renewal Option:  '+l.renewal+'\n';
-    if(l.rentIncDate)body+='Rent Increase:   '+fmtDate(l.rentIncDate)+(l.rentIncAmount?' → $'+l.rentIncAmount+'/mo':'')+'\n';
-    if(l.notes)      body+='Notes:           '+l.notes+'\n';
-    body+='\n--- ALERTS ---\n';
-    alerts.forEach(a=>{
-      const urgency=a.type==='danger'?'*** URGENT ***':a.type==='warn'?'** ACTION NEEDED **':'* UPCOMING *';
-      body+=urgency+' '+a.label.toUpperCase()+': '+fmtDate(a.date)+' ('+a.days+' days away)\n';
-    });
-    body+='\n'+'='.repeat(65)+'\n\n';
-  });
-
-  body+='This notification was generated by Lease Manager.\n';
-  body+='Reply to this email or log into Lease Manager to update records.';
-
-  const ccParam=ccEmails.length?'&cc='+encodeURIComponent(ccEmails.join(',')):'';
-  window.location.href=`mailto:${email}?subject=${encodeURIComponent(subj)}${ccParam}&body=${encodeURIComponent(body)}`;
 }
 
 function exportCSV(){
@@ -2655,13 +2600,12 @@ function renderStatusTable(status){
 }
 
 function showView(name, el){
-  ['dashboard','leases','active','inactive','alerts','expiring','map','help','staff','notifications','company','rentreview'].forEach(v=>{
+  ['dashboard','leases','active','inactive','alerts','expiring','map','help','staff','company','rentreview'].forEach(v=>{
     const el2=document.getElementById('view-'+v);
     if(el2) el2.classList.toggle('hidden',v!==name);
   });
   document.querySelectorAll('.nav-item').forEach(n=>n.classList.remove('active'));
   if(el)el.classList.add('active');
-  if(name==='notifications')renderNotifSettings();
   if(name==='staff'){renderStaffView();}
   if(name==='alerts')renderAllAlerts();
   if(name==='leases')renderLeaseTable();
@@ -2673,7 +2617,7 @@ function showView(name, el){
 }
 
 function renderAll(){
-  renderStats(); renderDashboardAlerts(); renderRecentTable();
+  renderStats(); renderDashboardAlerts(); renderUpcomingRenewals(); renderRecentTable();
   const lv=document.getElementById('view-leases'); if(lv&&!lv.classList.contains('hidden'))renderLeaseTable();
   const av=document.getElementById('view-alerts'); if(av&&!av.classList.contains('hidden'))renderAllAlerts();
   const ev=document.getElementById('view-expiring'); if(ev&&!ev.classList.contains('hidden'))renderExpiryView();

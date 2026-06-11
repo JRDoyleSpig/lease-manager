@@ -2168,7 +2168,7 @@ function renderStats(){
   const totRows  = companies.map(co=>`<div style="display:flex;justify-content:space-between;font-size:11px;padding:2px 0"><span style="color:var(--muted)">${labels[co]}</span><span style="font-family:var(--mono);font-weight:500">${fmt(companyRent(co,'baseRent')+companyRent(co,'cam'))}</span></div>`).join('');
 
   document.getElementById('stats-row').innerHTML=`
-    <div class="stat-card"><div class="stat-label">Total Locations</div><div class="stat-value">${leases.length}</div><div class="stat-sub">${spigCount} SPIG · ${pftCount} PF&T · ${erxCount} ERX</div></div>
+    <div class="stat-card"><div class="stat-label">Total Locations</div><div class="stat-value">${activeLeases.length}</div><div class="stat-sub">${spigCount} SPIG · ${pftCount} PF&T · ${erxCount} ERX</div></div>
     <div class="stat-card danger"><div class="stat-label">Critical</div><div class="stat-value">${crit}</div><div class="stat-sub">Need immediate action</div></div>
     <div class="stat-card warn"><div class="stat-label">Upcoming</div><div class="stat-value">${warn}</div><div class="stat-sub">In review window</div></div>
     <div class="stat-card"><div class="stat-label">Monthly Base Rent</div>${baseRows}</div>
@@ -4195,6 +4195,8 @@ function toggleHelpSection(header){
 // Pre-seeded coordinates for existing locations (keyed by address string)
 // New locations will be geocoded automatically via Census Bureau API
 const MAP_SEED_CACHE = {
+  "12821 indian hills road|amarillo|tx|79124":{"lat":35.256,"lng":-101.756},
+  "14221-b willard road, suite 300|chantilly|va|20151":{"lat":38.891,"lng":-77.452},
   "3240 clinton street|west seneca|ny|14224":{"lat": 42.845, "lng": -78.737},
   "2116 picadilly drive|round rock|tx|78664":{"lat": 30.508, "lng": -97.679},
   "1715 granby street suite d|roanoke|va|24012":{"lat": 37.271, "lng": -79.941},
@@ -4313,21 +4315,10 @@ function getLeaseStatus(l){
 }
 
 async function geocodeAddress(l){
-  const params=new URLSearchParams({
-    street:l.address||'', city:l.city||'', state:l.state||'',
-    zip:String(l.zip||''), benchmark:'Public_AR_Current', format:'json'
-  });
-  try{
-    const r=await fetch('https://geocoding.geo.census.gov/geocoder/locations/address?'+params);
-    if(!r.ok) throw new Error('HTTP '+r.status);
-    const d=await r.json();
-    const m=d?.result?.addressMatches;
-    if(m&&m.length>0) return {lat:m[0].coordinates.y, lng:m[0].coordinates.x};
-  } catch(e){}
-  // Fallback: Nominatim
   try{
     const q=encodeURIComponent([l.address,l.city,l.state,l.zip].filter(Boolean).join(', '));
     const r=await fetch('https://nominatim.openstreetmap.org/search?q='+q+'&format=json&limit=1&countrycodes=us');
+    if(!r.ok) throw new Error('HTTP '+r.status);
     const d=await r.json();
     if(d&&d[0]) return {lat:parseFloat(d[0].lat),lng:parseFloat(d[0].lon)};
   } catch(e){}

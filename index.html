@@ -2168,7 +2168,7 @@ function renderStats(){
   const totRows  = companies.map(co=>`<div style="display:flex;justify-content:space-between;font-size:11px;padding:2px 0"><span style="color:var(--muted)">${labels[co]}</span><span style="font-family:var(--mono);font-weight:500">${fmt(companyRent(co,'baseRent')+companyRent(co,'cam'))}</span></div>`).join('');
 
   const titleEl = document.getElementById('topbar-location-count');
-  if(titleEl) titleEl.textContent = `Lease Manager — ${leases.length} Locations`;
+  if(titleEl) titleEl.textContent = `Lease Manager — ${activeLeases.length} Locations`;
 
   document.getElementById('stats-row').innerHTML=`
     <div class="stat-card"><div class="stat-label">Total Locations</div><div class="stat-value">${leases.length}</div><div class="stat-sub">${spigCount} SPIG · ${pftCount} PF&T · ${erxCount} ERX</div></div>

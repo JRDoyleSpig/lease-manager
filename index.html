@@ -2575,7 +2575,13 @@ function saveLease(){
   }
   const saved = editingId ? leases.find(x=>x.id===editingId) : leases[leases.length-1];
   saveData();
-  spSaveLease(saved).then(()=>{ renderAll(); updateEditControls(); });
+  spSaveLease(saved).then(()=>{ 
+    renderAll(); 
+    updateEditControls(); 
+    if(document.getElementById('view-map') && !document.getElementById('view-map').classList.contains('hidden')){
+      initMapView();
+    }
+  });
   closeModal();
 }
 
@@ -4398,9 +4404,13 @@ async function initMapView(){
         const l=toGeocode[i];
         if(countEl) countEl.textContent=i+1;
         const coords=await geocodeAddress(l);
+        const alertEntry={key:addrKey(l),location:l.location||'',address:l.address||'',city:l.city||'',state:l.state||''};
         if(coords){
           cache[addrKey(l)]=coords;
-          newlyGeocoded.push({key:addrKey(l),location:l.location||'',address:l.address||'',city:l.city||'',state:l.state||''});
+          newlyGeocoded.push(alertEntry);
+        } else {
+          alertEntry.failed=true;
+          newlyGeocoded.push(alertEntry);
         }
         await new Promise(r=>setTimeout(r,300));
       }
@@ -4491,7 +4501,9 @@ function updateGeocodeAlertBanner(){
     list.innerHTML=alerts.map(a=>
       '<div style="padding:5px 0;border-bottom:1px solid var(--border-light);display:flex;justify-content:space-between;align-items:center;">'+
       '<div><div style="font-weight:500;color:var(--text);">'+(a.location||'Unknown')+'</div>'+
-      '<div style="color:var(--muted);font-size:11px;">'+(a.address?a.address+', ':'')+a.city+', '+a.state+'</div></div>'+
+      '<div style="color:var(--muted);font-size:11px;">'+(a.address?a.address+', ':'')+a.city+', '+a.state+'</div>'+
+      '<div style="font-size:10px;color:var(--warn);margin-top:2px;">'+(a.failed?'Could not geocode — check address spelling':'May be city-level only')+'</div>'+
+      '</div>'+
       '<button onclick="dismissGeocodeAlert(\''+a.key+'\')" style="font-size:11px;padding:2px 8px;margin-left:8px;" class="btn sm">Dismiss</button>'+
       '</div>'
     ).join('');

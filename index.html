@@ -880,6 +880,21 @@ body{font-family:var(--sans);background:var(--bg);color:var(--text);font-size:14
   </div>
 
   <div id="geocode-error" style="display:none;background:var(--warn-light);color:var(--warn);border:1px solid var(--border);border-radius:8px;padding:10px 14px;margin-bottom:12px;font-size:13px;"></div>
+
+  <div id="geocode-alert-banner" style="display:none;background:var(--warn-light);border:1px solid var(--warn);border-radius:8px;margin-bottom:10px;overflow:hidden;">
+    <div style="display:flex;align-items:center;justify-content:space-between;padding:9px 14px;cursor:pointer;" onclick="toggleGeocodeAlertPanel()">
+      <div style="display:flex;align-items:center;gap:8px;font-size:13px;color:var(--warn);font-weight:500;">
+        <span>⚠</span>
+        <span id="geocode-alert-msg">1 location may not have geocoded accurately</span>
+      </div>
+      <span id="geocode-alert-toggle" style="font-size:12px;color:var(--warn);text-decoration:underline;white-space:nowrap;">Review</span>
+    </div>
+    <div id="geocode-alert-panel" style="display:none;border-top:1px solid var(--warn);padding:10px 14px;background:var(--warn-light);">
+      <div style="font-size:11px;color:var(--warn);margin-bottom:8px;">These locations were geocoded automatically but may have landed at city center. Look up each address on Google Maps and send the coordinates to update the seed cache.</div>
+      <div id="geocode-alert-list" style="font-size:12px;"></div>
+    </div>
+  </div>
+
   <div id="lease-map" style="height:calc(100vh - 220px);min-height:400px;border-radius:var(--radius);border:1px solid var(--border);z-index:1;"></div>
   <div style="margin-top:8px;display:flex;gap:16px;font-size:11px;color:var(--muted)">
     <span><span style="display:inline-block;width:10px;height:10px;border-radius:50%;background:#1256A4;margin-right:4px;"></span>SPIG</span>
@@ -4291,6 +4306,7 @@ let mapCurrentStatus = 'active';
 const MAP_COMPANY_COLORS = { spig:'#1256A4', pft:'#1D9E75', erx:'#BA7517' };
 const MAP_COMPANY_LABELS = { spig:'SPIG', pft:'PFT', erx:'ERX' };
 const GEOCODE_CACHE_KEY = 'spig_geocode_v2';
+const GEOCODE_ALERT_KEY = 'spig_geocode_alerts';
 
 function addrKey(l){
   return [(l.address||'').trim().toLowerCase(),(l.city||'').trim().toLowerCase(),(l.state||'').trim().toLowerCase(),String(l.zip||'').trim()].join('|');
@@ -4377,17 +4393,29 @@ async function initMapView(){
       if(prog){ prog.style.display='block'; }
       if(totalEl) totalEl.textContent=toGeocode.length;
 
+      const newlyGeocoded=[];
       for(let i=0;i<toGeocode.length;i++){
         const l=toGeocode[i];
         if(countEl) countEl.textContent=i+1;
         const coords=await geocodeAddress(l);
-        if(coords) cache[addrKey(l)]=coords;
+        if(coords){
+          cache[addrKey(l)]=coords;
+          newlyGeocoded.push({key:addrKey(l),location:l.location||'',address:l.address||'',city:l.city||'',state:l.state||''});
+        }
         await new Promise(r=>setTimeout(r,300));
       }
       localStorage.setItem(GEOCODE_CACHE_KEY,JSON.stringify(cache));
       if(prog) prog.style.display='none';
+      if(newlyGeocoded.length>0){
+        let alerts=[];
+        try{ alerts=JSON.parse(localStorage.getItem(GEOCODE_ALERT_KEY)||'[]'); } catch(e){}
+        const existingKeys=new Set(alerts.map(a=>a.key));
+        newlyGeocoded.forEach(n=>{ if(!existingKeys.has(n.key)) alerts.push(n); });
+        localStorage.setItem(GEOCODE_ALERT_KEY,JSON.stringify(alerts));
+      }
     }
 
+    updateGeocodeAlertBanner();
     renderMapPins(mapCurrentFilter, mapCurrentStatus);
   });
 }
@@ -4438,10 +4466,53 @@ function setMapStatus(status){ renderMapPins(mapCurrentFilter,status); }
 function clearGeocodeCache(){
   if(!confirm('Clear geocode cache and re-geocode all locations on next open?')) return;
   localStorage.removeItem(GEOCODE_CACHE_KEY);
+  localStorage.removeItem(GEOCODE_ALERT_KEY);
   mapMarkers.forEach(m=>mapInstance&&mapInstance.removeLayer(m));
   mapMarkers=[];
   const ce=document.getElementById('map-pin-count'); if(ce) ce.textContent='';
   initMapView();
+}
+
+function updateGeocodeAlertBanner(){
+  const banner=document.getElementById('geocode-alert-banner');
+  if(!banner) return;
+  let alerts=[];
+  try{ alerts=JSON.parse(localStorage.getItem(GEOCODE_ALERT_KEY)||'[]'); } catch(e){}
+  // Remove any alerts that are now in the seed cache (fixed)
+  const seedKeys=new Set(Object.keys(MAP_SEED_CACHE));
+  alerts=alerts.filter(a=>!seedKeys.has(a.key));
+  localStorage.setItem(GEOCODE_ALERT_KEY,JSON.stringify(alerts));
+  if(alerts.length===0){ banner.style.display='none'; return; }
+  banner.style.display='block';
+  const msg=document.getElementById('geocode-alert-msg');
+  if(msg) msg.textContent=alerts.length+' location'+(alerts.length>1?'s':'')+' may not have geocoded accurately';
+  const list=document.getElementById('geocode-alert-list');
+  if(list){
+    list.innerHTML=alerts.map(a=>
+      '<div style="padding:5px 0;border-bottom:1px solid var(--border-light);display:flex;justify-content:space-between;align-items:center;">'+
+      '<div><div style="font-weight:500;color:var(--text);">'+(a.location||'Unknown')+'</div>'+
+      '<div style="color:var(--muted);font-size:11px;">'+(a.address?a.address+', ':'')+a.city+', '+a.state+'</div></div>'+
+      '<button onclick="dismissGeocodeAlert(\''+a.key+'\')" style="font-size:11px;padding:2px 8px;margin-left:8px;" class="btn sm">Dismiss</button>'+
+      '</div>'
+    ).join('');
+  }
+}
+
+function toggleGeocodeAlertPanel(){
+  const panel=document.getElementById('geocode-alert-panel');
+  const toggle=document.getElementById('geocode-alert-toggle');
+  if(!panel) return;
+  const open=panel.style.display==='none';
+  panel.style.display=open?'block':'none';
+  if(toggle) toggle.textContent=open?'Hide':'Review';
+}
+
+function dismissGeocodeAlert(key){
+  let alerts=[];
+  try{ alerts=JSON.parse(localStorage.getItem(GEOCODE_ALERT_KEY)||'[]'); } catch(e){}
+  alerts=alerts.filter(a=>a.key!==key);
+  localStorage.setItem(GEOCODE_ALERT_KEY,JSON.stringify(alerts));
+  updateGeocodeAlertBanner();
 }
 </script>
 

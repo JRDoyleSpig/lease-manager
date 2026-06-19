@@ -4313,6 +4313,7 @@ const MAP_COMPANY_COLORS = { spig:'#1256A4', pft:'#1D9E75', erx:'#BA7517' };
 const MAP_COMPANY_LABELS = { spig:'SPIG', pft:'PFT', erx:'ERX' };
 const GEOCODE_CACHE_KEY = 'spig_geocode_v2';
 const GEOCODE_ALERT_KEY = 'spig_geocode_alerts';
+const GEOCODE_DISMISSED_KEY = 'spig_geocode_dismissed';
 
 function addrKey(l){
   return [(l.address||'').trim().toLowerCase(),(l.city||'').trim().toLowerCase(),(l.state||'').trim().toLowerCase(),String(l.zip||'').trim()].join('|');
@@ -4419,8 +4420,11 @@ async function initMapView(){
       if(newlyGeocoded.length>0){
         let alerts=[];
         try{ alerts=JSON.parse(localStorage.getItem(GEOCODE_ALERT_KEY)||'[]'); } catch(e){}
+        let dismissed=[];
+        try{ dismissed=JSON.parse(localStorage.getItem(GEOCODE_DISMISSED_KEY)||'[]'); } catch(e){}
+        const dismissedSet=new Set(dismissed);
         const existingKeys=new Set(alerts.map(a=>a.key));
-        newlyGeocoded.forEach(n=>{ if(!existingKeys.has(n.key)) alerts.push(n); });
+        newlyGeocoded.forEach(n=>{ if(!existingKeys.has(n.key)&&!dismissedSet.has(n.key)) alerts.push(n); });
         localStorage.setItem(GEOCODE_ALERT_KEY,JSON.stringify(alerts));
       }
     }
@@ -4524,6 +4528,11 @@ function dismissGeocodeAlert(key){
   try{ alerts=JSON.parse(localStorage.getItem(GEOCODE_ALERT_KEY)||'[]'); } catch(e){}
   alerts=alerts.filter(a=>a.key!==key);
   localStorage.setItem(GEOCODE_ALERT_KEY,JSON.stringify(alerts));
+  // Persist dismissed key so it survives cache clears
+  let dismissed=[];
+  try{ dismissed=JSON.parse(localStorage.getItem(GEOCODE_DISMISSED_KEY)||'[]'); } catch(e){}
+  if(!dismissed.includes(key)) dismissed.push(key);
+  localStorage.setItem(GEOCODE_DISMISSED_KEY,JSON.stringify(dismissed));
   updateGeocodeAlertBanner();
 }
 </script>

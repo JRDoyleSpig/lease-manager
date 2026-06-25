@@ -256,6 +256,13 @@ body{font-family:var(--sans);background:var(--bg);color:var(--text);font-size:14
 .rr-summary-item{display:flex;gap:6px;align-items:center}
 .rr-summary-label{color:var(--muted)}
 .rr-summary-val{font-family:var(--mono);font-weight:600}
+/* Narrative Builder */
+.nb-card{border:1px solid var(--border);border-radius:8px;padding:14px;background:var(--surface);transition:opacity .15s}
+.nb-cat{width:100%;border:1px solid var(--border);border-radius:6px;padding:6px 8px;font-size:12px;font-family:var(--sans);color:var(--text);background:var(--surface);margin-bottom:8px;cursor:pointer}
+.nb-cat:focus{outline:none;border-color:var(--accent-mid)}
+.nb-exp{width:100%;border:1px solid var(--border);border-radius:6px;padding:8px 10px;font-size:12px;font-family:var(--sans);color:var(--text);background:var(--surface);resize:vertical;min-height:56px;box-sizing:border-box;line-height:1.5}
+.nb-exp:focus{outline:none;border-color:var(--accent-mid)}
+.nb-exp-label{font-size:10px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.04em;margin-bottom:4px}
 </style>
 <script src="https://cdn.jsdelivr.net/npm/@azure/msal-browser@2.38.3/lib/msal-browser.min.js" crossorigin="anonymous"></script>
 </head>
@@ -758,6 +765,17 @@ body{font-family:var(--sans);background:var(--bg);color:var(--text);font-size:14
         </div>
         <!-- Amounts display -->
         <div id="email2-amounts-display" style="font-family:var(--mono);font-size:13px;line-height:2;padding:10px 14px;background:var(--surface2);border-radius:6px;"></div>
+
+        <!-- Narrative Builder -->
+        <div id="nb-section" style="display:none;">
+          <div style="display:flex;align-items:center;gap:8px;margin-bottom:10px;flex-wrap:wrap;">
+            <span style="font-size:12px;font-weight:600;">Narrative Builder</span>
+            <span style="font-size:11px;color:var(--muted);">Categorize each change — AI suggestions load automatically</span>
+            <span id="nb-ai-status" style="font-size:11px;color:var(--accent);margin-left:auto;"></span>
+          </div>
+          <div id="nb-cards-container" style="display:flex;flex-direction:column;gap:10px;"></div>
+        </div>
+
         <!-- Narrative -->
         <div>
           <div style="display:flex;align-items:center;gap:10px;margin-bottom:8px;flex-wrap:wrap;">
@@ -3829,6 +3847,7 @@ let reconcRows = [];
 let reconcCurrentTotal = 0;
 let reconcPrevTotal = 0;
 const RECONC_KEY = 'spig_reconc_prev_v2';
+let narrativeCardData = [];
 
 function loadSheetJS(cb){
   if(typeof XLSX !== 'undefined'){ cb(); return; }
@@ -3955,6 +3974,7 @@ function renderReconcTable(rows){
   // Populate email steps
   refreshEmail1();
   refreshEmail2Amounts();
+  buildNarrativeCards();
 }
 
 function clearReconciliation(){
@@ -3971,6 +3991,25 @@ function generateReconcExcel(){
     const wb=XLSX.read(new Uint8Array(reconcSeedBuffer),{type:'array',cellStyles:true});
     const wsName=wb.SheetNames[0];
     const ws=wb.Sheets[wsName];
+
+    // --- FIX: Update F1 with today's date (M.DD.YY format) ---
+    const _now=new Date();
+    const _dateStr=(_now.getMonth()+1)+'.'+_now.getDate()+'.'+String(_now.getFullYear()).slice(2);
+    if(ws['F1']){ws['F1'].v=_dateStr;ws['F1'].w=_dateStr;delete ws['F1'].f;}
+    else{ws['F1']={v:_dateStr,t:'s',w:_dateStr};}
+
+    // --- FIX: Update "Month Rent" label (searches cols D & E in rows 60-90) ---
+    const _mnLabel=_now.toLocaleString('en-US',{month:'long'})+' Rent';
+    for(let _ri=60;_ri<=90;_ri++){
+      const _eRef=XLSX.utils.encode_cell({r:_ri,c:4});
+      const _dRef=XLSX.utils.encode_cell({r:_ri,c:3});
+      if(ws[_eRef]&&ws[_eRef].v&&/Rent/i.test(String(ws[_eRef].v))){
+        ws[_eRef].v=_mnLabel;ws[_eRef].w=_mnLabel;delete ws[_eRef].f;break;
+      }
+      if(ws[_dRef]&&ws[_dRef].v&&typeof ws[_dRef].v==='string'&&/Rent/i.test(ws[_dRef].v)){
+        ws[_dRef].v=_mnLabel;ws[_dRef].w=_mnLabel;delete ws[_dRef].f;break;
+      }
+    }
 
     // Read sheet as array to find header row and data rows
     const rowData=XLSX.utils.sheet_to_json(ws,{header:1,defval:''});
@@ -4007,8 +4046,27 @@ function generateReconcExcel(){
         setC(0,r.name); setC(1,r.status); setC(2,r.number); setC(3,r.amount); setC(4,r.errorMsg||'');
       });
 
+      // --- FIX: Add vendors from Rent Review sheet missing from NS paste with amount=0
+      //          This prevents VLOOKUP returning #N/A for $0 locations (e.g. relocated, prepaid)
+      const _nsSet=new Set(reconcNSRows.map(r=>r.name.trim().toLowerCase()));
+      const _missing=[];
+      if(hdrIdx>=0){
+        for(let i=hdrIdx+1;i<rowData.length;i++){
+          const v=String(rowData[i][0]||'').trim();
+          if(!v||/total/i.test(v)) continue;
+          if(!_nsSet.has(v.toLowerCase())) _missing.push(v);
+        }
+      }
+      _missing.forEach((name,i)=>{
+        const row=dataStart+reconcNSRows.length+i;
+        [[0,name],[1,''],[2,''],[3,0],[4,'']].forEach(([c,val])=>{
+          const ref=XLSX.utils.encode_cell({r:row,c});
+          ws3[ref]={v:val,t:typeof val==='number'?'n':'s',w:String(val)};
+        });
+      });
+
       // Update sheet range
-      const maxRow=dataStart+reconcNSRows.length;
+      const maxRow=dataStart+reconcNSRows.length+_missing.length;
       ws3['!ref']=XLSX.utils.encode_range({s:{r:0,c:0},e:{r:maxRow,c:4}});
     }
 
@@ -4023,6 +4081,233 @@ function generateReconcExcel(){
     URL.revokeObjectURL(url);
     showReconcMsg('Excel downloaded — open in Excel to recalculate formulas','ok');
   });
+}
+
+// ── NARRATIVE BUILDER ────────────────────────────────────────────────────────
+
+const NB_CATEGORIES=[
+  {value:'',label:'— Select category —'},
+  {value:'base-rent-increase',label:'Base Rent Increase'},
+  {value:'base-rent-decrease',label:'Base Rent Decrease'},
+  {value:'cam-increase',label:'CAM / OpEx Increase'},
+  {value:'cam-decrease',label:'CAM / OpEx Decrease'},
+  {value:'return-to-normal',label:'Return to Normal'},
+  {value:'relocation',label:'Relocation / Move'},
+  {value:'one-time-charge',label:'One-Time Charge'},
+  {value:'one-time-credit',label:'One-Time Credit'},
+  {value:'prepaid',label:'Prepaid – No Payment Due'},
+  {value:'other',label:'Other'}
+];
+
+function buildNarrativeCards(){
+  const changes=reconcRows.filter(r=>r.difference!==null&&Math.abs(r.difference)>0.50)
+    .sort((a,b)=>Math.abs(b.difference)-Math.abs(a.difference));
+
+  narrativeCardData=changes.map((r,i)=>{
+    const lease=findLeaseMatch(null,r.name);
+    const loc=lease?lease.location:r.name;
+    const baseRent=lease?(parseFloat(lease.baseRent)||0):0;
+    const rrNotes=lease?(lease.rentReviewNotes||lease.notes||''):'';
+
+    // Heuristic: current amount close to baseRent, prior was noticeably different → return to normal
+    let suggestedCat='';
+    if(baseRent>0&&Math.abs(r.amount-baseRent)<5&&Math.abs((r.previousAmount||0)-baseRent)>50){
+      suggestedCat='return-to-normal';
+    }
+
+    return{id:i,location:loc,vendor:r.name,difference:r.difference,
+      amount:r.amount,previousAmount:r.previousAmount,
+      baseRent,rrNotes,category:suggestedCat,explanation:'',skipped:false};
+  });
+
+  const nb=document.getElementById('nb-section');
+  if(nb) nb.style.display='block';
+  renderNarrativeCards();
+
+  const apiKey=localStorage.getItem('spig_anthropic_key')||'';
+  if(apiKey&&narrativeCardData.length) fetchAISuggestions(apiKey);
+}
+
+function renderNarrativeCards(){
+  const container=document.getElementById('nb-cards-container');
+  if(!container) return;
+  const fmt=v=>'$'+Math.abs(v).toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2});
+
+  if(!narrativeCardData.length){
+    container.innerHTML='<div style="color:var(--muted);font-size:12px;padding:8px 0;">No significant changes to categorize.</div>';
+    return;
+  }
+
+  container.innerHTML=narrativeCardData.map(c=>{
+    const sign=c.difference>0?'+':'';
+    const changeColor=c.difference>0?'color:var(--warn)':'color:var(--danger)';
+    const opac=c.skipped?'opacity:0.4;':'';
+    const isListCat=['base-rent-increase','cam-increase'].includes(c.category);
+    const expLabel=isListCat?'Note (optional — not included in email body):':'Email text — edit as needed:';
+    const expPlaceholder=isListCat?'Optional context for your own reference...':'Loading AI suggestion...';
+    const catOpts=NB_CATEGORIES.map(o=>`<option value="${o.value}"${c.category===o.value?' selected':''}>${o.label}</option>`).join('');
+
+    return `<div class="nb-card" id="nb-card-${c.id}" style="${opac}">
+      <div style="display:flex;align-items:flex-start;gap:10px;margin-bottom:10px;">
+        <div style="flex:1;min-width:0;">
+          <div style="font-weight:600;font-size:13px;">${c.location}</div>
+          <div style="font-size:11px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${c.vendor}</div>
+        </div>
+        <div style="font-family:var(--mono);font-size:13px;font-weight:700;${changeColor};white-space:nowrap;">${sign}${fmt(c.difference)}</div>
+        <label style="display:flex;align-items:center;gap:5px;font-size:11px;cursor:pointer;color:var(--muted);white-space:nowrap;">
+          <input type="checkbox" ${c.skipped?'checked':''} onchange="nbUpdate(${c.id},'skipped',this.checked)" style="cursor:pointer;width:13px;height:13px;">Skip
+        </label>
+      </div>
+      <select class="nb-cat" onchange="nbUpdate(${c.id},'category',this.value)">${catOpts}</select>
+      <div class="nb-exp-label">${expLabel}</div>
+      <textarea class="nb-exp" placeholder="${expPlaceholder}" oninput="nbUpdate(${c.id},'explanation',this.value)">${c.explanation}</textarea>
+    </div>`;
+  }).join('');
+}
+
+function nbUpdate(id,field,value){
+  const card=narrativeCardData.find(c=>c.id===id);
+  if(!card) return;
+  card[field]=value;
+  if(field==='skipped'){
+    const el=document.getElementById('nb-card-'+id);
+    if(el) el.style.opacity=value?'0.4':'1';
+  }
+  if(field==='category'){
+    // Re-render cards to update label, then restore textarea values
+    const saved=narrativeCardData.map(c=>c.explanation);
+    renderNarrativeCards();
+    narrativeCardData.forEach((c,i)=>{
+      c.explanation=saved[i];
+      const ta=document.querySelector('#nb-card-'+c.id+' .nb-exp');
+      if(ta) ta.value=c.explanation;
+    });
+  }
+}
+
+async function fetchAISuggestions(apiKey){
+  const statusEl=document.getElementById('nb-ai-status');
+  if(statusEl) statusEl.textContent='✦ AI analyzing changes...';
+
+  const fmt=v=>'$'+Math.abs(v).toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2});
+  const catList=NB_CATEGORIES.filter(c=>c.value).map(c=>c.value+': '+c.label).join(', ');
+
+  const changeList=narrativeCardData.map(c=>{
+    const sign=c.difference>0?'+':'';
+    let line=`- ${c.location} (vendor: ${c.vendor}): ${sign}${fmt(c.difference)} (was ${fmt(c.previousAmount)}, now ${fmt(c.amount)})`;
+    if(c.baseRent>0) line+=` [DB base rent: ${fmt(c.baseRent)}]`;
+    if(c.rrNotes) line+=` [context: ${c.rrNotes}]`;
+    return line;
+  }).join('\n');
+
+  const prompt=`You are categorizing monthly commercial rent changes for a facilities manager's CFO email.
+
+Categories: ${catList}
+
+Rules:
+- "return-to-normal": current amount is close to the DB base rent while prior month was meaningfully different (e.g. a CAM credit or one-time charge has expired)
+- "relocation": the lease ended and the location moved; no payment due or already prepaid
+- "prepaid": no payment due because rent was prepaid at lease signing
+- "base-rent-increase" / "base-rent-decrease": scheduled escalation or decrease in base rent
+- "cam-increase" / "cam-decrease": change in CAM, OpEx, or property tax component
+- "one-time-charge" / "one-time-credit": non-recurring item
+- Context in brackets is INTERNAL — use it to reason but NEVER copy it into the explanation
+
+Changes:
+${changeList}
+
+Respond ONLY with a valid JSON array. No other text. Each object:
+- vendorName: exact vendor string from above
+- category: one category value from the list
+- explanation: one concise CFO-appropriate sentence. For base-rent-increase and cam-increase categories, use format "LocationName - $Amount" only. No internal notes.`;
+
+  try{
+    const resp=await fetch('https://api.anthropic.com/v1/messages',{
+      method:'POST',
+      headers:{'Content-Type':'application/json','x-api-key':apiKey,'anthropic-version':'2023-06-01','anthropic-dangerous-direct-browser-access':'true'},
+      body:JSON.stringify({model:'claude-haiku-4-5-20251001',max_tokens:1000,messages:[{role:'user',content:prompt}]})
+    });
+    const data=await resp.json();
+    const text=data.content?.find(b=>b.type==='text')?.text||'';
+    const match=text.match(/\[[\s\S]*\]/);
+    if(match){
+      const suggestions=JSON.parse(match[0]);
+      suggestions.forEach(s=>{
+        const card=narrativeCardData.find(c=>c.vendor===s.vendorName);
+        if(card){
+          if(s.category) card.category=s.category;
+          if(s.explanation) card.explanation=s.explanation;
+        }
+      });
+      renderNarrativeCards();
+      narrativeCardData.forEach(c=>{
+        const ta=document.querySelector('#nb-card-'+c.id+' .nb-exp');
+        if(ta) ta.value=c.explanation;
+      });
+      if(statusEl) statusEl.textContent='✦ AI suggestions loaded — review and confirm each card';
+    } else {
+      if(statusEl) statusEl.textContent='Could not parse AI response — fill in categories manually';
+    }
+  }catch(e){
+    if(statusEl) statusEl.textContent='AI unavailable — fill in categories manually';
+  }
+}
+
+function assembleNarrativeFromCards(){
+  if(!narrativeCardData.length) return null;
+  const now=new Date();
+  const month=now.toLocaleString('en-US',{month:'long'});
+  const fmt=v=>'$'+Math.abs(v).toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2});
+  const totalDiff=reconcCurrentTotal-reconcPrevTotal;
+  const direction=totalDiff<0?'decreased':'increased';
+
+  const active=narrativeCardData.filter(c=>!c.skipped);
+  const byCategory={};
+  active.forEach(c=>{ const cat=c.category||'other'; if(!byCategory[cat]) byCategory[cat]=[]; byCategory[cat].push(c); });
+
+  let out=`Please see the total processed for ${month}'s rent below. Overall rent ${direction} by ${fmt(totalDiff)}.\n\n`;
+
+  // Prose items: relocation, prepaid, one-time, other
+  const proseItems=['relocation','prepaid','one-time-charge','one-time-credit','other']
+    .flatMap(cat=>(byCategory[cat]||[]).filter(c=>c.explanation));
+  if(proseItems.length) out+=proseItems.map(c=>c.explanation).join('\n')+'\n\n';
+
+  // Return to normal: intro sentence + list
+  const rtn=byCategory['return-to-normal']||[];
+  if(rtn.length){
+    const names=rtn.map(c=>c.location);
+    const intro=names.length===1
+      ?`${names[0]}'s rent returned to normal.`
+      :`${names.slice(0,-1).join(', ')} and ${names[names.length-1]}'s rent returned to normal.`;
+    out+=intro+'\n';
+    rtn.forEach(c=>{ const sign=c.difference>0?'+':''; out+=`${c.location} - ${sign}${fmt(c.difference)}\n`; });
+    out+='\n';
+  }
+
+  // Decreases
+  const decItems=[...(byCategory['base-rent-decrease']||[]),...(byCategory['cam-decrease']||[])];
+  if(decItems.length){
+    const label=decItems.length===1?'The decrease was driven by ':'The decreases were driven by ';
+    out+=label+decItems.map(c=>c.explanation||`${c.location}: ${fmt(c.difference)}`).join('; ')+'.\n\n';
+  }
+
+  // Base rent increases list
+  const bri=byCategory['base-rent-increase']||[];
+  if(bri.length){
+    out+='We have base rent increases in the following workrooms:\n';
+    bri.forEach(c=>{ out+=`${c.location} - ${fmt(c.difference)}\n`; });
+    out+='\n';
+  }
+
+  // CAM increases list
+  const cam=byCategory['cam-increase']||[];
+  if(cam.length){
+    out+=`We had CAM increases in the following workroom${cam.length>1?'s':''}:\n`;
+    cam.forEach(c=>{ out+=`${c.location} - ${fmt(c.difference)}\n`; });
+    out+='\n';
+  }
+
+  return out.trim();
 }
 
 // ── STEP 9: EMAIL 1 ───────────────────────────────────────────────────────────
@@ -4069,9 +4354,16 @@ function generateEmail2Narrative(){
   const btn=document.getElementById('email2-gen-btn');
   const statusEl=document.getElementById('email2-gen-status');
   const narrativeEl=document.getElementById('email2-narrative');
+
+  // If narrative builder cards exist, assemble from them
+  if(narrativeCardData.length){
+    const result=assembleNarrativeFromCards();
+    if(result){ narrativeEl.value=result; if(statusEl) statusEl.textContent='Assembled from Narrative Builder — review before sending'; return; }
+  }
+
+  // Fallback: template or AI
   btn.disabled=true; btn.textContent='Generating...';
   if(statusEl) statusEl.textContent='';
-
   const apiKey=localStorage.getItem('spig_anthropic_key')||'';
   if(apiKey){
     generateNarrativeWithAI(apiKey,btn,statusEl,narrativeEl);
@@ -4095,32 +4387,34 @@ function generateNarrativeTemplate(btn,statusEl,narrativeEl){
     const decreases=changes.filter(r=>r.difference<0);
     const increases=changes.filter(r=>r.difference>0);
 
+    // Decreases: brief inline summary (no internal notes)
     if(decreases.length){
       const items=decreases.map(r=>{
         const lease=findLeaseMatch(null,r.name);
         const loc=lease?lease.location:r.name;
-        const notes=lease?(lease.rentReviewNotes||lease.notes||''):'';
-        return loc+(notes?' ('+notes+')':'')+(r.difference?': '+fmt(r.difference):'');
+        return loc+': '+fmt(r.difference);
       });
       narrative+=(decreases.length===1?'The decrease was driven by ':'The decreases were driven by ')+items.join('; ')+'.\n\n';
     }
 
+    // Increases: list format, one per line (no internal notes)
     if(increases.length){
-      const items=increases.map(r=>{
+      narrative+='We have increases in the following workrooms:\n';
+      increases.forEach(r=>{
         const lease=findLeaseMatch(null,r.name);
         const loc=lease?lease.location:r.name;
-        const notes=lease?(lease.rentReviewNotes||lease.notes||''):'';
-        return loc+(notes?' ('+notes+')':'')+(r.difference?': +'+fmt(r.difference):'');
+        narrative+=loc+' - '+fmt(r.difference)+'\n';
       });
-      narrative+=(increases.length===1?'The increase was driven by ':'The increases were driven by ')+items.join('; ')+'.';
     }
   } else {
     narrative+='No significant changes from prior month.';
   }
 
+  narrative+='\n[Edit narrative above as needed — add context for relocations, CAM reconciliations, credits, or other non-standard items. Remove this line before sending.]';
+
   narrativeEl.value=narrative;
   btn.disabled=false; btn.textContent='✦ Generate Narrative';
-  if(statusEl) statusEl.textContent='Template generated — review and edit as needed';
+  if(statusEl) statusEl.textContent='Template generated — review and edit before sending';
 }
 
 async function generateNarrativeWithAI(apiKey,btn,statusEl,narrativeEl){
@@ -4135,8 +4429,7 @@ async function generateNarrativeWithAI(apiKey,btn,statusEl,narrativeEl){
   const changeLines=changes.map(r=>{
     const lease=findLeaseMatch(null,r.name);
     const loc=lease?lease.location:r.name;
-    const notes=lease?(lease.rentReviewNotes||lease.notes||''):'';
-    return (r.difference>0?'INCREASE':'DECREASE')+': '+loc+' ('+r.name+') — '+(r.difference>0?'+':'')+fmt(r.difference)+' (from '+fmt(r.previousAmount)+' to '+fmt(r.amount)+')'+(notes?' — Notes: '+notes:'');
+    return (r.difference>0?'INCREASE':'DECREASE')+': '+loc+' ('+r.name+') — '+(r.difference>0?'+':'')+fmt(r.difference)+' (from '+fmt(r.previousAmount)+' to '+fmt(r.amount)+')';
   }).join('\n');
 
   const prompt=`You are helping a Facilities Manager write a monthly rent summary email to their CFO.
@@ -4149,14 +4442,28 @@ Net change: ${totalDiff<0?'decreased by':'increased by'} ${fmt(totalDiff)}
 Significant changes:
 ${changeLines||'No significant changes.'}
 
+Style rules:
+- NEVER include internal operational notes or status updates in the email. Only include financial facts.
+- Decreases: one brief sentence naming the drivers inline (e.g. "The decrease was driven by Austin and Buffalo relocating.")
+- Increases: use two separate labeled lists — "We have base rent increases in the following workrooms:" and "We had CAM increases in the following workroom:" — each with one location per line formatted as "Location - $Amount"
+- If you cannot tell whether an increase is base rent or CAM, put all increases under a single list: "We have increases in the following workrooms:"
+- Keep it concise. No editorializing. No internal notes. No operational details.
+
 Style example from a prior month:
-"Please see the total processed for June's rent below. Overall rent decreased by $20,200.64
+"Please see the total processed for July's rent below. Overall rent decreased by $5,108.77
 
-The decrease was primarily driven by Richmond's rent returning to normal following the $14,257.27 CAM reconciliation charge processed in May. Baltimore also returned to normal after the $3,940 repair bill that was included in May's rent.
+The decrease was primarily driven by relocating Austin and Buffalo. Both leases expired at the end of June. The new workrooms' July rent were prepaid at time of execution.
 
-Partially offsetting those decreases was a $3,390 CAM reconciliation charge for Fredericksburg."
+We have base rent increases in the following workrooms:
+Asheville - $700.00
+Rochester - $104.17
+Beaumont - $320.00
 
-Write ONLY the body paragraph(s). No greeting, no dollar total lines, no sign-off. Be concise, use location names, reference specific dollar amounts.`;
+We had CAM increases in the following workroom:
+Hagerstown - $96.79
+Syracuse - $500.00"
+
+Write ONLY the body paragraph(s). No greeting, no dollar total lines, no sign-off. Use location names, reference specific dollar amounts. Do NOT include any internal notes, operational status, or parenthetical context about specific deals or conversations.`;
 
   try{
     const r=await fetch('https://api.anthropic.com/v1/messages',{
@@ -4186,8 +4493,8 @@ function copyFullEmail2(){
 
 ${narrative}
 
-${fmt(reconcCurrentTotal)} - ${month}
 ${fmt(reconcPrevTotal)} - ${prevMonth}
+${fmt(reconcCurrentTotal)} - ${month}
 
 Thanks,
 

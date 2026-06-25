@@ -3666,6 +3666,9 @@ function renderRentReview(){
   const meta = document.getElementById('rr-review-meta');
   if(meta) meta.textContent = `Reviewing payments due ${monthLabel} · SPIG locations only · Data as of ${new Date().toLocaleDateString()}`;
 
+  // Keep Mark Complete button in sync with dropdown selection
+  updateCompleteBtn();
+
   renderRRStep1();
   renderRRStep2();
   renderRRStep3();
@@ -3685,6 +3688,13 @@ function renderRentReview(){
       if(chev) chev.classList.add('open');
     }
   });
+}
+
+function updateCompleteBtn(){
+  const reviewDate=rrReviewMonthDate();
+  const month=reviewDate.toLocaleString('en-US',{month:'long',year:'numeric'});
+  const btn=document.querySelector('[onclick="markMonthComplete()"]');
+  if(btn) btn.textContent='✓ Mark '+month+' Complete';
 }
 // ── NETSUITE TRUE-UP (Step 6) ─────────────────────────────────────────────────
 function parseCSVLine(line){
@@ -4412,9 +4422,6 @@ function refreshEmail2Amounts(){
   if(amts) amts.innerHTML=fmt(reconcCurrentTotal)+' - '+month+'<br>'+fmt(reconcPrevTotal)+' - '+prevMonth;
   const badge=document.getElementById('rr-badge10');
   if(badge){ badge.textContent='Draft'; badge.style.background='var(--accent-light)'; badge.style.color='var(--accent)'; }
-  // Update mark complete button label
-  const mcBtn=document.querySelector('[onclick="markMonthComplete()"]');
-  if(mcBtn) mcBtn.textContent='✓ Mark '+month+' Complete';
 }
 
 function generateEmail2Narrative(){
@@ -4594,6 +4601,26 @@ function markMonthComplete(){
     completedAt:new Date().toLocaleDateString('en-US')});
   localStorage.setItem(RR_HISTORY_KEY,JSON.stringify(history));
   advanceReviewMonth();
+
+  // Remove the now-completed month from the dropdown
+  const _sel=document.getElementById('rr-month-select');
+  if(_sel){
+    for(let i=0;i<_sel.options.length;i++){
+      if(_sel.options[i].value===monthKey){_sel.remove(i);break;}
+    }
+    // Append next month after the last option to keep 6 options total
+    if(_sel.options.length>0){
+      const lastVal=_sel.options[_sel.options.length-1].value;
+      const [ly,lm]=lastVal.split('-').map(Number);
+      const nextD=new Date(ly,lm,1);
+      const nextVal=nextD.getFullYear()+'-'+String(nextD.getMonth()+1).padStart(2,'0');
+      const nextLabel=nextD.toLocaleString('default',{month:'long',year:'numeric'});
+      const opt=document.createElement('option');
+      opt.value=nextVal; opt.textContent=nextLabel;
+      _sel.appendChild(opt);
+    }
+  }
+
   reconcRows=[];reconcNSRows=[];reconcCurrentTotal=0;reconcPrevTotal=0;narrativeCardData=[];
   const nb=document.getElementById('nb-section');if(nb) nb.style.display='none';
   const res=document.getElementById('reconc-results');if(res) res.style.display='none';

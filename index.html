@@ -3944,21 +3944,25 @@ function buildReconciliation(){
     return {...r,previousAmount:prev,difference:diff};
   });
 
+  // Capture true prior grand total BEFORE overwriting reconcPrevAmounts
+  const _priorGrandTotal=Object.values(reconcPrevAmounts).reduce((s,v)=>s+(v||0),0);
+
   // Save current amounts as next month's previous
   const newAmts={};
   reconcRows.forEach(r=>{ newAmts[r.name]=r.amount; });
   localStorage.setItem(RECONC_KEY,JSON.stringify(newAmts));
   reconcPrevAmounts=newAmts;
 
-  renderReconcTable(reconcRows);
+  renderReconcTable(reconcRows,_priorGrandTotal);
   showReconcMsg('','');
 }
 
-function renderReconcTable(rows){
+function renderReconcTable(rows,priorGrandTotal){
   const fmt=v=>v!=null?'$'+v.toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2}):'—';
   reconcCurrentTotal=rows.reduce((s,r)=>s+r.amount,0);
-  // Sum ALL prior amounts (including vendors not in current paste, e.g. relocated/inactive locations)
-  reconcPrevTotal=Object.values(reconcPrevAmounts).reduce((s,v)=>s+(v||0),0);
+  // Use passed-in prior grand total if available (includes inactive vendors like relocated locations)
+  // Falls back to summing reconcPrevAmounts if called without it
+  reconcPrevTotal=priorGrandTotal!==undefined?priorGrandTotal:Object.values(reconcPrevAmounts).reduce((s,v)=>s+(v||0),0);
   const totalDiff=Math.round((reconcCurrentTotal-reconcPrevTotal)*100)/100;
 
   const tbody=rows.map(r=>{
@@ -4315,31 +4319,13 @@ function assembleNarrativeFromCards(){
 
   let out=`Please see the total processed for ${month}'s rent below. Overall rent ${direction} by ${fmt(totalDiff)}.\n\n`;
 
-  // Prose items: relocation, prepaid, one-time, other
-  const proseItems=['relocation','prepaid','one-time-charge','one-time-credit','other']
-    .flatMap(cat=>(byCategory[cat]||[]).filter(c=>c.explanation));
+  // Section 1: Prose narrative — decreases, relocations, one-time items, other
+  // All non-list categories go here as plain sentences (no automatic label or amounts)
+  const proseCategories=['relocation','prepaid','one-time-charge','one-time-credit','base-rent-decrease','cam-decrease','other'];
+  const proseItems=proseCategories.flatMap(cat=>(byCategory[cat]||[]).filter(c=>c.explanation));
   if(proseItems.length) out+=proseItems.map(c=>c.explanation).join('\n')+'\n\n';
 
-  // Return to normal: intro sentence + list
-  const rtn=byCategory['return-to-normal']||[];
-  if(rtn.length){
-    const names=rtn.map(c=>c.location);
-    const intro=names.length===1
-      ?`${names[0]}'s rent returned to normal.`
-      :`${names.slice(0,-1).join(', ')} and ${names[names.length-1]}'s rent returned to normal.`;
-    out+=intro+'\n';
-    rtn.forEach(c=>{ const sign=c.difference>0?'+':''; out+=`${c.location} - ${sign}${fmt(c.difference)}\n`; });
-    out+='\n';
-  }
-
-  // Decreases
-  const decItems=[...(byCategory['base-rent-decrease']||[]),...(byCategory['cam-decrease']||[])];
-  if(decItems.length){
-    const label=decItems.length===1?'The decrease was driven by ':'The decreases were driven by ';
-    out+=label+decItems.map(c=>c.explanation||`${c.location}: ${fmt(c.difference)}`).join('; ')+'.\n\n';
-  }
-
-  // Base rent increases list
+  // Section 2: Base rent increases list
   const bri=byCategory['base-rent-increase']||[];
   if(bri.length){
     out+='We have base rent increases in the following workrooms:\n';
@@ -4347,11 +4333,25 @@ function assembleNarrativeFromCards(){
     out+='\n';
   }
 
-  // CAM increases list
+  // Section 3: CAM increases list
   const cam=byCategory['cam-increase']||[];
   if(cam.length){
     out+=`We had CAM increases in the following workroom${cam.length>1?'s':''}:\n`;
     cam.forEach(c=>{ out+=`${c.location} - ${fmt(c.difference)}\n`; });
+    out+='\n';
+  }
+
+  // Section 4: Return to Normal — auto intro + list (comes last, matches email format)
+  const rtn=byCategory['return-to-normal']||[];
+  if(rtn.length){
+    const names=rtn.map(c=>c.location);
+    const autoIntro=names.length===1
+      ?`${names[0]}'s rent returned to normal.`
+      :`${names.slice(0,-1).join(', ')} and ${names[names.length-1]}'s rent returned to normal.`;
+    // Use custom explanation from first card if provided, otherwise auto-generate
+    const intro=rtn[0].explanation||autoIntro;
+    out+=intro+'\n';
+    rtn.forEach(c=>{ const sign=c.difference>0?'+':''; out+=`${c.location} - ${sign}${fmt(c.difference)}\n`; });
     out+='\n';
   }
 
@@ -4438,17 +4438,17 @@ function generateNarrativeTemplate(btn,statusEl,narrativeEl){
     const decreases=changes.filter(r=>r.difference<0);
     const increases=changes.filter(r=>r.difference>0);
 
-    // Decreases: brief inline summary (no internal notes)
+    // Decreases as prose sentences (no label — user edits before sending)
     if(decreases.length){
-      const items=decreases.map(r=>{
+      decreases.forEach(r=>{
         const lease=findLeaseMatch(null,r.name);
         const loc=lease?lease.location:r.name;
-        return loc+': '+fmt(r.difference);
+        narrative+=loc+' decreased by '+fmt(r.difference)+'.\n';
       });
-      narrative+=(decreases.length===1?'The decrease was driven by ':'The decreases were driven by ')+items.join('; ')+'.\n\n';
+      narrative+='\n';
     }
 
-    // Increases: list format, one per line (no internal notes)
+    // Base rent increases list
     if(increases.length){
       narrative+='We have increases in the following workrooms:\n';
       increases.forEach(r=>{
@@ -4456,12 +4456,13 @@ function generateNarrativeTemplate(btn,statusEl,narrativeEl){
         const loc=lease?lease.location:r.name;
         narrative+=loc+' - '+fmt(r.difference)+'\n';
       });
+      narrative+='\n';
     }
   } else {
     narrative+='No significant changes from prior month.';
   }
 
-  narrative+='\n[Edit narrative above as needed — add context for relocations, CAM reconciliations, credits, or other non-standard items. Remove this line before sending.]';
+  narrative+='[Review and edit before sending — add context for relocations, CAM reconciliations, credits, and return to normal items.]';
 
   narrativeEl.value=narrative;
   btn.disabled=false; btn.textContent='✦ Generate Narrative';

@@ -3895,6 +3895,7 @@ function loadReconcSeed(input){
 }
 
 function parseNSPaste(text){
+  const skipNames=new Set(['name','total','vendor name','vendor']);
   return text.split(/\r?\n/).filter(l=>l.trim()).map(line=>{
     const cols=line.split('\t');
     if(cols.length<3) return null;
@@ -3903,7 +3904,7 @@ function parseNSPaste(text){
     const number=String(cols[2]||'').trim();
     const amount=parseFloat(String(cols[3]||'0').replace(/[,$\s]/g,''))||0;
     const errorMsg=String(cols[4]||'').trim();
-    if(!name||name.toLowerCase()==='name') return null; // skip header row
+    if(!name||skipNames.has(name.toLowerCase())) return null;
     return {name,status,number,amount,errorMsg};
   }).filter(Boolean);
 }
@@ -4225,7 +4226,7 @@ Respond ONLY with a valid JSON array. No other text. Each object:
     const resp=await fetch('https://api.anthropic.com/v1/messages',{
       method:'POST',
       headers:{'Content-Type':'application/json','x-api-key':apiKey,'anthropic-version':'2023-06-01','anthropic-dangerous-direct-browser-access':'true'},
-      body:JSON.stringify({model:'claude-haiku-4-5',max_tokens:1000,messages:[{role:'user',content:prompt}]})
+      body:JSON.stringify({model:'claude-sonnet-4-6',max_tokens:1000,messages:[{role:'user',content:prompt}]})
     });
     const data=await resp.json();
     const text=data.content?.find(b=>b.type==='text')?.text||'';
@@ -4469,7 +4470,7 @@ Write ONLY the body paragraph(s). No greeting, no dollar total lines, no sign-of
     const r=await fetch('https://api.anthropic.com/v1/messages',{
       method:'POST',
       headers:{'Content-Type':'application/json','x-api-key':apiKey,'anthropic-version':'2023-06-01','anthropic-dangerous-direct-browser-access':'true'},
-      body:JSON.stringify({model:'claude-sonnet-4-20250514',max_tokens:800,messages:[{role:'user',content:prompt}]})
+      body:JSON.stringify({model:'claude-sonnet-4-6',max_tokens:800,messages:[{role:'user',content:prompt}]})
     });
     const d=await r.json();
     const text=d.content?.find(b=>b.type==='text')?.text||'';

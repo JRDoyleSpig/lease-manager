@@ -3114,10 +3114,10 @@ let rrPendingIncrease = null; // {leaseId, type:'rent'|'cam', newVal, newDate}
 function initRRMonthSelect(){
   const sel = document.getElementById('rr-month-select');
   if(!sel) return;
-  // Only build options if not already populated — prevents resetting user selection on re-render
   if(sel.options.length > 0) return;
   const now = new Date();
-  for(let i = 0; i < 6; i++){
+  // Start from next month — current month rent has already been processed
+  for(let i = 1; i <= 6; i++){
     const d = new Date(now.getFullYear(), now.getMonth() + i, 1);
     const label = d.toLocaleString('default',{month:'long',year:'numeric'});
     const val = `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}`;
@@ -3190,13 +3190,14 @@ function renderRRStep1(){
     return new Date(l.expiryDate) < today;
   }).sort((a,b) => new Date(a.expiryDate) - new Date(b.expiryDate));
 
-  // Expiring this review month
+  // Expiring on or before the end of the selected review month (catches prior months not yet actioned)
   const tm = rrTargetMonth();
+  const [ty,tmon] = tm ? tm.split('-').map(Number) : [today.getFullYear(), today.getMonth()+1];
+  const endOfReviewMonth = new Date(ty, tmon, 0, 23, 59, 59); // last moment of last day of selected month
   const expiring = spig.filter(l => {
     if(!l.expiryDate || l.expiryDate === 'Month to Month') return false;
-    const d = new Date(l.expiryDate);
-    const [ty,tmon] = tm.split('-').map(Number);
-    return d >= today && d.getFullYear() === ty && (d.getMonth()+1) === tmon;
+    const d = new Date(l.expiryDate + 'T12:00:00');
+    return d >= today && d <= endOfReviewMonth;
   });
 
   const total = expired.length + expiring.length;
@@ -3223,7 +3224,7 @@ function renderRRStep1(){
   }
 
   if(expiring.length){
-    html += `<div style="padding:8px 16px;background:var(--warn-light);font-size:11px;font-weight:600;color:var(--warn);${expired.length?'border-top:1px solid var(--border)':''}">⚡ ${expiring.length} LEASE${expiring.length>1?'S':''} EXPIRING THIS REVIEW MONTH</div>`;
+    html += `<div style="padding:8px 16px;background:var(--warn-light);font-size:11px;font-weight:600;color:var(--warn);${expired.length?'border-top:1px solid var(--border)':''}">⚡ ${expiring.length} LEASE${expiring.length>1?'S':''} EXPIRING BY END OF REVIEW MONTH</div>`;
     html += `<div class="rr-col-head expired"><span>Location</span><span>Landlord</span><span>Expires</span><span>Monthly Rent</span><span></span></div>`;
     html += expiring.map(l=>`
       <div class="rr-row expired">

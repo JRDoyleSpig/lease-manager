@@ -1178,18 +1178,20 @@ body{font-family:var(--sans);background:var(--bg);color:var(--text);font-size:14
       <div class="help-section-body">
         <p>The Rent Review is the Facilities Manager's complete monthly process to verify all rent payments, apply any increases, reconcile payments against NetSuite, and communicate totals to leadership. Run around the 20th of each month in preparation for 1st-of-month payments. This workflow covers <strong>SPIG locations only</strong>.</p>
 
+        <div class="help-tip">💡 <strong>Review Month Dropdown:</strong> Always select the month rent is <em>due</em> — not the current calendar month. If today is June 20, select July, because July 1 is when rent is due. Everything in the workflow — expirations, increases, emails, and the Excel — will reference the selected month.</div>
+
         <div class="help-h3">The 10 Steps</div>
 
         <div class="help-step">
           <span class="help-step-num">1</span>
           <div><strong>Lease Expirations</strong> <span style="font-size:11px;background:var(--accent-light);color:var(--accent);padding:1px 7px;border-radius:10px;margin-left:4px;">App</span><br>
-          The app automatically pulls all active SPIG leases that are expired, expiring within the current review month, or expiring within 90 days. Leases approaching their renewal notice deadline are also flagged. Review each flagged location and confirm no lease has lapsed without action. Any leases requiring renewal negotiation should already be in progress. Use the Edit button to open and update a lease record directly from this step.</div>
+          Shows all active SPIG leases expiring on or before the last day of the selected review month. This catches any lease expiring in the current or prior months that hasn't been actioned yet — there should rarely be anything here, but it serves as a safety net. Expired leases (already past today) are flagged red and require immediate attention. Leases expiring by end of the review month are flagged amber. Use the Edit button to update a lease directly from this step.</div>
         </div>
 
         <div class="help-step">
           <span class="help-step-num">2</span>
           <div><strong>Rent & CAM Increases Due</strong> <span style="font-size:11px;background:var(--accent-light);color:var(--accent);padding:1px 7px;border-radius:10px;margin-left:4px;">App</span><br>
-          The app shows all active SPIG leases with a base rent or CAM/OpEx increase effective during the selected review month — split into Base Rent Increases and CAM/OpEx Increases. Click <strong>Apply</strong> to update the database with the new amount. The Apply modal also lets you record the next scheduled increase date and amount at the same time. If "Check Lease if Renewed" is flagged, a warning appears reminding you to pull the lease document and verify renewal terms before applying. Any increases applied here should also be updated in NetSuite's memorized transactions.</div>
+          Shows all active SPIG leases with a base rent or CAM/OpEx increase effective during the selected review month — split into Base Rent Increases and CAM/OpEx Increases. Click <strong>Apply</strong> to update the database with the new amount. The Apply modal also lets you record the next scheduled increase date and amount at the same time. If "Check Lease if Renewed" is flagged, a warning appears reminding you to pull the lease document and verify renewal terms before applying. Any increases applied here should also be updated in NetSuite's memorized transactions.</div>
         </div>
 
         <div class="help-step">
@@ -1278,19 +1280,20 @@ body{font-family:var(--sans);background:var(--bg);color:var(--text);font-size:14
           <span class="help-step-num">8</span>
           <div><strong>Leaseholder Reconciliation</strong> <span style="font-size:11px;background:var(--accent-light);color:var(--accent);padding:1px 7px;border-radius:10px;margin-left:4px;">App + Excel</span>
           <div class="help-h3" style="margin-top:10px;">First Time Only — Seed Prior Month:</div>
-          <p style="font-size:12px;margin:4px 0 8px;">Upload the most recent Leaseholder Reconciliation Excel file. The app reads the Amount column and stores those values as Prior Month amounts. After the first run, amounts carry forward automatically.</p>
+          <p style="font-size:12px;margin:4px 0 8px;">Upload the prior month's Leaseholder Reconciliation Excel file using the <strong>Seed Prior Month</strong> file picker. The app reads the Amount column and stores each vendor's prior payment as the baseline for comparison. After the first seed, prior amounts carry forward automatically each month — you only need to re-seed if you switch computers or clear your browser data.</p>
           <div class="help-h3">Every Month:</div>
           <ol style="font-size:12px;line-height:1.9;margin:4px 0 0 16px;padding:0;">
-            <li>On the NetSuite Processed Bill Payments screen from the Pay Rent Bills step above, select from the <strong>Name</strong> column header down through the last vendor row</li>
+            <li>On the NetSuite Processed Bill Payments screen, select from the <strong>Name</strong> column header down through the last vendor row (stop before any Total row)</li>
             <li>Copy the selection</li>
             <li>In the app, paste into the paste area using <strong>Paste Special → Text</strong></li>
             <li>Click <strong>Build Reconciliation</strong></li>
           </ol>
-          <p style="font-size:12px;margin:8px 0;">The app builds a table showing each vendor's Name, Status, Check #, Current Amount, Prior Amount, and Difference. Increases are highlighted amber, decreases are red. A summary shows total vendor count, current month total, prior month total, and net change.</p>
+          <p style="font-size:12px;margin:8px 0;">The app builds a table showing each vendor's Name, Status, Check #, Current Amount, Prior Amount, and Difference. Increases are highlighted amber, decreases are red. The prior month total includes all vendors from the previous month — including any locations that were active last month but have no payment this month (relocated, prepaid, etc.).</p>
           <ol start="5" style="font-size:12px;line-height:1.9;margin:4px 0 0 16px;padding:0;">
-            <li>Click <strong>Download Excel</strong> to generate the Leaseholder Reconciliation file in the exact original format. Open in Excel — formulas recalculate automatically.</li>
+            <li>Click <strong>Download Excel</strong> to generate the Leaseholder Reconciliation file. The app automatically updates: the report date (F1), the prior month label and total (D78/E78), and writes $0 for any vendor not in the current paste so formulas return 0 instead of errors.</li>
+            <li>Open the downloaded Excel in Excel — formulas recalculate automatically on open.</li>
           </ol>
-          <p style="font-size:12px;margin:8px 0 0;">Current month amounts are saved automatically as next month's Prior Amounts. No manual copy/paste needed between months.</p>
+          <p style="font-size:12px;margin:8px 0 0;">Current month amounts save automatically as next month's Prior Amounts. No manual carry-forward needed.</p>
           </div>
         </div>
 
@@ -1298,14 +1301,31 @@ body{font-family:var(--sans);background:var(--bg);color:var(--text);font-size:14
           <span class="help-step-num">9</span>
           <div><strong>Email — Rent Ready to Process</strong> <span style="font-size:11px;background:var(--accent-light);color:var(--accent);padding:1px 7px;border-radius:10px;margin-left:4px;">App + Outlook</span><br>
           <strong>To:</strong> Matt Thomas, Mary White &nbsp;|&nbsp; <strong>CC:</strong> Pam Jefferies &nbsp;|&nbsp; <strong>Subject:</strong> Rent is ready to be processed<br>
-          The app pre-drafts the email body with the current month filled in. Click <strong>Copy Email Body</strong> and paste into Outlook. <strong>Attach the Leaseholder Reconciliation Excel from Step 8 before sending.</strong></div>
+          The app pre-drafts the email body using the selected review month. Click <strong>Copy Email Body</strong> and paste into Outlook. <strong>Attach the Leaseholder Reconciliation Excel from Step 8 before sending.</strong></div>
         </div>
 
         <div class="help-step">
           <span class="help-step-num">10</span>
           <div><strong>Email — Monthly Rent Summary</strong> <span style="font-size:11px;background:var(--accent-light);color:var(--accent);padding:1px 7px;border-radius:10px;margin-left:4px;">App + Outlook</span><br>
-          <strong>To:</strong> James Pace (JJ), Pam Jefferies &nbsp;|&nbsp; <strong>CC:</strong> Matt Thomas, Mary White &nbsp;|&nbsp; <strong>Subject:</strong> Monthly Rent - [Month Year]<br>
-          The app pre-fills the current and prior month totals from the reconciliation. Click <strong>Generate Narrative</strong> to draft the explanation — the app uses vendor change data, matched location names, and rent review notes to build a structured narrative. Edit the narrative as needed to explain credits, CAM reconciliations, or special circumstances. Click <strong>Copy Full Email</strong> to copy the complete assembled email including greeting, narrative, dollar totals, and sign-off. Paste into Outlook and send.</div>
+          <strong>To:</strong> James Pace (JJ), Pam Jefferies &nbsp;|&nbsp; <strong>CC:</strong> Matt Thomas, Mary White &nbsp;|&nbsp; <strong>Subject:</strong> Monthly Rent - [Month Year]<br><br>
+          After Step 8 builds the reconciliation, a <strong>Narrative Builder</strong> panel appears automatically with one card per significant change. Each card shows the location, vendor, and dollar change. The app pre-selects a suggested category for each change using two methods: scheduled increases from Step 2 are auto-categorized as Base Rent Increase or CAM Increase; and locations whose current payment matches their database base rent (while last month's was different) are flagged as Return to Normal. Review each card and confirm or change the category.<br><br>
+          Each card has a text field pre-filled by AI with a suggested one-sentence explanation. Edit the text as needed. Toggle <strong>Skip</strong> for any change that doesn't need to appear in the email.<br><br>
+          Click <strong>Generate Narrative</strong> to assemble the email body in the correct format:<br>
+          <ol style="font-size:12px;line-height:1.9;margin:6px 0 6px 16px;padding:0;">
+            <li>Opening sentence with month, direction, and net amount</li>
+            <li>Prose paragraph — relocations, one-time charges/credits, decreases (from card explanation text)</li>
+            <li>Base rent increases list (auto-formatted: Location - $Amount)</li>
+            <li>CAM increases list</li>
+            <li>Return to Normal section (auto intro sentence + list)</li>
+          </ol>
+          Review and edit the narrative before sending. Click <strong>Copy Full Email</strong> to copy the complete email — greeting, narrative, prior and current month totals, and sign-off. Paste into Outlook and send.</div>
+        </div>
+
+        <div class="help-step">
+          <span class="help-step-num" style="background:var(--accent-mid);">✓</span>
+          <div><strong>Mark Month Complete</strong> <span style="font-size:11px;background:#E1F5EE;color:#0F6E56;padding:1px 7px;border-radius:10px;margin-left:4px;">App</span><br>
+          After sending both emails, click <strong>Mark [Month] Complete</strong> at the bottom of the Rent Review page. This saves the month to the Rent Review History log, advances the review month dropdown to the next month, and clears the reconciliation state for the next run. Download the Excel and send the emails <em>before</em> marking complete — the reconciliation data clears when you do.<br><br>
+          The <strong>Rent Review History</strong> collapsible section at the bottom of the page shows a running log of all completed months with current total, prior total, net change, and completion date.</div>
         </div>
 
         <div class="help-tip">💡 Navigate to Rent Review in the sidebar to run this process interactively with the app's built-in workflow tool.</div>

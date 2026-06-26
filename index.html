@@ -3135,16 +3135,30 @@ function initRRMonthSelect(){
   const sel = document.getElementById('rr-month-select');
   if(!sel) return;
   if(sel.options.length > 0) return;
+
+  // Load completed months from history so we can skip them
+  let completedKeys=new Set();
+  try{ JSON.parse(localStorage.getItem('spig_rr_history_v1')||'[]').forEach(h=>completedKeys.add(h.monthKey)); }catch(e){}
+
   const now = new Date();
-  // Start from next month — current month rent has already been processed
-  for(let i = 1; i <= 6; i++){
+  let added = 0;
+  let i = 1; // start from next month
+  let firstAdded = true;
+
+  while(added < 6){
     const d = new Date(now.getFullYear(), now.getMonth() + i, 1);
-    const label = d.toLocaleString('default',{month:'long',year:'numeric'});
     const val = `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}`;
+    i++;
+
+    // Skip months already marked complete in history
+    if(completedKeys.has(val)) continue;
+
+    const label = d.toLocaleString('default',{month:'long',year:'numeric'});
     const opt = document.createElement('option');
     opt.value = val; opt.textContent = label;
-    if(i === 1) opt.selected = true; // default to next month
+    if(firstAdded){ opt.selected = true; firstAdded = false; }
     sel.appendChild(opt);
+    added++;
   }
 }
 

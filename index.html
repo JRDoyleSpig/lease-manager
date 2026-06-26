@@ -2819,6 +2819,8 @@ function renderAll(){
   const av=document.getElementById('view-alerts'); if(av&&!av.classList.contains('hidden'))renderAllAlerts();
   const ev=document.getElementById('view-expiring'); if(ev&&!ev.classList.contains('hidden'))renderExpiryView();
   const rv=document.getElementById('view-rentreview'); if(rv&&!rv.classList.contains('hidden'))renderRentReview();
+  const actv=document.getElementById('view-active'); if(actv&&!actv.classList.contains('hidden'))renderStatusTable('active');
+  const inactv=document.getElementById('view-inactive'); if(inactv&&!inactv.classList.contains('hidden'))renderStatusTable('inactive');
 }
 
 

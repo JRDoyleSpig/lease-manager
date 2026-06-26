@@ -2629,14 +2629,13 @@ function saveLease(){
   }
   const saved = editingId ? leases.find(x=>x.id===editingId) : leases[leases.length-1];
   saveData();
-  spSaveLease(saved).then(()=>{ 
-    renderAll(); 
-    updateEditControls(); 
-    if(document.getElementById('view-map') && !document.getElementById('view-map').classList.contains('hidden')){
-      initMapView();
-    }
-  });
   closeModal();
+  renderAll();
+  updateEditControls();
+  if(document.getElementById('view-map') && !document.getElementById('view-map').classList.contains('hidden')){
+    initMapView();
+  }
+  spSaveLease(saved);
 }
 
 async function deleteLease(id){

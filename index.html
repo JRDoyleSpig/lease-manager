@@ -1889,7 +1889,7 @@ function leaseToSP(l) {
     "AIM": l.aim||"", "AIMEmail": l.aimEmail||"",
     "BrokerInfo": l.brokerInfo||"",
     "LandlordContact": l.landlordContact||"",
-    "SecurityDeposit": l.securityDeposit||"",
+    "securityDeposit": l.securityDeposit||"",
     "PaymentType": l.paymentType||"",
     "Notes": l.notes||"", "RentReviewNotes": l.rentReviewNotes||"", "Company": getCompany(l),
     "LeaseDocs": l.leaseDocs && l.leaseDocs.length ? JSON.stringify(l.leaseDocs) : null
@@ -1947,7 +1947,7 @@ function spToLease(item) {
     aim:clean(item.AIM), aimEmail:clean(item.AIMEmail),
     brokerInfo:clean(item.BrokerInfo).replace(/<[^>]*>/g,'').trim(),
     landlordContact:clean(item.LandlordContact).replace(/<[^>]*>/g,'').trim(),
-    securityDeposit:clean(item.SecurityDeposit).replace(/<[^>]*>/g,'').trim(),
+    securityDeposit:clean(item.securityDeposit).replace(/<[^>]*>/g,'').trim(),
     paymentType:clean(item.PaymentType),
     notes:( item.Notes||'').replace(/<[^>]*>/g,'').trim(),
     rentReviewNotes:( item.RentReviewNotes||'').replace(/<[^>]*>/g,'').trim(),
@@ -2360,7 +2360,6 @@ function renderLeaseTable(){
     +(col('landlord')?thSort('landlord','Landlord'):'')
     +(col('sqft')?thSort('sqft','Sq Ft'):'')
     +(col('baseRent')?thSort('baseRent','Base Rent'):'')
-    +(col('securityDeposit')?thSort('securityDeposit','Security Deposit'):'')
     +(col('cam')?thSort('cam','CAM/OpEx'):'')
     +(col('rentSF')?thSort('rentSF','Rent $/SF'):'')
     +(col('opexSF')?thSort('opexSF','OpEx $/SF'):'')
@@ -2386,6 +2385,7 @@ function renderLeaseTable(){
     +(col('renewal')?thSort('renewal','Renewal Terms'):'')
     +(col('notes')?thSort('notes','Notes'):'')
       +(col('rrNotes')?thSort('rrNotes','Rent Review Notes'):'')
+      +(col('securityDeposit')?thSort('securityDeposit','Security Deposit'):'')
     +(col('leaseStatus')?thSort('leaseStatus','Status'):'')
     +(col('actions')?'<th></th>':'')
     +'</tr></thead><tbody>'+
@@ -2407,7 +2407,6 @@ function renderLeaseTable(){
       +(col('landlord')?'<td style="font-size:11px;min-width:110px;max-width:150px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+(l.landlord||'—')+'</td>':'')
       +(col('sqft')?'<td style="font-family:var(--mono);white-space:nowrap">'+(l.sqft?l.sqft.toLocaleString():'—')+'</td>':'')
       +(col('baseRent')?'<td style="font-family:var(--mono);white-space:nowrap">'+fmtMoney(l.baseRent)+'</td>':'')
-      +(col('securityDeposit')?'<td style="font-family:var(--mono);white-space:nowrap">'+(l.securityDeposit?fmtMoney(l.securityDeposit):'—')+'</td>':'')
       +(col('cam')?'<td style="font-family:var(--mono);white-space:nowrap">'+(l.cam?fmtMoney(l.cam):'—')+'</td>':'')
       +(col('rentSF')?'<td style="white-space:nowrap">'+rsfHtml+'</td>':'')
       +(col('opexSF')?'<td style="white-space:nowrap">'+osfHtml+'</td>':'')
@@ -2433,6 +2432,7 @@ function renderLeaseTable(){
       +(col('renewal')?'<td style="font-size:11px;max-width:160px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+(l.renewal||'—')+'</td>':'')
       +(col('notes')?'<td style="font-size:11px;max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="'+(l.notes||'').replace(/"/g,'&quot;')+'">'+(l.notes||'—')+'</td>':'')
         +(col('rrNotes')?'<td style="font-size:11px;max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--accent)" title="'+(l.rentReviewNotes||'').replace(/"/g,'&quot;')+'">'+(l.rentReviewNotes||'—')+'</td>':'')
+        +(col('securityDeposit')?'<td style="font-family:var(--mono);white-space:nowrap">'+(l.securityDeposit?fmtMoney(l.securityDeposit):'—')+'</td>':'')
       +(col('leaseStatus')?'<td style="font-size:11px;white-space:nowrap"><span class="status-badge '+(l.leaseStatus||'Active').toLowerCase()+'">'+(l.leaseStatus||'Active')+'</span></td>':'')
       +(col('actions')?'<td style="position:relative"><div class="row-actions">'+(l.leaseDocs&&l.leaseDocs.length?'<button class="btn sm" onclick="openDocsMenu('+l.id+',this)" title="Documents">📄 '+l.leaseDocs.length+'</button>':'')+'<button class="btn sm" onclick="openEditModal('+l.id+')">Edit</button><button class="btn sm" style="color:var(--danger)" onclick="deleteLease('+l.id+')">Del</button></div></td>':'')
       +'</tr>';
@@ -2726,7 +2726,6 @@ function renderStatusTable(status){
     +(col('landlord')?thSortS('landlord','Landlord'):'')
     +(col('sqft')?thSortS('sqft','Sq Ft'):'')
     +(col('baseRent')?thSortS('baseRent','Base Rent'):'')
-    +(col('securityDeposit')?thSortS('securityDeposit','Security Deposit'):'')
     +(col('cam')?thSortS('cam','CAM/OpEx'):'')
     +(col('rentSF')?thSortS('rentSF','Rent $/SF'):'')
     +(col('opexSF')?thSortS('opexSF','OpEx $/SF'):'')
@@ -2752,6 +2751,7 @@ function renderStatusTable(status){
     +(col('renewal')?thSortS('renewal','Renewal Terms'):'')
     +(col('notes')?thSortS('notes','Notes'):'')
       +(col('rrNotes')?thSortS('rrNotes','Rent Review Notes'):'')
+      +(col('securityDeposit')?thSortS('securityDeposit','Security Deposit'):'')
     +(col('leaseStatus')?thSortS('leaseStatus','Status'):'')
     +(col('actions')?'<th></th>':'')
     +'</tr></thead><tbody>'
@@ -2773,7 +2773,6 @@ function renderStatusTable(status){
         +(col('landlord')?'<td style="font-size:11px;max-width:150px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+(l.landlord||'—')+'</td>':'')
         +(col('sqft')?'<td style="font-family:var(--mono);white-space:nowrap">'+(l.sqft?l.sqft.toLocaleString():'—')+'</td>':'')
         +(col('baseRent')?'<td style="font-family:var(--mono);white-space:nowrap">'+fmtMoney(l.baseRent)+'</td>':'')
-        +(col('securityDeposit')?'<td style="font-family:var(--mono);white-space:nowrap">'+(l.securityDeposit?fmtMoney(l.securityDeposit):'—')+'</td>':'')
         +(col('cam')?'<td style="font-family:var(--mono);white-space:nowrap">'+(l.cam?fmtMoney(l.cam):'—')+'</td>':'')
         +(col('rentSF')?'<td style="white-space:nowrap">'+(rsf!==null?'<span class="sf-badge">$'+rsf.toFixed(2)+'</span>':'—')+'</td>':'')
         +(col('opexSF')?'<td style="white-space:nowrap">'+(osf!==null?'<span class="sf-badge opex">$'+osf.toFixed(2)+'</span>':'—')+'</td>':'')
@@ -2799,6 +2798,7 @@ function renderStatusTable(status){
         +(col('renewal')?'<td style="font-size:11px;max-width:160px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+(l.renewal||'—')+'</td>':'')
         +(col('notes')?'<td style="font-size:11px;max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="'+(l.notes||'').replace(/"/g,'&quot;')+'">'+(l.notes||'—')+'</td>':'')
         +(col('rrNotes')?'<td style="font-size:11px;max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--accent)" title="'+(l.rentReviewNotes||'').replace(/"/g,'&quot;')+'">'+(l.rentReviewNotes||'—')+'</td>':'')
+        +(col('securityDeposit')?'<td style="font-family:var(--mono);white-space:nowrap">'+(l.securityDeposit?fmtMoney(l.securityDeposit):'—')+'</td>':'')
         +(col('leaseStatus')?'<td style="font-size:11px;white-space:nowrap"><span class="status-badge '+(l.leaseStatus||'Active').toLowerCase()+'">'+(l.leaseStatus||'Active')+'</span></td>':'')
         +(col('actions')?'<td><div class="row-actions"><button class="btn sm" onclick="openEditModal('+l.id+')">Edit</button><button class="btn sm" style="color:var(--danger)" onclick="deleteLease('+l.id+')">Del</button></div></td>':'')
         +'</tr>';
@@ -3045,7 +3045,6 @@ function renderCompanyTable(){
     +(col('landlord')?thSortC('landlord','Landlord'):'')
     +(col('sqft')?thSortC('sqft','Sq Ft'):'')
     +(col('baseRent')?thSortC('baseRent','Base Rent'):'')
-    +(col('securityDeposit')?thSortC('securityDeposit','Security Deposit'):'')
     +(col('cam')?thSortC('cam','CAM/OpEx'):'')
     +(col('rentSF')?thSortC('rentSF','Rent $/SF'):'')
     +(col('opexSF')?thSortC('opexSF','OpEx $/SF'):'')
@@ -3071,6 +3070,7 @@ function renderCompanyTable(){
     +(col('renewal')?thSortC('renewal','Renewal Terms'):'')
     +(col('notes')?thSortC('notes','Notes'):'')
     +(col('rrNotes')?thSortC('rrNotes','Rent Review Notes'):'')
+    +(col('securityDeposit')?thSortC('securityDeposit','Security Deposit'):'')
     +(col('leaseStatus')?thSortC('leaseStatus','Status'):'')
     +(col('actions')?'<th></th>':'')
     +'</tr></thead><tbody>' +
@@ -3092,7 +3092,6 @@ function renderCompanyTable(){
       +(col('landlord')?'<td style="font-size:11px;min-width:110px;max-width:150px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+(l.landlord||'—')+'</td>':'')
       +(col('sqft')?'<td style="font-family:var(--mono);white-space:nowrap">'+(l.sqft?l.sqft.toLocaleString():'—')+'</td>':'')
       +(col('baseRent')?'<td style="font-family:var(--mono);white-space:nowrap">'+fmtMoney(l.baseRent)+'</td>':'')
-      +(col('securityDeposit')?'<td style="font-family:var(--mono);white-space:nowrap">'+(l.securityDeposit?fmtMoney(l.securityDeposit):'—')+'</td>':'')
       +(col('cam')?'<td style="font-family:var(--mono);white-space:nowrap">'+(l.cam?fmtMoney(l.cam):'—')+'</td>':'')
       +(col('rentSF')?'<td style="white-space:nowrap">'+rsfHtml+'</td>':'')
       +(col('opexSF')?'<td style="white-space:nowrap">'+osfHtml+'</td>':'')
@@ -3118,6 +3117,7 @@ function renderCompanyTable(){
       +(col('renewal')?'<td style="font-size:11px;max-width:160px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+(l.renewal||'—')+'</td>':'')
       +(col('notes')?'<td style="font-size:11px;max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="'+(l.notes||'').replace(/"/g,'&quot;')+'">'+(l.notes||'—')+'</td>':'')
       +(col('rrNotes')?'<td style="font-size:11px;max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--accent)" title="'+(l.rentReviewNotes||'').replace(/"/g,'&quot;')+'">'+(l.rentReviewNotes||'—')+'</td>':'')
+      +(col('securityDeposit')?'<td style="font-family:var(--mono);white-space:nowrap">'+(l.securityDeposit?fmtMoney(l.securityDeposit):'—')+'</td>':'')
       +(col('leaseStatus')?'<td style="font-size:11px;white-space:nowrap"><span class="status-badge '+(l.leaseStatus||'Active').toLowerCase()+'">'+(l.leaseStatus||'Active')+'</span></td>':'')
       +(col('actions')?'<td><div class="row-actions">'+(l.leaseDocs&&l.leaseDocs.length?'<button class="btn sm" onclick="showLeaseDocs('+l.id+',this)" title="View Documents">📄</button>':'')+'<button class="btn sm" onclick="openEditModal('+l.id+')">Edit</button><button class="btn sm" style="color:var(--danger)" onclick="deleteLease('+l.id+')">Del</button></div></td>':'')
       +'</tr>';

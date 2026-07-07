@@ -2296,7 +2296,7 @@ function renderUpcomingRenewals(){
 
 function renderRecentTable(){
   const el=document.getElementById('recent-table');
-  const rows=[...leases].filter(l=>l.expiryDate&&l.expiryDate!=='Month to Month').sort((a,b)=>new Date(a.expiryDate)-new Date(b.expiryDate)).slice(0,8);
+  const rows=[...leases].filter(l=>l.leaseStatus==='Active'&&l.expiryDate&&l.expiryDate!=='Month to Month').sort((a,b)=>new Date(a.expiryDate)-new Date(b.expiryDate)).slice(0,8);
   el.innerHTML='<thead><tr><th></th><th>Location</th><th>Expires</th><th>Base Rent</th></tr></thead><tbody>'+rows.map(l=>{
     const s=getStatus(l),ex=getDays(l.expiryDate);
     return`<tr><td><span class="status-dot dot-${s==='critical'?'red':s==='warning'?'warn':'green'}"></span></td>

@@ -954,6 +954,8 @@ body{font-family:var(--sans);background:var(--bg);color:var(--text);font-size:14
   <div class="section-header" style="margin-bottom:12px">
     <span class="section-title">Snapshot — Locations Active on a Date</span>
     <div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap">
+      <button class="btn sm" onclick="exportSnapshotCSV()">⬇ Export CSV</button>
+      <span style="width:1px;height:20px;background:var(--border);margin:0 6px;display:inline-block;"></span>
       <button class="btn sm primary" id="snap-filter-all" onclick="setSnapshotCompany('all')">All</button>
       <button class="btn sm" id="snap-filter-spig" onclick="setSnapshotCompany('spig')">SPIG</button>
       <button class="btn sm" id="snap-filter-pft" onclick="setSnapshotCompany('pft')">PFT</button>
@@ -1046,6 +1048,7 @@ body{font-family:var(--sans);background:var(--bg);color:var(--text);font-size:14
         <div class="help-field"><span class="help-field-name">Alerts</span><span class="help-field-desc">All leases with upcoming expiration or renewal notice deadlines. Badge shows total count.</span></div>
         <div class="help-field"><span class="help-field-name">By Expiry</span><span class="help-field-desc">Leases sorted and grouped by expiration date — useful for planning renewals.</span></div>
         <div class="help-field"><span class="help-field-name">Map View</span><span class="help-field-desc">Interactive map showing all lease locations plotted by address, color-coded by company.</span></div>
+        <div class="help-field"><span class="help-field-name">Snapshot</span><span class="help-field-desc">Shows which locations were active on a past date or during a date range — with a count, list, and map pins.</span></div>
         <div class="help-h3">By Company</div>
         <p>Expand SPIG, PF&T, or ERX in the sidebar to view Active or Inactive leases filtered to that company only.</p>
         <div class="help-h3">Workflows</div>
@@ -1167,11 +1170,32 @@ body{font-family:var(--sans);background:var(--bg);color:var(--text);font-size:14
         <div class="help-h3">Filters</div>
         <div class="help-field"><span class="help-field-name">Company filter</span><span class="help-field-desc">All / SPIG / PFT / ERX — shows only pins for the selected company.</span></div>
         <div class="help-field"><span class="help-field-name">Status filter</span><span class="help-field-desc">Active / Inactive / All — defaults to Active only.</span></div>
+        <div class="help-field"><span class="help-field-name">As of date</span><span class="help-field-desc">Set a past date to see which locations were Active/Inactive on that date instead of today. A banner appears reminding you the map is in historical mode. Click "✕ Today" to return to the live view.</span></div>
         <div class="help-h3">Clicking a Pin</div>
         <p>Click any pin to open a popup showing the location name, company badge, and full address.</p>
         <div class="help-h3">New Locations</div>
         <p>When a new lease is added to the system, it will automatically be geocoded (converted from address to map coordinates) the next time Map View is opened. A progress indicator will appear briefly while this happens, and the result is cached so it only occurs once.</p>
         <div class="help-tip">💡 Use the ↺ Refresh button to clear the geocode cache and re-plot all locations — useful if an address was corrected in the database.</div>
+      </div>
+    </div>
+
+    <!-- Snapshot -->
+    <div class="help-section">
+      <div class="help-section-header" onclick="toggleHelpSection(this)">
+        <span>🕐 Snapshot</span><span class="help-chevron">▶</span>
+      </div>
+      <div class="help-section-body">
+        <p>Snapshot answers "how many locations were active on a given date (or during a date range) in the past?" It uses each lease's <strong>Lease Start Date</strong> and <strong>Expiry Date</strong> to reconstruct historical occupancy — no separate history log is kept, so accuracy depends on those two fields being correct on every record.</p>
+        <div class="help-h3">How it determines "active"</div>
+        <div class="help-field"><span class="help-field-name">Active status today</span><span class="help-field-desc">Counted as occupied from Lease Start Date through today (ongoing).</span></div>
+        <div class="help-field"><span class="help-field-name">Inactive status</span><span class="help-field-desc">Counted as occupied from Lease Start Date through Expiry Date only.</span></div>
+        <div class="help-h3">Single date vs. range</div>
+        <p>Pick an "As of" date for a point-in-time count. Check "Use range" to add a second date — this counts any location that was active at <em>any point</em> during that window, not necessarily the entire time.</p>
+        <div class="help-h3">Output</div>
+        <p>Shows a summary count, a mini-map with pins for the matching locations, and a data table below. Locations that moved to a new address are handled automatically — each lease record is evaluated on its own dates, so an old query date correctly shows the old address.</p>
+        <div class="help-h3">Exporting</div>
+        <p>Click <strong>⬇ Export CSV</strong> to download the current table results as a CSV file, named with the selected date.</p>
+        <div class="help-tip">💡 If a historical count looks off, check Lease Start Date and Expiry Date on the affected records first — an incomplete or incorrect date is the most common cause, not a bug in the calculation.</div>
       </div>
     </div>
 
@@ -5152,6 +5176,8 @@ function clearGeocodeCache(){
 let snapshotCompanyFilter='all';
 let snapshotMapInstance=null;
 let snapshotMapMarkers=[];
+let snapshotLastMatched=[];
+let snapshotLastLabel='';
 
 function setSnapshotCompany(c){
   snapshotCompanyFilter=c;
@@ -5174,7 +5200,7 @@ function renderSnapshotView(){
 
   const dateEl=document.getElementById('snapshot-date');
   const date=dateEl?dateEl.value:'';
-  if(!date){ summaryEl.textContent='Select a date to see results.'; tbody.innerHTML=''; renderSnapshotMap([]); return; }
+  if(!date){ summaryEl.textContent='Select a date to see results.'; tbody.innerHTML=''; snapshotLastMatched=[]; snapshotLastLabel=''; renderSnapshotMap([]); return; }
 
   const useRange=document.getElementById('snapshot-use-range')?.checked;
   const endEl=document.getElementById('snapshot-date-end');
@@ -5191,6 +5217,8 @@ function renderSnapshotView(){
   }
 
   summaryEl.textContent=matched.length+' location'+(matched.length!==1?'s':'')+' '+label;
+  snapshotLastMatched=matched;
+  snapshotLastLabel=label;
 
   const sorted=matched.slice().sort((a,b)=>(a.location||'').localeCompare(b.location||''));
   tbody.innerHTML=sorted.map(l=>{
@@ -5241,6 +5269,36 @@ function renderSnapshotMap(matched){
     const marker=L.marker([coords.lat,coords.lng],{icon}).bindPopup(popup).addTo(snapshotMapInstance);
     snapshotMapMarkers.push(marker);
   });
+}
+
+function exportSnapshotCSV(){
+  if(!snapshotLastMatched||snapshotLastMatched.length===0){
+    alert('No snapshot results to export. Select a date first.');
+    return;
+  }
+  const header=['LocNum','Location','Company','Address','City','State','Zip','Lease Start','Expiry (as of period)'];
+  const rows=snapshotLastMatched.slice().sort((a,b)=>(a.location||'').localeCompare(b.location||'')).map(l=>{
+    const r=getOccupiedRange(l);
+    const vals=[
+      l.locNum||'',
+      l.location||'',
+      MAP_COMPANY_LABELS[getCompany(l)]||'',
+      l.address||'',
+      l.city||'',
+      l.state||'',
+      l.zip||'',
+      r&&r.start?r.start:'',
+      r&&r.end?r.end:'Still active'
+    ];
+    return vals.map(v=>JSON.stringify(v)).join(',');
+  });
+  const csv=header.map(h=>JSON.stringify(h)).join(',')+'\n'+rows.join('\n');
+  const a=document.createElement('a');
+  a.href='data:text/csv;charset=utf-8,'+encodeURIComponent(csv);
+  const dateEl=document.getElementById('snapshot-date');
+  const dateStr=dateEl&&dateEl.value?dateEl.value:new Date().toISOString().split('T')[0];
+  a.download='snapshot_'+dateStr+'.csv';
+  a.click();
 }
 
 function updateGeocodeAlertBanner(){

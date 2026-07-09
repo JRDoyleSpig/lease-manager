@@ -2851,7 +2851,7 @@ function renderStatusTable(status){
 }
 
 function showView(name, el){
-  ['dashboard','leases','active','inactive','alerts','expiring','map','help','staff','company','rentreview'].forEach(v=>{
+  ['dashboard','leases','active','inactive','alerts','expiring','map','snapshot','help','staff','company','rentreview'].forEach(v=>{
     const el2=document.getElementById('view-'+v);
     if(el2) el2.classList.toggle('hidden',v!==name);
   });

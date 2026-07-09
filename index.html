@@ -312,6 +312,10 @@ body{font-family:var(--sans);background:var(--bg);color:var(--text);font-size:14
     <svg class="nav-icon" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 16 16"><path d="M8 2a4 4 0 014 4c0 3-4 8-4 8S4 9 4 6a4 4 0 014-4z"/><circle cx="8" cy="6" r="1.5"/></svg>
     <span class="nav-label"> Map View</span>
   </div>
+  <div class="nav-item" data-view="snapshot" onclick="showView('snapshot',this)">
+    <svg class="nav-icon" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 16 16"><circle cx="8" cy="8" r="6.5"/><path d="M8 4.5v3.8l2.5 1.5"/></svg>
+    <span class="nav-label"> Snapshot</span>
+  </div>
   <div class="sidebar-section">By Company</div>
   <!-- SPIG -->
   <div class="nav-item nav-company-toggle" onclick="toggleCompanyExpand('spig')">
@@ -909,9 +913,16 @@ body{font-family:var(--sans);background:var(--bg);color:var(--text);font-size:14
       <button class="btn sm primary" id="map-status-active" onclick="setMapStatus('active')">Active</button>
       <button class="btn sm" id="map-status-inactive" onclick="setMapStatus('inactive')">Inactive</button>
       <button class="btn sm" id="map-status-all" onclick="setMapStatus('all')">All</button>
+      <span style="width:1px;height:20px;background:var(--border);margin:0 6px;display:inline-block;"></span>
+      <label style="font-size:12px;color:var(--muted);display:flex;align-items:center;gap:5px;">As of
+        <input type="date" id="map-asof-date" class="search-box" style="padding:4px 8px;font-size:12px" onchange="setMapAsOfDate(this.value)">
+      </label>
+      <button class="btn sm" id="map-asof-clear" onclick="clearMapAsOfDate()" style="display:none;color:var(--muted)">✕ Today</button>
       <button class="btn sm" id="map-clear-cache" onclick="clearGeocodeCache()" style="margin-left:8px;color:var(--muted)">↺ Refresh</button>
     </div>
   </div>
+
+  <div id="map-asof-banner" style="display:none;background:var(--accent-light);color:var(--accent);border:1px solid var(--border);border-radius:8px;padding:8px 14px;margin-bottom:12px;font-size:12px;"></div>
 
   <div id="geocode-error" style="display:none;background:var(--warn-light);color:var(--warn);border:1px solid var(--border);border-radius:8px;padding:10px 14px;margin-bottom:12px;font-size:13px;"></div>
 
@@ -937,6 +948,39 @@ body{font-family:var(--sans);background:var(--bg);color:var(--text);font-size:14
     <span><span style="display:inline-block;width:10px;height:10px;border-radius:50%;background:#A32D2D;margin-right:4px;"></span>Inactive</span>
     <span id="map-pin-count" style="margin-left:auto;"></span>
   </div>
+</div>
+
+<div id="view-snapshot" class="hidden">
+  <div class="section-header" style="margin-bottom:12px">
+    <span class="section-title">Snapshot — Locations Active on a Date</span>
+    <div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap">
+      <button class="btn sm primary" id="snap-filter-all" onclick="setSnapshotCompany('all')">All</button>
+      <button class="btn sm" id="snap-filter-spig" onclick="setSnapshotCompany('spig')">SPIG</button>
+      <button class="btn sm" id="snap-filter-pft" onclick="setSnapshotCompany('pft')">PFT</button>
+      <button class="btn sm" id="snap-filter-erx" onclick="setSnapshotCompany('erx')">ERX</button>
+      <span style="width:1px;height:20px;background:var(--border);margin:0 6px;display:inline-block;"></span>
+      <label style="font-size:12px;color:var(--muted);display:flex;align-items:center;gap:5px;">As of
+        <input type="date" id="snapshot-date" class="search-box" style="padding:4px 8px;font-size:12px" onchange="renderSnapshotView()">
+      </label>
+      <label style="font-size:12px;color:var(--muted);display:flex;align-items:center;gap:5px;">
+        <input type="checkbox" id="snapshot-use-range" onchange="toggleSnapshotRange()"> Use range
+      </label>
+      <span id="snapshot-end-wrap" style="display:none">
+        <label style="font-size:12px;color:var(--muted);display:flex;align-items:center;gap:5px;">through
+          <input type="date" id="snapshot-date-end" class="search-box" style="padding:4px 8px;font-size:12px" onchange="renderSnapshotView()">
+        </label>
+      </span>
+    </div>
+  </div>
+
+  <div id="snapshot-summary" style="font-size:14px;font-weight:600;color:var(--accent);margin-bottom:14px;"></div>
+
+  <div id="snapshot-map" style="height:340px;border-radius:var(--radius);border:1px solid var(--border);z-index:1;margin-bottom:16px;"></div>
+
+  <div class="table-wrap" style="height:auto;max-height:340px"><table class="lease-table">
+    <thead><tr><th>Location</th><th>Address</th><th>City, State</th><th>Company</th><th>Lease Start</th><th>Expiry (as of that period)</th></tr></thead>
+    <tbody id="snapshot-table-body"></tbody>
+  </table></div>
 </div>
 
 
@@ -2821,6 +2865,11 @@ function showView(name, el){
   if(name==='expiring')renderExpiryView();
   if(name==='rentreview')renderRentReview();
   if(name==='map')initMapView();
+  if(name==='snapshot'){
+    const de=document.getElementById('snapshot-date');
+    if(de&&!de.value) de.value=new Date().toISOString().split('T')[0];
+    renderSnapshotView();
+  }
 }
 
 function renderAll(){
@@ -2832,6 +2881,7 @@ function renderAll(){
   const actv=document.getElementById('view-active'); if(actv&&!actv.classList.contains('hidden'))renderStatusTable('active');
   const inactv=document.getElementById('view-inactive'); if(inactv&&!inactv.classList.contains('hidden'))renderStatusTable('inactive');
   const mv=document.getElementById('view-map'); if(mv&&!mv.classList.contains('hidden'))initMapView();
+  const sv=document.getElementById('view-snapshot'); if(sv&&!sv.classList.contains('hidden'))renderSnapshotView();
 }
 
 
@@ -4866,6 +4916,7 @@ let mapInstance = null;
 let mapMarkers = [];
 let mapCurrentFilter = 'all';
 let mapCurrentStatus = 'active';
+let mapAsOfDate = null;
 const MAP_COMPANY_COLORS = { spig:'#1256A4', pft:'#1D9E75', erx:'#BA7517' };
 const MAP_COMPANY_LABELS = { spig:'SPIG', pft:'PFT', erx:'ERX' };
 const GEOCODE_CACHE_KEY = 'spig_geocode_v2';
@@ -4904,6 +4955,37 @@ function showMapMsg(msg, type){
 function getLeaseStatus(l){
   const s=(l.leaseStatus||'Active').toLowerCase();
   return (s===''||s==='undefined')?'active':s;
+}
+
+// ── HISTORICAL / SNAPSHOT STATUS HELPERS ──────────────────────────────────
+// Determines the occupied date range for a lease record using leaseStartDate
+// (original start of continuous occupancy at that address) through either
+// today (if still Active) or expiryDate (if Inactive — which already reflects
+// actual move-out date per data entry standing rules).
+function getOccupiedRange(l){
+  const start=l.leaseStartDate||l.currentLeaseStartDate||null;
+  if(!start) return null;
+  const status=getLeaseStatus(l);
+  const end=(status==='active')?null:(l.expiryDate||null);
+  return {start,end};
+}
+function todayStr(){ return new Date().toISOString().split('T')[0]; }
+// Was this lease occupied on a single given date?
+function isActiveAsOf(l,dateStr){
+  if(!dateStr) return getLeaseStatus(l)==='active';
+  const r=getOccupiedRange(l);
+  if(!r) return false;
+  if(dateStr<r.start) return false;
+  if(r.end && dateStr>r.end) return false;
+  return true;
+}
+// Was this lease occupied at ANY point during [startStr, endStr]?
+function overlapsRange(l,startStr,endStr){
+  const r=getOccupiedRange(l);
+  if(!r) return false;
+  const rEnd=r.end||'9999-12-31';
+  const qStart=startStr, qEnd=endStr||startStr;
+  return r.start<=qEnd && rEnd>=qStart;
 }
 
 async function geocodeAddress(l){
@@ -5000,15 +5082,18 @@ function renderMapPins(company, status){
   try{ cache=JSON.parse(localStorage.getItem(GEOCODE_CACHE_KEY)||'{}'); } catch(e){}
   let count=0;
 
+  const effStatus=(l)=> mapAsOfDate ? (isActiveAsOf(l,mapAsOfDate)?'active':'inactive') : getLeaseStatus(l);
+
   leases.forEach(l=>{
     const co=getCompany(l);
     if(company!=='all'&&co!==company) return;
-    if(status!=='all'&&getLeaseStatus(l)!==status) return;
+    const st=effStatus(l);
+    if(status!=='all'&&st!==status) return;
     const coords=cache[addrKey(l)];
     if(!coords) return;
     count++;
 
-    const isInactive=getLeaseStatus(l)==='inactive';
+    const isInactive=st==='inactive';
     const color=isInactive?'#A32D2D':(MAP_COMPANY_COLORS[co]||'#888');
     const icon=L.divIcon({
       html:'<div style="width:13px;height:13px;border-radius:50%;background:'+color+';border:2.5px solid #fff;box-shadow:0 1px 5px rgba(0,0,0,.45);"></div>',
@@ -5016,7 +5101,7 @@ function renderMapPins(company, status){
     });
     const addr=[l.address,l.city,l.state].filter(Boolean).join(', ');
     const coColor=MAP_COMPANY_COLORS[co]||'#888';
-    const inactiveTag=isInactive?'<div style="display:inline-block;font-size:10px;font-weight:600;letter-spacing:.05em;padding:2px 7px;border-radius:10px;background:#A32D2D22;color:#A32D2D;margin-bottom:6px;margin-left:4px">INACTIVE</div>':'';
+    const inactiveTag=isInactive?'<div style="display:inline-block;font-size:10px;font-weight:600;letter-spacing:.05em;padding:2px 7px;border-radius:10px;background:#A32D2D22;color:#A32D2D;margin-bottom:6px;margin-left:4px">'+(mapAsOfDate?'NOT ACTIVE THEN':'INACTIVE')+'</div>':'';
     const popup='<div style="font-family:system-ui,sans-serif;min-width:180px;padding:2px 0">'+
       '<div style="font-weight:600;font-size:13px;color:#111;margin-bottom:3px">'+(l.location||'—')+'</div>'+
       '<div style="display:inline-block;font-size:10px;font-weight:600;letter-spacing:.05em;padding:2px 7px;border-radius:10px;background:'+coColor+'22;color:'+coColor+';margin-bottom:6px">'+(MAP_COMPANY_LABELS[co]||co.toUpperCase())+'</div>'+inactiveTag+
@@ -5029,11 +5114,30 @@ function renderMapPins(company, status){
   ['all','spig','pft','erx'].forEach(c=>{ const b=document.getElementById('map-filter-'+c); if(b) b.classList.toggle('primary',c===company); });
   ['active','inactive','all'].forEach(s=>{ const b=document.getElementById('map-status-'+s); if(b) b.classList.toggle('primary',s===status); });
   const ce=document.getElementById('map-pin-count');
-  if(ce) ce.textContent=count+' location'+(count!==1?'s':'')+' shown';
+  if(ce) ce.textContent=count+' location'+(count!==1?'s':'')+' shown'+(mapAsOfDate?' (as of '+fmtDate(mapAsOfDate)+')':'');
+  const banner=document.getElementById('map-asof-banner');
+  if(banner){
+    if(mapAsOfDate){ banner.style.display='block'; banner.textContent='Showing historical status as of '+fmtDate(mapAsOfDate)+'. Pins reflect what was active/inactive on that date, not today.'; }
+    else { banner.style.display='none'; }
+  }
 }
 
 function filterMapPins(company){ renderMapPins(company,mapCurrentStatus); }
 function setMapStatus(status){ renderMapPins(mapCurrentFilter,status); }
+function setMapAsOfDate(dateStr){
+  mapAsOfDate=dateStr||null;
+  const clearBtn=document.getElementById('map-asof-clear');
+  if(clearBtn) clearBtn.style.display=mapAsOfDate?'inline-block':'none';
+  renderMapPins(mapCurrentFilter,mapCurrentStatus);
+}
+function clearMapAsOfDate(){
+  mapAsOfDate=null;
+  const dateEl=document.getElementById('map-asof-date');
+  if(dateEl) dateEl.value='';
+  const clearBtn=document.getElementById('map-asof-clear');
+  if(clearBtn) clearBtn.style.display='none';
+  renderMapPins(mapCurrentFilter,mapCurrentStatus);
+}
 function clearGeocodeCache(){
   if(!confirm('Clear geocode cache and re-geocode all locations on next open?')) return;
   localStorage.removeItem(GEOCODE_CACHE_KEY);
@@ -5042,6 +5146,101 @@ function clearGeocodeCache(){
   mapMarkers=[];
   const ce=document.getElementById('map-pin-count'); if(ce) ce.textContent='';
   initMapView();
+}
+
+// ── SNAPSHOT VIEW ──────────────────────────────────────────────────────────
+let snapshotCompanyFilter='all';
+let snapshotMapInstance=null;
+let snapshotMapMarkers=[];
+
+function setSnapshotCompany(c){
+  snapshotCompanyFilter=c;
+  ['all','spig','pft','erx'].forEach(x=>{ const b=document.getElementById('snap-filter-'+x); if(b) b.classList.toggle('primary',x===c); });
+  renderSnapshotView();
+}
+
+function toggleSnapshotRange(){
+  const useRange=document.getElementById('snapshot-use-range')?.checked;
+  const endWrap=document.getElementById('snapshot-end-wrap');
+  if(endWrap) endWrap.style.display=useRange?'inline-block':'none';
+  renderSnapshotView();
+}
+
+function renderSnapshotView(){
+  const summaryEl=document.getElementById('snapshot-summary');
+  const tbody=document.getElementById('snapshot-table-body');
+  if(!summaryEl||!tbody) return;
+  if(!leases||leases.length===0){ summaryEl.textContent='No lease data loaded yet. Please wait and try again.'; return; }
+
+  const dateEl=document.getElementById('snapshot-date');
+  const date=dateEl?dateEl.value:'';
+  if(!date){ summaryEl.textContent='Select a date to see results.'; tbody.innerHTML=''; renderSnapshotMap([]); return; }
+
+  const useRange=document.getElementById('snapshot-use-range')?.checked;
+  const endEl=document.getElementById('snapshot-date-end');
+  const endDate=useRange&&endEl?endEl.value:'';
+
+  let matched;
+  let label;
+  if(useRange&&endDate){
+    matched=leases.filter(l=>(snapshotCompanyFilter==='all'||getCompany(l)===snapshotCompanyFilter)&&overlapsRange(l,date,endDate));
+    label='active at some point between '+fmtDate(date)+' and '+fmtDate(endDate);
+  } else {
+    matched=leases.filter(l=>(snapshotCompanyFilter==='all'||getCompany(l)===snapshotCompanyFilter)&&isActiveAsOf(l,date));
+    label='active as of '+fmtDate(date);
+  }
+
+  summaryEl.textContent=matched.length+' location'+(matched.length!==1?'s':'')+' '+label;
+
+  const sorted=matched.slice().sort((a,b)=>(a.location||'').localeCompare(b.location||''));
+  tbody.innerHTML=sorted.map(l=>{
+    const r=getOccupiedRange(l);
+    return '<tr>'+
+      '<td style="font-weight:500">'+(l.location||'—')+'</td>'+
+      '<td style="font-size:11px;max-width:200px;overflow:hidden;text-overflow:ellipsis">'+(l.address||'—')+'</td>'+
+      '<td style="font-size:11px">'+(l.city||'')+(l.city&&l.state?', ':'')+(l.state||'')+'</td>'+
+      '<td style="font-size:11px">'+(MAP_COMPANY_LABELS[getCompany(l)]||'—')+'</td>'+
+      '<td style="font-family:var(--mono);font-size:11px">'+(r&&r.start?fmtDate(r.start):'—')+'</td>'+
+      '<td style="font-family:var(--mono);font-size:11px">'+(r&&r.end?fmtDate(r.end):'Still active')+'</td>'+
+      '</tr>';
+  }).join('') || '<tr><td colspan="6" style="text-align:center;color:var(--muted);padding:16px">No locations match</td></tr>';
+
+  renderSnapshotMap(matched);
+}
+
+function renderSnapshotMap(matched){
+  const mapEl=document.getElementById('snapshot-map');
+  if(!mapEl||typeof L==='undefined') return;
+  if(!snapshotMapInstance){
+    try{
+      snapshotMapInstance=L.map('snapshot-map').setView([37.5,-95.5],4);
+      L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{
+        attribution:'© <a href="https://openstreetmap.org">OpenStreetMap</a>',maxZoom:18
+      }).addTo(snapshotMapInstance);
+    } catch(e){ return; }
+  } else {
+    snapshotMapInstance.invalidateSize();
+  }
+  snapshotMapMarkers.forEach(m=>snapshotMapInstance.removeLayer(m));
+  snapshotMapMarkers=[];
+  let cache={};
+  try{ cache=JSON.parse(localStorage.getItem(GEOCODE_CACHE_KEY)||'{}'); } catch(e){}
+  matched.forEach(l=>{
+    const coords=cache[addrKey(l)];
+    if(!coords) return;
+    const co=getCompany(l);
+    const color=MAP_COMPANY_COLORS[co]||'#888';
+    const icon=L.divIcon({
+      html:'<div style="width:13px;height:13px;border-radius:50%;background:'+color+';border:2.5px solid #fff;box-shadow:0 1px 5px rgba(0,0,0,.45);"></div>',
+      className:'',iconSize:[13,13],iconAnchor:[6,6],popupAnchor:[0,-8]
+    });
+    const addr=[l.address,l.city,l.state].filter(Boolean).join(', ');
+    const popup='<div style="font-family:system-ui,sans-serif;min-width:160px;padding:2px 0">'+
+      '<div style="font-weight:600;font-size:13px;color:#111;margin-bottom:3px">'+(l.location||'—')+'</div>'+
+      '<div style="font-size:12px;color:#555;line-height:1.4">'+(addr||'Address not available')+'</div></div>';
+    const marker=L.marker([coords.lat,coords.lng],{icon}).bindPopup(popup).addTo(snapshotMapInstance);
+    snapshotMapMarkers.push(marker);
+  });
 }
 
 function updateGeocodeAlertBanner(){

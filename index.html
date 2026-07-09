@@ -2831,6 +2831,7 @@ function renderAll(){
   const rv=document.getElementById('view-rentreview'); if(rv&&!rv.classList.contains('hidden'))renderRentReview();
   const actv=document.getElementById('view-active'); if(actv&&!actv.classList.contains('hidden'))renderStatusTable('active');
   const inactv=document.getElementById('view-inactive'); if(inactv&&!inactv.classList.contains('hidden'))renderStatusTable('inactive');
+  const mv=document.getElementById('view-map'); if(mv&&!mv.classList.contains('hidden'))initMapView();
 }
 
 
@@ -4822,7 +4823,39 @@ const MAP_SEED_CACHE = {
   "4849 lafin road, suite a|beaumont|tx|77705":{"lat": 30.04052, "lng": -94.13243},
   "508 kendrick lane, suite l & m|front royal|va|22630":{"lat": 38.934691091994765, "lng": -78.21327641817952},
   "508 kendrick lane, suite l|front royal|va|22630":{"lat": 38.934691091994765, "lng": -78.21327641817952},
-  "508 kendrick lane, suite o|front royal|va|22630":{"lat": 38.934691091994765, "lng": -78.21327641817952}
+  "508 kendrick lane, suite o|front royal|va|22630":{"lat": 38.934691091994765, "lng": -78.21327641817952},
+  "495 industrial park road|blacksburg|va|24060":{"lat": 37.19457, "lng": -80.39521},
+  "185 fm 1903, suite 100|greenville|tx|75402":{"lat": 33.04106, "lng": -96.11213},
+  "1183-a brock mcvey drive|lexington|ky|40509":{"lat": 38.03416, "lng": -84.44923},
+  "3120 towerwood drive|farmers branch|tx|75234":{"lat": 32.95165, "lng": -96.87021},
+  "2220 delante st, suite e|haltom city|tx|76117":{"lat": 32.79082, "lng": -97.25297},
+  "241d west dunbar cave rd|clarksville|tn|37040":{"lat": 36.55664, "lng": -87.32842},
+  "503 old plantation drive, units 204/304/305|lynchburg|va|24502":{"lat": 37.30939, "lng": -79.26861},
+  "95 brians way|somerset|ky|42501":{"lat": 37.03115, "lng": -84.62405},
+  "15800 w hardy rd suite 500|houston|tx|77060":{"lat": 29.94429, "lng": -95.38453},
+  "6254 34th ave nw, unit b|rochester|mn|55901":{"lat": 44.09095, "lng": -92.51394},
+  "6254 34th ave nw, suite c|rochester|mn|55901":{"lat": 44.09095, "lng": -92.51394},
+  "4500 paris rd|chalmette|la|70043":{"lat": 29.93378, "lng": -89.96773},
+  "25 marianne drive|york|pa|17406":{"lat": 40.03897, "lng": -76.73646},
+  "4809 w. 42nd|odessa|tx|79764":{"lat": 31.87054, "lng": -102.43802},
+  "1710 north douglas drive, suite #180|golden valley|mn|55422":{"lat": 44.99718, "lng": -93.36009},
+  "3307a warrior drive|d'iberville|ms|39540":{"lat": 30.44119, "lng": -88.89270},
+  "5606 1st avenue north|grand forks|nd|58203":{"lat": 47.92002, "lng": -97.11143},
+  "2301 nevada ave north, suite #b|golden valley|mn|55427":{"lat": 45.00435, "lng": -93.37250},
+  "6179 e molloy rd|east syracuse|ny|13057":{"lat": 43.09982, "lng": -76.09248},
+  "106 metropolitan dr|liverpool|ny|13088":{"lat": 43.11345, "lng": -76.18190},
+  "8 jay gould court, units b, c, j & k|waldorf|md|20602":{"lat": 38.61292, "lng": -76.91309},
+  "818 w main, suite 818|league city|tx|77573":{"lat": 29.50623, "lng": -95.10183},
+  "8365 10th avenue north|golden valley|mn|55427":{"lat": 44.98902, "lng": -93.38629},
+  "8500 commerce park dr suite 105|houston|tx|77036":{"lat": 29.68730, "lng": -95.53596},
+  "9 lee street|utica|ny|13502":{"lat": 43.10538, "lng": -75.22062},
+  "920 eldridge drive|hagerstown|md|21740":{"lat": 39.62692, "lng": -77.70648},
+  "800 progress center court, suite 400|lawrenceville|ga|30043":{"lat": 33.98974, "lng": -83.96576},
+  "985 harris highway|parkersburg|wv|26101":{"lat": 39.24295, "lng": -81.62258},
+  "529 32nd street|parkersburg|wv|26104":{"lat": 39.29163, "lng": -81.55045},
+  "267 hwy. 105 ext.|boone|nc|28607":{"lat": 36.21430, "lng": -81.66842},
+  "129 dudley st|danville|va|24541":{"lat": 36.56904, "lng": -79.40567},
+  "404 us highways 11 and 80|meridian|ms|39302":{"lat": 32.38228, "lng": -88.66645}
 };
 
 /* leafletLoaded declared inline with Leaflet bundle */

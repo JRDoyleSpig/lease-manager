@@ -4320,19 +4320,26 @@ function reconcInsertNewVendorRow(ws, name, status){
   if(info.lastDataRow0<0) return false;
   const insRow0=info.lastDataRow0+1;
   const thresholdExcelRow=info.lastDataRow0+1; // 1-indexed row number of the (old) last vendor row
+  // Grab the currency number format from an existing vendor row (this row doesn't move)
+  const anchorRow0=info.lastDataRow0;
+  const fmtD=(ws[XLSX.utils.encode_cell({r:anchorRow0,c:3})]||{}).z;
+  const fmtF=(ws[XLSX.utils.encode_cell({r:anchorRow0,c:5})]||{}).z;
+  const fmtG=(ws[XLSX.utils.encode_cell({r:anchorRow0,c:6})]||{}).z;
   reconcInsertRowAt(ws,insRow0,thresholdExcelRow);
   const newRow1=insRow0+1; // 1-indexed row number of the newly inserted row
-  const setCell=(c,val,isFormula)=>{
+  const setCell=(c,val,isFormula,fmt)=>{
     const ref=XLSX.utils.encode_cell({r:insRow0,c});
     if(isFormula){ ws[ref]={t:'n',f:val,v:0}; }
     else if(typeof val==='number'){ ws[ref]={t:'n',v:val,w:val.toFixed(2)}; }
     else { ws[ref]={t:'s',v:val,w:String(val)}; }
+    if(fmt) ws[ref].z=fmt;
   };
   setCell(0,name,false);
   setCell(1,status||'',false);
   setCell(2,'VLOOKUP(A'+newRow1+',Sheet3!A:D,3,FALSE)',true);
-  setCell(3,'VLOOKUP(A'+newRow1+',Sheet3!A:D,4,FALSE)',true);
-  setCell(5,0,false);
+  setCell(3,'VLOOKUP(A'+newRow1+',Sheet3!A:D,4,FALSE)',true,fmtD);
+  setCell(5,0,false,fmtF);
+  setCell(6,'D'+newRow1+'-F'+newRow1,true,fmtG);
   return true;
 }
 

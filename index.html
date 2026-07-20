@@ -723,6 +723,13 @@ body{font-family:var(--sans);background:var(--bg);color:var(--text);font-size:14
             <div id="reconc-zero-list" style="display:flex;flex-direction:column;gap:6px;"></div>
           </div>
 
+          <!-- Broken-formula warning -->
+          <div id="reconc-formula-section" style="display:none;margin-top:14px;background:var(--danger-light);border-radius:8px;padding:12px 14px;">
+            <div style="font-size:12px;font-weight:600;color:var(--danger);margin-bottom:4px;">⚠ Hardcoded value — won't update automatically</div>
+            <div style="font-size:11px;color:var(--muted);margin-bottom:8px;">These rows have a typed-in number instead of a live formula, so they'll keep showing the same amount every month regardless of what you paste. Fix directly in Excel: click the cell and enter <span style="font-family:var(--mono);">=VLOOKUP(A[row],Sheet3!A:D,3or4,FALSE)</span> to match every other row, then re-upload as the seed.</div>
+            <div id="reconc-formula-list" style="font-size:12px;line-height:1.8;"></div>
+          </div>
+
           <!-- New vendor notice -->
           <div id="reconc-new-section" style="display:none;margin-top:14px;background:var(--accent-light);border-radius:8px;padding:12px 14px;">
             <div style="font-size:12px;font-weight:600;color:var(--accent);margin-bottom:4px;">＋ New locations detected</div>
@@ -4015,6 +4022,7 @@ let narrativeCardData = [];
 let reconcRemoveVendors = new Set();
 let reconcNewVendorNames = [];
 let reconcZeroVendorNames = [];
+let reconcFormulaIssues = [];
 
 function loadSheetJS(cb){
   if(typeof XLSX !== 'undefined'){ cb(); return; }
@@ -4083,6 +4091,29 @@ function getSeedVendorRows(){
   return out;
 }
 
+// Scans the seed workbook's Rent Review tab for vendor rows whose Check# or Amount
+// cell is a hardcoded value instead of the expected VLOOKUP(...,Sheet3!A:D,...) formula.
+// A hardcoded Amount cell will never update month to month — it just keeps showing
+// whatever was manually typed in, regardless of what's in the NS paste (this is how
+// McGehee Family Trust kept showing $3,500 every month after someone overwrote its
+// formula once). Returns [{name, row1, cols:['Check #'|'Amount', ...]}].
+function getSeedFormulaIssues(){
+  if(!reconcSeedBuffer||typeof XLSX==='undefined') return [];
+  const wb=XLSX.read(new Uint8Array(reconcSeedBuffer),{type:'array'});
+  const ws=wb.Sheets[wb.SheetNames[0]];
+  const info=reconcFindVendorRows(ws);
+  const issues=[];
+  info.rows.forEach(({row0,name})=>{
+    const badCols=[];
+    const checkCell=ws[XLSX.utils.encode_cell({r:row0,c:2})];
+    const amtCell=ws[XLSX.utils.encode_cell({r:row0,c:3})];
+    if(!(checkCell&&typeof checkCell.f==='string'&&/VLOOKUP/i.test(checkCell.f))) badCols.push('Check #');
+    if(!(amtCell&&typeof amtCell.f==='string'&&/VLOOKUP/i.test(amtCell.f))) badCols.push('Amount');
+    if(badCols.length) issues.push({name,row1:row0+1,cols:badCols});
+  });
+  return issues;
+}
+
 function parseNSPaste(text){
   const skipNames=new Set(['name','total','vendor name','vendor']);
   return text.split(/\r?\n/).filter(l=>l.trim()).map(line=>{
@@ -4140,6 +4171,7 @@ function buildReconciliation(){
     const nsRow=nsRowByName[v.name];
     return !nsRow||nsRow.amount===0;
   }).map(v=>v.name);
+  reconcFormulaIssues=getSeedFormulaIssues();
 
   renderReconcTable(reconcRows,_priorGrandTotal);
   showReconcMsg('','');
@@ -4207,6 +4239,18 @@ function renderReconcTable(rows,priorGrandTotal){
     zeroSection.style.display='none';
   }
 
+  // Broken-formula warning — Amount/Check cells that won't update month to month
+  const formulaSection=document.getElementById('reconc-formula-section');
+  const formulaList=document.getElementById('reconc-formula-list');
+  if(reconcFormulaIssues.length){
+    formulaList.innerHTML=reconcFormulaIssues.map(iss=>
+      '• '+iss.name+' — row '+iss.row1+', '+iss.cols.join(' & ')+' hardcoded (not linked to Sheet3)'
+    ).join('<br>');
+    formulaSection.style.display='block';
+  } else if(formulaSection){
+    formulaSection.style.display='none';
+  }
+
   // Populate email steps
   refreshEmail1();
   refreshEmail2Amounts();
@@ -4224,6 +4268,7 @@ function clearReconciliation(){
   document.getElementById('reconc-results').style.display='none';
   const newSection=document.getElementById('reconc-new-section'); if(newSection) newSection.style.display='none';
   const zeroSection=document.getElementById('reconc-zero-section'); if(zeroSection) zeroSection.style.display='none';
+  const formulaSection=document.getElementById('reconc-formula-section'); if(formulaSection) formulaSection.style.display='none';
   reconcRemoveVendors=new Set();
   showReconcMsg('','');
 }

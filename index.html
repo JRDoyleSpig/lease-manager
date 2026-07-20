@@ -715,6 +715,21 @@ body{font-family:var(--sans);background:var(--bg);color:var(--text);font-size:14
             </table>
           </div>
           <div id="reconc-summary"></div>
+
+          <!-- Zero-activity removal candidates -->
+          <div id="reconc-zero-section" style="display:none;margin-top:14px;background:var(--warn-light);border-radius:8px;padding:12px 14px;">
+            <div style="font-size:12px;font-weight:600;color:var(--warn);margin-bottom:4px;">⚠ $0 for 2 months running</div>
+            <div style="font-size:11px;color:var(--muted);margin-bottom:8px;">These locations had no payment last month and none this month. Check any you want removed from the spreadsheet when you download. Leave unchecked to keep them (e.g. prepaid, holdover).</div>
+            <div id="reconc-zero-list" style="display:flex;flex-direction:column;gap:6px;"></div>
+          </div>
+
+          <!-- New vendor notice -->
+          <div id="reconc-new-section" style="display:none;margin-top:14px;background:var(--accent-light);border-radius:8px;padding:12px 14px;">
+            <div style="font-size:12px;font-weight:600;color:var(--accent);margin-bottom:4px;">＋ New locations detected</div>
+            <div id="reconc-new-list" style="font-size:12px;line-height:1.8;"></div>
+            <div style="font-size:11px;color:var(--muted);margin-top:4px;">These will be added as new rows on the Rent Review tab automatically.</div>
+          </div>
+
           <div style="margin-top:12px;display:flex;gap:8px;flex-wrap:wrap;">
             <button class="btn primary" onclick="generateReconcExcel()">⬇ Download Excel</button>
             <span style="font-size:11px;color:var(--muted);align-self:center;">Opens in Excel — formulas will recalculate on open</span>
@@ -3997,6 +4012,9 @@ let reconcCurrentTotal = 0;
 let reconcPrevTotal = 0;
 const RECONC_KEY = 'spig_reconc_prev_v2';
 let narrativeCardData = [];
+let reconcRemoveVendors = new Set();
+let reconcNewVendorNames = [];
+let reconcZeroVendorNames = [];
 
 function loadSheetJS(cb){
   if(typeof XLSX !== 'undefined'){ cb(); return; }
@@ -4043,6 +4061,28 @@ function loadReconcSeed(input){
   });
 }
 
+// Parses the currently-loaded seed workbook's Rent Review tab into {name, amt} rows.
+// Used to detect brand-new vendors and vendors with $0 for two consecutive months.
+// Reads directly from the seed file each time (not localStorage) since localStorage
+// only tracks vendors present in the most recent NS paste and silently drops
+// zero-dollar/absent vendors after one cycle.
+function getSeedVendorRows(){
+  if(!reconcSeedBuffer||typeof XLSX==='undefined') return [];
+  const wb=XLSX.read(new Uint8Array(reconcSeedBuffer),{type:'array'});
+  const ws=wb.Sheets[wb.SheetNames[0]];
+  const rows=XLSX.utils.sheet_to_json(ws,{header:1,defval:''});
+  const hdr=rows.findIndex(r=>String(r[0]).includes('Vendor Name'));
+  if(hdr<0) return [];
+  const out=[];
+  for(let i=hdr+1;i<rows.length;i++){
+    const name=String(rows[i][0]||'').trim();
+    if(!name||name==='Total') continue;
+    const amt=parseFloat(String(rows[i][3]||'0').replace(/,/g,''))||0;
+    out.push({name,amt});
+  }
+  return out;
+}
+
 function parseNSPaste(text){
   const skipNames=new Set(['name','total','vendor name','vendor']);
   return text.split(/\r?\n/).filter(l=>l.trim()).map(line=>{
@@ -4061,6 +4101,9 @@ function parseNSPaste(text){
 function buildReconciliation(){
   const pasteEl=document.getElementById('reconc-paste');
   if(!pasteEl||!pasteEl.value.trim()){ showReconcMsg('Please paste NS data first','warn'); return; }
+
+  // Fresh cycle — clear any removal selections from a prior build
+  reconcRemoveVendors=new Set();
 
   // Load prev amounts from storage if not in memory
   if(!Object.keys(reconcPrevAmounts).length){
@@ -4084,6 +4127,19 @@ function buildReconciliation(){
   reconcRows.forEach(r=>{ newAmts[r.name]=r.amount; });
   localStorage.setItem(RECONC_KEY,JSON.stringify(newAmts));
   reconcPrevAmounts=newAmts;
+
+  // Detect brand-new vendors (in NS paste, not on the seed's Rent Review tab) and
+  // vendors that have been $0 for two months running (seed shows $0 last month,
+  // and this month's NS paste also has them at $0 or omits them entirely).
+  const seedVendors=getSeedVendorRows();
+  const seedNames=new Set(seedVendors.map(v=>v.name));
+  const nsRowByName={}; reconcNSRows.forEach(r=>{ nsRowByName[r.name]=r; });
+  reconcNewVendorNames=reconcNSRows.filter(r=>!seedNames.has(r.name)).map(r=>r.name);
+  reconcZeroVendorNames=seedVendors.filter(v=>{
+    if(v.amt!==0) return false;
+    const nsRow=nsRowByName[v.name];
+    return !nsRow||nsRow.amount===0;
+  }).map(v=>v.name);
 
   renderReconcTable(reconcRows,_priorGrandTotal);
   showReconcMsg('','');
@@ -4126,16 +4182,168 @@ function renderReconcTable(rows,priorGrandTotal){
   const badge=document.getElementById('rr-badge8');
   if(badge){ badge.textContent=rows.length+' vendors'; badge.style.background='var(--accent-light)'; badge.style.color='var(--accent)'; }
 
+  // New-vendor notice
+  const newSection=document.getElementById('reconc-new-section');
+  const newList=document.getElementById('reconc-new-list');
+  if(reconcNewVendorNames.length){
+    newList.innerHTML=reconcNewVendorNames.map(n=>'• '+n).join('<br>');
+    newSection.style.display='block';
+  } else if(newSection){
+    newSection.style.display='none';
+  }
+
+  // Zero-activity removal candidates
+  const zeroSection=document.getElementById('reconc-zero-section');
+  const zeroList=document.getElementById('reconc-zero-list');
+  if(reconcZeroVendorNames.length){
+    zeroList.innerHTML=reconcZeroVendorNames.map(n=>{
+      const safeId='reconc-rm-'+n.replace(/[^a-zA-Z0-9]/g,'_');
+      const checked=reconcRemoveVendors.has(n)?'checked':'';
+      return '<label style="display:flex;align-items:center;gap:8px;font-size:12px;" for="'+safeId+'">'+
+        '<input type="checkbox" id="'+safeId+'" '+checked+' onchange="toggleRemoveVendor(this.checked, this)" data-vendor="'+n.replace(/"/g,'&quot;')+'"> '+n+'</label>';
+    }).join('');
+    zeroSection.style.display='block';
+  } else if(zeroSection){
+    zeroSection.style.display='none';
+  }
+
   // Populate email steps
   refreshEmail1();
   refreshEmail2Amounts();
   buildNarrativeCards();
 }
 
+function toggleRemoveVendor(checked, el){
+  const name=el.getAttribute('data-vendor');
+  if(checked) reconcRemoveVendors.add(name);
+  else reconcRemoveVendors.delete(name);
+}
+
 function clearReconciliation(){
   document.getElementById('reconc-paste').value='';
   document.getElementById('reconc-results').style.display='none';
+  const newSection=document.getElementById('reconc-new-section'); if(newSection) newSection.style.display='none';
+  const zeroSection=document.getElementById('reconc-zero-section'); if(zeroSection) zeroSection.style.display='none';
+  reconcRemoveVendors=new Set();
   showReconcMsg('','');
+}
+
+// ── RENT REVIEW TAB ROW HELPERS (add/remove vendors, keep formulas in sync) ──
+
+// Scans the live worksheet for the vendor block: header row, each vendor row's
+// position and name, and the row index of the last vendor. Always re-run after
+// any insert/delete since row positions shift.
+function reconcFindVendorRows(ws){
+  const range=XLSX.utils.decode_range(ws['!ref']);
+  let headerRow0=-1;
+  for(let r=range.s.r;r<=range.e.r;r++){
+    const cell=ws[XLSX.utils.encode_cell({r,c:0})];
+    if(cell&&String(cell.v).includes('Vendor Name')){ headerRow0=r; break; }
+  }
+  if(headerRow0<0) return {headerRow0:-1,lastDataRow0:-1,rows:[]};
+  const rows=[];
+  let r=headerRow0+1;
+  while(r<=range.e.r){
+    const cell=ws[XLSX.utils.encode_cell({r,c:0})];
+    const name=cell?String(cell.v||'').trim():'';
+    if(!name) break;
+    rows.push({row0:r,name});
+    r++;
+  }
+  return {headerRow0, lastDataRow0:r-1, rows};
+}
+
+// Rewrites a formula string, bumping any embedded row number >= threshold by delta.
+// Used to keep VLOOKUPs, SUM/COUNTA ranges, and other row-relative formulas correct
+// when rows are physically inserted or removed elsewhere on the sheet.
+function reconcAdjustFormula(f, threshold, delta){
+  if(!f) return f;
+  return f.replace(/([A-Z]{1,2})(\d+)/g,(m,col,rowStr)=>{
+    const rn=parseInt(rowStr,10);
+    return rn>=threshold ? col+(rn+delta) : m;
+  });
+}
+
+// Shifts all rows >= insRow0 (0-indexed) down by 1, opening up a blank row at
+// insRow0. Only cells that actually move get their formulas' row-refs bumped
+// (>= refThreshold1, a 1-indexed row number) by +1 — this correctly extends
+// range endpoints like D6:D68 -> D6:D69 without disturbing rows that don't move.
+function reconcInsertRowAt(ws, insRow0, refThreshold1){
+  const range=XLSX.utils.decode_range(ws['!ref']);
+  for(let r=range.e.r;r>=insRow0;r--){
+    for(let c=range.s.c;c<=range.e.c;c++){
+      const srcRef=XLSX.utils.encode_cell({r,c});
+      const dstRef=XLSX.utils.encode_cell({r:r+1,c});
+      const cell=ws[srcRef];
+      if(cell){
+        if(cell.f) cell.f=reconcAdjustFormula(cell.f,refThreshold1,1);
+        ws[dstRef]=cell;
+        delete ws[srcRef];
+      } else {
+        delete ws[dstRef];
+      }
+    }
+  }
+  range.e.r+=1;
+  ws['!ref']=XLSX.utils.encode_range(range);
+}
+
+// Removes the row at delRow0 (0-indexed) and shifts everything below it up by 1.
+// Only cells that move get formulas' row-refs >= refThreshold1 (the deleted row's
+// own 1-indexed row number) reduced by 1, correctly shrinking ranges that ended
+// there and re-pointing self-references (e.g. a VLOOKUP's own A-column ref).
+function reconcDeleteRow(ws, delRow0, refThreshold1){
+  const range=XLSX.utils.decode_range(ws['!ref']);
+  for(let r=delRow0;r<range.e.r;r++){
+    for(let c=range.s.c;c<=range.e.c;c++){
+      const srcRef=XLSX.utils.encode_cell({r:r+1,c});
+      const dstRef=XLSX.utils.encode_cell({r,c});
+      const cell=ws[srcRef];
+      if(cell){
+        if(cell.f) cell.f=reconcAdjustFormula(cell.f,refThreshold1,-1);
+        ws[dstRef]=cell;
+      } else {
+        delete ws[dstRef];
+      }
+    }
+  }
+  for(let c=range.s.c;c<=range.e.c;c++) delete ws[XLSX.utils.encode_cell({r:range.e.r,c})];
+  range.e.r-=1;
+  ws['!ref']=XLSX.utils.encode_range(range);
+}
+
+// Inserts a new vendor row immediately after the last existing vendor row,
+// with the same VLOOKUP(...,Sheet3!A:D,3/4,FALSE) formula pattern as every
+// other row, and Previous Amount (col F) set to 0 since there's no prior month.
+function reconcInsertNewVendorRow(ws, name, status){
+  const info=reconcFindVendorRows(ws);
+  if(info.lastDataRow0<0) return false;
+  const insRow0=info.lastDataRow0+1;
+  const thresholdExcelRow=info.lastDataRow0+1; // 1-indexed row number of the (old) last vendor row
+  reconcInsertRowAt(ws,insRow0,thresholdExcelRow);
+  const newRow1=insRow0+1; // 1-indexed row number of the newly inserted row
+  const setCell=(c,val,isFormula)=>{
+    const ref=XLSX.utils.encode_cell({r:insRow0,c});
+    if(isFormula){ ws[ref]={t:'n',f:val,v:0}; }
+    else if(typeof val==='number'){ ws[ref]={t:'n',v:val,w:val.toFixed(2)}; }
+    else { ws[ref]={t:'s',v:val,w:String(val)}; }
+  };
+  setCell(0,name,false);
+  setCell(1,status||'',false);
+  setCell(2,'VLOOKUP(A'+newRow1+',Sheet3!A:D,3,FALSE)',true);
+  setCell(3,'VLOOKUP(A'+newRow1+',Sheet3!A:D,4,FALSE)',true);
+  setCell(5,0,false);
+  return true;
+}
+
+// Deletes the row for the named vendor, if present. Returns true if a row was removed.
+function reconcDeleteVendorRow(ws, name){
+  const info=reconcFindVendorRows(ws);
+  const match=info.rows.find(r=>r.name===name);
+  if(!match) return false;
+  const thresholdExcelRow=match.row0+1; // 1-indexed row number being removed
+  reconcDeleteRow(ws,match.row0,thresholdExcelRow);
+  return true;
 }
 
 function generateReconcExcel(){
@@ -4173,6 +4381,23 @@ function generateReconcExcel(){
         ws[_dRef].v=_mnLabel;ws[_dRef].w=_mnLabel;delete ws[_dRef].f;break;
       }
     }
+
+    // --- FIX: Remove flagged zero-activity vendor rows, then add rows for
+    //          brand-new vendors (present in NS paste, not yet on this tab).
+    //          Formulas and totals below the data block are adjusted to match. ---
+    const _removedNow=[];
+    reconcRemoveVendors.forEach(name=>{
+      if(reconcDeleteVendorRow(ws,name)) _removedNow.push(name);
+    });
+    const _addedNow=[];
+    const _existingNames=new Set(reconcFindVendorRows(ws).rows.map(r=>r.name));
+    reconcNSRows.forEach(r=>{
+      if(!_existingNames.has(r.name)){
+        reconcInsertNewVendorRow(ws,r.name,r.status);
+        _existingNames.add(r.name);
+        _addedNow.push(r.name);
+      }
+    });
 
     // Read sheet as array to find header row and data rows
     const rowData=XLSX.utils.sheet_to_json(ws,{header:1,defval:''});
@@ -4242,7 +4467,10 @@ function generateReconcExcel(){
     const ds=(now.getMonth()+1)+'-'+now.getDate()+'-'+String(now.getFullYear()).slice(2);
     a.href=url; a.download='Leaseholder_Reconciliation_-_'+ds+'.xlsx'; a.click();
     URL.revokeObjectURL(url);
-    showReconcMsg('Excel downloaded — open in Excel to recalculate formulas','ok');
+    let _msg='Excel downloaded — open in Excel to recalculate formulas';
+    if(_addedNow.length) _msg+=' — added: '+_addedNow.join(', ');
+    if(_removedNow.length) _msg+=' — removed: '+_removedNow.join(', ');
+    showReconcMsg(_msg,'ok');
   });
 }
 

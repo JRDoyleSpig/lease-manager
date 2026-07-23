@@ -1551,6 +1551,7 @@ body{font-family:var(--sans);background:var(--bg);color:var(--text);font-size:14
           <option value="Yes">Yes</option>
           <option value="No">No</option>
           <option value="Unknown">Unknown</option>
+          <option value="Lease Still Active">Lease Still Active</option>
         </select>
       </div>
       <div class="form-group"><label class="form-label">Payment Type</label>
@@ -1672,6 +1673,7 @@ function depositReturnedPill(l){
   if(v==='Yes') return '<span style="background:#E1F5EE;color:#1D9E75;border-radius:4px;padding:2px 7px;font-size:10px">Yes</span>';
   if(v==='No') return '<span style="background:#FDE8E8;color:#C0392B;border-radius:4px;padding:2px 7px;font-size:10px">No</span>';
   if(v==='Unknown') return '<span style="background:var(--surface2);border:1px solid var(--border);border-radius:4px;padding:2px 7px;font-size:10px">Unknown</span>';
+  if(v==='Lease Still Active') return '<span style="background:#E8F0FE;color:#1A56DB;border-radius:4px;padding:2px 7px;font-size:10px">Lease Still Active</span>';
   return '—';
 }
 // ── LEASE DOCUMENTS ──────────────────────────────────────────────────────────

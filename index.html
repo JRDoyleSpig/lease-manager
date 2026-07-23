@@ -1545,6 +1545,14 @@ body{font-family:var(--sans);background:var(--bg);color:var(--text);font-size:14
     <div class="form-section">Financial — Payment</div>
     <div class="form-grid">
       <div class="form-group"><label class="form-label">Security Deposit</label><input class="form-input" id="f-security-deposit" placeholder="e.g. 2500.00"></div>
+      <div class="form-group"><label class="form-label">Deposit Returned</label>
+        <select class="form-input" id="f-deposit-returned">
+          <option value="">— Select —</option>
+          <option value="Yes">Yes</option>
+          <option value="No">No</option>
+          <option value="Unknown">Unknown</option>
+        </select>
+      </div>
       <div class="form-group"><label class="form-label">Payment Type</label>
         <select class="form-input" id="f-payment-type">
           <option value="">— Select —</option>
@@ -1621,6 +1629,7 @@ const ALL_COLS = [
   {id:'sqft',     label:'Sq Ft',         def:true},
   {id:'baseRent', label:'Base Rent',     def:true},
   {id:'securityDeposit', label:'Security Deposit', def:true},
+  {id:'depositReturned', label:'Deposit Returned', def:true},
   {id:'cam',      label:'CAM/OpEx',      def:true},
   {id:'rentSF',   label:'Rent $/SF',     def:true},
   {id:'opexSF',   label:'OpEx $/SF',     def:true},
@@ -1651,13 +1660,20 @@ const ALL_COLS = [
 let visibleCols = {};
 function loadColPrefs(){
   try{
-    const s=localStorage.getItem('lm_cols_v11');
+    const s=localStorage.getItem('lm_cols_v12');
     if(s) visibleCols=JSON.parse(s);
     else { ALL_COLS.forEach(c=>visibleCols[c.id]=c.def); }
   }catch(e){ ALL_COLS.forEach(c=>visibleCols[c.id]=c.def); }
 }
-function saveColPrefs(){ try{localStorage.setItem('lm_cols_v11',JSON.stringify(visibleCols));}catch(e){} }
+function saveColPrefs(){ try{localStorage.setItem('lm_cols_v12',JSON.stringify(visibleCols));}catch(e){} }
 function col(id){ return visibleCols[id]!==false; }
+function depositReturnedPill(l){
+  const v=l.depositReturned||'';
+  if(v==='Yes') return '<span style="background:#E1F5EE;color:#1D9E75;border-radius:4px;padding:2px 7px;font-size:10px">Yes</span>';
+  if(v==='No') return '<span style="background:#FDE8E8;color:#C0392B;border-radius:4px;padding:2px 7px;font-size:10px">No</span>';
+  if(v==='Unknown') return '<span style="background:var(--surface2);border:1px solid var(--border);border-radius:4px;padding:2px 7px;font-size:10px">Unknown</span>';
+  return '—';
+}
 // ── LEASE DOCUMENTS ──────────────────────────────────────────────────────────
 
 function renderDocsList(){
@@ -1980,6 +1996,7 @@ function leaseToSP(l) {
     "BrokerInfo": l.brokerInfo||"",
     "LandlordContact": l.landlordContact||"",
     "securityDeposit": l.securityDeposit||"",
+    "DepositReturned": l.depositReturned||"",
     "PaymentType": l.paymentType||"",
     "Notes": l.notes||"", "RentReviewNotes": l.rentReviewNotes||"", "Company": getCompany(l),
     "LeaseDocs": l.leaseDocs && l.leaseDocs.length ? JSON.stringify(l.leaseDocs) : null
@@ -2038,6 +2055,7 @@ function spToLease(item) {
     brokerInfo:clean(item.BrokerInfo).replace(/<[^>]*>/g,'').trim(),
     landlordContact:clean(item.LandlordContact).replace(/<[^>]*>/g,'').trim(),
     securityDeposit:clean(item.securityDeposit).replace(/<[^>]*>/g,'').trim(),
+    depositReturned:clean(item.DepositReturned).replace(/<[^>]*>/g,'').trim(),
     paymentType:clean(item.PaymentType),
     notes:( item.Notes||'').replace(/<[^>]*>/g,'').trim(),
     rentReviewNotes:( item.RentReviewNotes||'').replace(/<[^>]*>/g,'').trim(),
@@ -2256,6 +2274,7 @@ const SORT_KEYS={
   brokerInfo:l=>(l.brokerInfo||'').toLowerCase(),
   landlordContact:l=>(l.landlordContact||'').toLowerCase(),
   securityDeposit:l=>parseFloat(l.securityDeposit)||0,
+  depositReturned:l=>(l.depositReturned||'').toLowerCase(),
   payType:l=>(l.paymentType||'').toLowerCase(),
   renewal:l=>(l.renewal||'').toLowerCase(),
   notes:l=>(l.notes||'').toLowerCase(),
@@ -2476,6 +2495,7 @@ function renderLeaseTable(){
     +(col('notes')?thSort('notes','Notes'):'')
       +(col('rrNotes')?thSort('rrNotes','Rent Review Notes'):'')
       +(col('securityDeposit')?thSort('securityDeposit','Security Deposit'):'')
+      +(col('depositReturned')?thSort('depositReturned','Deposit Returned'):'')
     +(col('leaseStatus')?thSort('leaseStatus','Status'):'')
     +(col('actions')?'<th></th>':'')
     +'</tr></thead><tbody>'+
@@ -2523,6 +2543,7 @@ function renderLeaseTable(){
       +(col('notes')?'<td style="font-size:11px;max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="'+(l.notes||'').replace(/"/g,'&quot;')+'">'+(l.notes||'—')+'</td>':'')
         +(col('rrNotes')?'<td style="font-size:11px;max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--accent)" title="'+(l.rentReviewNotes||'').replace(/"/g,'&quot;')+'">'+(l.rentReviewNotes||'—')+'</td>':'')
         +(col('securityDeposit')?'<td style="font-family:var(--mono);white-space:nowrap">'+(l.securityDeposit?fmtMoney(l.securityDeposit):'—')+'</td>':'')
+        +(col('depositReturned')?'<td style="font-size:11px">'+depositReturnedPill(l)+'</td>':'')
       +(col('leaseStatus')?'<td style="font-size:11px;white-space:nowrap"><span class="status-badge '+(l.leaseStatus||'Active').toLowerCase()+'">'+(l.leaseStatus||'Active')+'</span></td>':'')
       +(col('actions')?'<td style="position:relative"><div class="row-actions">'+(l.leaseDocs&&l.leaseDocs.length?'<button class="btn sm" onclick="openDocsMenu('+l.id+',this)" title="Documents">📄 '+l.leaseDocs.length+'</button>':'')+'<button class="btn sm" onclick="openEditModal('+l.id+')">Edit</button><button class="btn sm" style="color:var(--danger)" onclick="deleteLease('+l.id+')">Del</button></div></td>':'')
       +'</tr>';
@@ -2611,7 +2632,7 @@ function exportCSV(){
   const fields=[
     'locNum','location','leaseStatus','address','city','state','zip',
     'landlord','landlordContact','brokerInfo',
-    'sqft','baseRent','securityDeposit','propTax','propInsurance','camDetail','utilities','opExOther','cam',
+    'sqft','baseRent','securityDeposit','depositReturned','propTax','propInsurance','camDetail','utilities','opExOther','cam',
     'paymentType',
     'expiryDate','notifyDate','renewalNotifyDate','renewal',
     'rentIncDate','rentIncAmount','opexIncDate','opexIncAmount',
@@ -2637,6 +2658,7 @@ function openAddModal(){
     const e=document.getElementById(id); if(e)e.value='';
   });
   const pt=document.getElementById('f-payment-type'); if(pt) pt.value='';
+  const dr=document.getElementById('f-deposit-returned'); if(dr) dr.value='';
   const st=document.getElementById('f-status'); if(st) st.value='Active';
   const mtm=document.getElementById('f-mtm'); if(mtm){ mtm.checked=false; toggleMTM(false); }
   populateStaffDropdowns();
@@ -2658,6 +2680,7 @@ function openEditModal(id){
     e.value=(v===null||v===undefined||v==='Month to Month'||v==='undefined')?'':v;
   });
   const pt=document.getElementById('f-payment-type'); if(pt) pt.value=l.paymentType||'';
+  const dr=document.getElementById('f-deposit-returned'); if(dr) dr.value=l.depositReturned||'';
   const st=document.getElementById('f-status'); if(st) st.value=l.leaseStatus||'Active';
   const isMTM = l.expiryDate==='Month to Month'||!l.expiryDate;
   const mtm=document.getElementById('f-mtm');
@@ -2709,6 +2732,7 @@ function saveLease(){
     brokerInfo:g('f-broker-info'),
     landlordContact:g('f-landlord-contact'),
     paymentType:g('f-payment-type'),
+    depositReturned:g('f-deposit-returned'),
     leaseStatus:g('f-status')||'Active',
     notes:g('f-notes'),
     rentReviewNotes:g('f-rr-notes'),
@@ -2842,6 +2866,7 @@ function renderStatusTable(status){
     +(col('notes')?thSortS('notes','Notes'):'')
       +(col('rrNotes')?thSortS('rrNotes','Rent Review Notes'):'')
       +(col('securityDeposit')?thSortS('securityDeposit','Security Deposit'):'')
+      +(col('depositReturned')?thSortS('depositReturned','Deposit Returned'):'')
     +(col('leaseStatus')?thSortS('leaseStatus','Status'):'')
     +(col('actions')?'<th></th>':'')
     +'</tr></thead><tbody>'
@@ -2889,6 +2914,7 @@ function renderStatusTable(status){
         +(col('notes')?'<td style="font-size:11px;max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="'+(l.notes||'').replace(/"/g,'&quot;')+'">'+(l.notes||'—')+'</td>':'')
         +(col('rrNotes')?'<td style="font-size:11px;max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--accent)" title="'+(l.rentReviewNotes||'').replace(/"/g,'&quot;')+'">'+(l.rentReviewNotes||'—')+'</td>':'')
         +(col('securityDeposit')?'<td style="font-family:var(--mono);white-space:nowrap">'+(l.securityDeposit?fmtMoney(l.securityDeposit):'—')+'</td>':'')
+        +(col('depositReturned')?'<td style="font-size:11px">'+depositReturnedPill(l)+'</td>':'')
         +(col('leaseStatus')?'<td style="font-size:11px;white-space:nowrap"><span class="status-badge '+(l.leaseStatus||'Active').toLowerCase()+'">'+(l.leaseStatus||'Active')+'</span></td>':'')
         +(col('actions')?'<td><div class="row-actions"><button class="btn sm" onclick="openEditModal('+l.id+')">Edit</button><button class="btn sm" style="color:var(--danger)" onclick="deleteLease('+l.id+')">Del</button></div></td>':'')
         +'</tr>';
@@ -3168,6 +3194,7 @@ function renderCompanyTable(){
     +(col('notes')?thSortC('notes','Notes'):'')
     +(col('rrNotes')?thSortC('rrNotes','Rent Review Notes'):'')
     +(col('securityDeposit')?thSortC('securityDeposit','Security Deposit'):'')
+    +(col('depositReturned')?thSortC('depositReturned','Deposit Returned'):'')
     +(col('leaseStatus')?thSortC('leaseStatus','Status'):'')
     +(col('actions')?'<th></th>':'')
     +'</tr></thead><tbody>' +
@@ -3215,6 +3242,7 @@ function renderCompanyTable(){
       +(col('notes')?'<td style="font-size:11px;max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="'+(l.notes||'').replace(/"/g,'&quot;')+'">'+(l.notes||'—')+'</td>':'')
       +(col('rrNotes')?'<td style="font-size:11px;max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--accent)" title="'+(l.rentReviewNotes||'').replace(/"/g,'&quot;')+'">'+(l.rentReviewNotes||'—')+'</td>':'')
       +(col('securityDeposit')?'<td style="font-family:var(--mono);white-space:nowrap">'+(l.securityDeposit?fmtMoney(l.securityDeposit):'—')+'</td>':'')
+      +(col('depositReturned')?'<td style="font-size:11px">'+depositReturnedPill(l)+'</td>':'')
       +(col('leaseStatus')?'<td style="font-size:11px;white-space:nowrap"><span class="status-badge '+(l.leaseStatus||'Active').toLowerCase()+'">'+(l.leaseStatus||'Active')+'</span></td>':'')
       +(col('actions')?'<td><div class="row-actions">'+(l.leaseDocs&&l.leaseDocs.length?'<button class="btn sm" onclick="showLeaseDocs('+l.id+',this)" title="View Documents">📄</button>':'')+'<button class="btn sm" onclick="openEditModal('+l.id+')">Edit</button><button class="btn sm" style="color:var(--danger)" onclick="deleteLease('+l.id+')">Del</button></div></td>':'')
       +'</tr>';

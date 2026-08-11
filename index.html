@@ -1367,6 +1367,10 @@ body{font-family:var(--sans);background:var(--bg);color:var(--text);font-size:14
         <div class="help-h3">Response Protocol</div>
         <p>Selecting a weather type shows the numbered response steps for that hazard — tornado, severe thunderstorm, hurricane, flash flood, winter storm, extreme heat, high wind, or power outage. This content is fixed reference material (not per-location) and reflects SPIG's standard inclement weather protocol.</p>
 
+        <div class="help-h3">Prep Checklists (Hurricane, Winter Storm, Extreme Heat)</div>
+        <p>These three advance-notice hazard types also show a step-by-step prep checklist below the response protocol, broken into timing stages (e.g., 72 hours out, 48 hours out, day-of, post-storm for hurricanes). A "Download PDF" link at the top of the checklist opens a printable version of the same content for posting at a site or attaching to an email.</p>
+        <div class="help-tip">💡 The PDFs live in the <code>docs/</code> folder of the GitHub repo (<code>docs/hurricane-prep-checklist.pdf</code>, <code>docs/winter-storm-prep-checklist.pdf</code>, <code>docs/extreme-heat-prep-checklist.pdf</code>). If a download link 404s, the PDF hasn't been uploaded to that folder yet — see Claude for regenerating them if content changes.</div>
+
         <div class="help-h3">One-Time Setup (Facilities Management Only)</div>
         <p>Site Safety Info is stored in its own SharePoint list, separate from the Lease Manager list, so it doesn't clutter lease records. If this is the first time this feature is running, create a list named exactly <strong>Site Safety</strong> on the same SharePoint site (<code>PropertyManagement</code>) with these columns:</p>
         <div class="help-field"><span class="help-field-name">Title</span><span class="help-field-desc">Default column — leave as-is, the app sets it automatically.</span></div>
@@ -2632,6 +2636,87 @@ const HAZARD_PROTOCOLS = {
   ], tip:'Outages tied to storm damage should be logged the same way as other storm damage — photos, landlord/PM contact, and a vendor call if it\'s building-side.' }
 };
 
+const PREP_CHECKLISTS = {
+  hurricane: { pdf:'docs/hurricane-prep-checklist.pdf', sections:[
+    ['Standing Readiness (Start of Season)', [
+      'Sandbags in stock (bottom-rack carpet protection, entry doors, flood-prone areas)',
+      '100 ft roll of plastic sheeting on hand',
+      'Treated lumber on hand (to elevate carpet off floor)',
+      'Plywood on hand',
+      'Generator/backup power tested if site has one',
+      'Emergency contact info current for all site employees'
+    ]],
+    ['72 Hours Out (Watch Issued)', [
+      'Local manager begins this checklist'
+    ]],
+    ['48 Hours Out', [
+      'All carpet/padding moved to racks/bins off the floor',
+      'Product moved away from perimeter walls/windows toward building core',
+      'Office equipment, computers, phones unplugged and moved away from windows',
+      'Sandbags staged at entry doors and known flood points',
+      'Plastic sheeting staged over immovable equipment',
+      'Dumpster/roll-off emptied; area clear of loose debris',
+      'Photos taken of building exterior/interior and inventory (pre-storm documentation)'
+    ]],
+    ['24 Hours Out (Warning Issued)', [
+      'All vehicles removed from parking lot',
+      'All outdoor items brought in (furniture, signage, trash receptacles, unsecured chock blocks)',
+      'No pallet storage outside leased premises',
+      'Dock doors and garage doors closed and locked',
+      'Garage doors secured/boarded. Board windows only if completely necessary.',
+      'Sump pumps in recessed truck wells checked; drains clear',
+      'Electronics raised off the floor',
+      'Blinds and interior doors closed and locked',
+      'No candles or open flame',
+      'Any known glass damage reported to J.R. Doyle immediately'
+    ]],
+    ['Day-Of / Mandatory Evacuation', [
+      'Evacuate immediately once ordered — building clear within 2 hours',
+      'No re-entry once secured',
+      'All employees confirmed accounted for'
+    ]],
+    ['Post-Storm', [
+      'Photograph any damage before moving anything (insurance documentation)',
+      'Report damage to J.R. Doyle immediately',
+      'Confirm full headcount'
+    ]]
+  ]},
+  winter_storm: { pdf:'docs/winter-storm-prep-checklist.pdf', sections:[
+    ['Ahead of Season', [
+      'Snow/ice removal vendor contract and pricing locked in before first storm',
+      'Salt/ice-melt supply on hand',
+      'Heat functioning; pipes in vulnerable areas insulated'
+    ]],
+    ['Advance Notice (Watch/Warning Issued)', [
+      'Removal vendor confirmed on standby',
+      'Salt/ice-melt staged at entrances, walkways, loading dock',
+      'Outdoor lighting checked for early-darkness visibility',
+      'Site vehicles/forklifts fueled if extended closure possible'
+    ]],
+    ['Day-Of', [
+      'Walkways and dock salted before shift start',
+      'Monitor flat/low-slope roof areas for snow load'
+    ]],
+    ['Post-Storm', [
+      'Inspect roof for load damage',
+      'Confirm walkways/dock cleared before reopening',
+      'Report pipe freezes/heat failures to J.R. Doyle immediately'
+    ]]
+  ]},
+  extreme_heat: { pdf:'docs/extreme-heat-prep-checklist.pdf', sections:[
+    ['Ahead of Season', [
+      'A/C functioning in office areas',
+      'Fans/portable cooling available for warehouse/dock areas',
+      'Extra water/electrolyte supply stocked'
+    ]],
+    ['Advance Notice (Heat Advisory/Warning)', [
+      'Water break frequency increased',
+      'Staff briefed on heat illness signs: heavy sweating, weakness, nausea, dizziness = exhaustion; confusion, hot/dry skin = stroke, call 911',
+      'No one left in a closed vehicle, ever'
+    ]]
+  ]}
+};
+
 function onWeatherTypeChange(){
   const sel = document.getElementById('weather-type-select');
   const panel = document.getElementById('weather-protocol-panel');
@@ -2643,8 +2728,25 @@ function onWeatherTypeChange(){
   if(!proto){ panel.classList.add('hidden'); return; }
   panel.classList.remove('hidden');
   titleEl.textContent = proto.title;
-  bodyEl.innerHTML = proto.steps.map((s,i)=>`<div class="wx-protocol-step"><div class="wx-protocol-num">${i+1}</div><div>${s}</div></div>`).join('') +
+  let html = proto.steps.map((s,i)=>`<div class="wx-protocol-step"><div class="wx-protocol-num">${i+1}</div><div>${s}</div></div>`).join('') +
     (proto.tip ? `<div class="help-tip" style="background:var(--accent-light);color:var(--accent);border-radius:6px;padding:8px 12px;font-size:12px;margin-top:10px;">💡 ${proto.tip}</div>` : '');
+
+  const checklist = PREP_CHECKLISTS[key];
+  if(checklist){
+    html += `<div style="margin-top:18px;padding-top:14px;border-top:1px solid var(--border);">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;">
+        <div style="font-weight:700;font-size:13px;">📋 Prep Checklist</div>
+        <a href="${checklist.pdf}" target="_blank" rel="noopener" style="font-size:12px;color:var(--accent);text-decoration:none;font-weight:600;">⬇ Download PDF</a>
+      </div>` +
+      checklist.sections.map(([secTitle, items])=>`
+        <div style="font-weight:600;font-size:12px;color:var(--muted);text-transform:uppercase;letter-spacing:.03em;margin:10px 0 4px;">${secTitle}</div>
+        ${items.map(i=>`<div style="font-size:12px;padding:3px 0 3px 18px;position:relative;">
+          <span style="position:absolute;left:0;">☐</span>${i}
+        </div>`).join('')}
+      `).join('') +
+      `</div>`;
+  }
+  bodyEl.innerHTML = html;
 }
 
 async function spSaveLease(l) {

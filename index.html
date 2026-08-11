@@ -352,6 +352,11 @@ body{font-family:var(--sans);background:var(--bg);color:var(--text);font-size:14
     <svg class="nav-icon" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 16 16"><rect x="1" y="2" width="14" height="12" rx="1"/><path d="M4 6h8M4 9h5"/><circle cx="11.5" cy="9.5" r="2.5"/><path d="M13.5 11.5l1.5 1.5"/></svg>
     <span class="nav-label"> Rent Review</span>
   </div>
+  <div class="sidebar-section">Safety</div>
+  <div class="nav-item" data-view="weather" onclick="showView('weather',this)">
+    <svg class="nav-icon" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 16 16"><path d="M4.5 10.5a3 3 0 01.5-5.96 3.5 3.5 0 016.7-1A3 3 0 0112.5 9"/><path d="M6 12.5l-1 2M9 12.5l-1 2M12 12.5l-1 2"/></svg>
+    <span class="nav-label"> Weather Safety</span>
+  </div>
   <div class="sidebar-section">Resources</div>
   <div class="nav-item" data-view="help" onclick="showView('help',this)">
     <svg class="nav-icon" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 16 16"><circle cx="8" cy="8" r="6"/><path d="M6 6a2 2 0 114 0c0 1.5-2 2-2 3"/><circle cx="8" cy="12.5" r=".75" fill="currentColor" stroke="none"/></svg>
@@ -1008,6 +1013,83 @@ body{font-family:var(--sans);background:var(--bg);color:var(--text);font-size:14
 </div>
 
 
+<div id="view-weather" class="hidden">
+  <style>
+    .wx-picker{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:16px;display:flex;gap:16px;flex-wrap:wrap;align-items:flex-end;margin-bottom:16px;}
+    .wx-picker .form-group{min-width:240px;}
+    .wx-current-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;}
+    .wx-current-stat{background:var(--surface2);border-radius:8px;padding:10px 12px;}
+    .wx-current-stat .lbl{font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:.05em;margin-bottom:3px;}
+    .wx-current-stat .val{font-size:16px;font-weight:600;font-family:var(--mono);}
+    .wx-alert-card{background:var(--danger-light);border:1px solid var(--danger);border-radius:var(--radius);padding:14px 16px;margin-bottom:10px;}
+    .wx-alert-card .ev{font-size:13px;font-weight:700;color:var(--danger);margin-bottom:4px;}
+    .wx-alert-card .hd{font-size:12px;color:var(--text);margin-bottom:4px;}
+    .wx-alert-card .ex{font-size:11px;color:var(--muted);}
+    .wx-safety-field{display:grid;grid-template-columns:160px 1fr;gap:8px;padding:7px 0;border-bottom:1px solid var(--border);font-size:12px;}
+    .wx-safety-field:last-child{border-bottom:none;}
+    .wx-safety-field .k{font-weight:600;color:var(--muted);}
+    .wx-protocol-step{display:flex;gap:10px;padding:7px 0;border-bottom:1px solid var(--border);font-size:12px;align-items:flex-start;}
+    .wx-protocol-step:last-child{border-bottom:none;}
+    .wx-protocol-num{width:20px;height:20px;border-radius:50%;background:var(--accent);color:#fff;display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:700;flex-shrink:0;margin-top:1px;}
+  </style>
+
+  <div class="section-header">
+    <div class="section-title">Weather Safety</div>
+  </div>
+
+  <div class="wx-picker">
+    <div class="form-group">
+      <label class="form-label">Location</label>
+      <select class="form-input" id="weather-location-select" onchange="onWeatherLocationChange()">
+        <option value="">Select a location…</option>
+      </select>
+    </div>
+    <div class="form-group">
+      <label class="form-label">Weather Type</label>
+      <select class="form-input" id="weather-type-select" onchange="onWeatherTypeChange()">
+        <option value="">Select weather type…</option>
+        <option value="tornado">Tornado</option>
+        <option value="severe_thunderstorm">Severe Thunderstorm / Lightning</option>
+        <option value="hurricane">Hurricane / Tropical Storm</option>
+        <option value="flash_flood">Flash Flooding</option>
+        <option value="winter_storm">Winter Storm / Ice</option>
+        <option value="extreme_heat">Extreme Heat</option>
+        <option value="high_wind">High Wind (Non-Tornado)</option>
+        <option value="power_outage">Power Outage</option>
+      </select>
+    </div>
+  </div>
+
+  <div id="weather-empty-msg" class="empty">Select a location above to view current conditions and site safety info.</div>
+
+  <div id="weather-content" class="hidden" style="display:flex;flex-direction:column;gap:16px;">
+
+    <div id="weather-active-alerts"></div>
+
+    <div class="alerts-panel">
+      <div class="alerts-header">
+        <h3>🌤 Current Weather — <span id="weather-loc-name"></span></h3>
+        <span id="weather-refresh-time" style="font-size:11px;color:var(--muted);"></span>
+      </div>
+      <div id="weather-current-body" style="padding:16px;">Loading…</div>
+    </div>
+
+    <div class="alerts-panel">
+      <div class="alerts-header">
+        <h3>🏢 Site Safety Info</h3>
+        <button class="btn sm safety-edit-btn" style="display:none" onclick="openSafetyEditModal()">Edit</button>
+      </div>
+      <div id="weather-safety-body" style="padding:16px;"></div>
+    </div>
+
+    <div id="weather-protocol-panel" class="alerts-panel hidden">
+      <div class="alerts-header"><h3 id="weather-protocol-title">Response Protocol</h3></div>
+      <div id="weather-protocol-body" style="padding:16px;"></div>
+    </div>
+
+  </div>
+</div>
+
 <div id="view-help" class="hidden">
   <div style="max-width:860px;margin:0 auto;padding-bottom:40px;">
 
@@ -1075,6 +1157,8 @@ body{font-family:var(--sans);background:var(--bg);color:var(--text);font-size:14
         <p>Expand SPIG, PF&T, or ERX in the sidebar to view Active or Inactive leases filtered to that company only.</p>
         <div class="help-h3">Workflows</div>
         <div class="help-field"><span class="help-field-name">Rent Review</span><span class="help-field-desc">Step-by-step monthly rent review workflow — all 10 steps, including app steps, NetSuite steps, and email drafts. See the Monthly Rent Review section below for full detail.</span></div>
+        <div class="help-h3">Safety</div>
+        <div class="help-field"><span class="help-field-name">Weather Safety</span><span class="help-field-desc">Live current conditions and NWS alerts by location, site-specific shelter/hazard info, and step-by-step response protocols by weather type. See the Weather Safety section below for full detail.</span></div>
         <div class="help-h3">Resources</div>
         <div class="help-field"><span class="help-field-name">Help & Training</span><span class="help-field-desc">This manual. Full reference guide for the app and the complete monthly rent review SOP.</span></div>
         <div class="help-h3">Settings</div>
@@ -1257,6 +1341,43 @@ body{font-family:var(--sans);background:var(--bg);color:var(--text);font-size:14
         <div class="help-field"><span class="help-field-name">Dashboard — Active Alerts</span><span class="help-field-desc">Same as the Alerts page. All active red and amber alerts shown — no cap.</span></div>
         <div class="help-field"><span class="help-field-name">Dashboard — Upcoming Renewals</span><span class="help-field-desc">Leases expiring 91–180 days from today. Outside the immediate alert window but within the next 6 months — begin the leadership conversation about renewing or vacating.</span></div>
         <div class="help-tip">💡 The red badge on the Alerts sidebar item shows the total count of active red and amber alerts across all locations.</div>
+      </div>
+    </div>
+
+    <!-- Weather Safety -->
+    <div class="help-section">
+      <div class="help-section-header" onclick="toggleHelpSection(this)">
+        <span>🌪 Weather Safety</span><span class="help-chevron">▶</span>
+      </div>
+      <div class="help-section-body">
+        <p>The Weather Safety tab gives anyone at a location — not just Facilities — a fast way to check current conditions, see any active National Weather Service alerts, find the site's shelter area and emergency contacts, and pull up the correct response steps for the type of weather happening. Select a location and a weather type from the dropdowns at the top to populate the page.</p>
+
+        <div class="help-h3">Current Weather & Active Alerts</div>
+        <p>Pulled live from the National Weather Service (api.weather.gov) based on the selected location's geocoded address — no API key or paid service required. Shows today's forecast conditions (temperature, sky, wind, precipitation chance) and any currently active NWS alerts for that address (tornado warnings, severe thunderstorm warnings, flood warnings, etc.), including the alert type and expiration time.</p>
+        <div class="help-tip">💡 If a location shows "Could not determine coordinates," it likely hasn't been geocoded yet — visit Map View once to trigger geocoding for that address, then return here.</div>
+
+        <div class="help-h3">Site Safety Info</div>
+        <div class="help-field"><span class="help-field-name">Shelter Area</span><span class="help-field-desc">The designated interior, away-from-exterior-wall location for that specific building. Facilities Management enters this — ROMs should confirm accuracy for their sites.</span></div>
+        <div class="help-field"><span class="help-field-name">Hazard Notes</span><span class="help-field-desc">Building-specific risks — roll-up doors, skylights, low-lying areas, large-span roofing, etc.</span></div>
+        <div class="help-field"><span class="help-field-name">Local Manager</span><span class="help-field-desc">Name and phone of the on-site point of contact.</span></div>
+        <div class="help-field"><span class="help-field-name">Director / ROM / Landlord-PM Contact</span><span class="help-field-desc">Pulled automatically from the existing lease record for that location — not re-entered here.</span></div>
+        <div class="help-field"><span class="help-field-name">Nearest Hospital</span><span class="help-field-desc">For reference in an emergency.</span></div>
+        <p>Only Facilities Management can edit these fields (the <strong>Edit</strong> button only appears for the app owner) — all other users have read-only access via the location dropdown, same permission model as lease data.</p>
+
+        <div class="help-h3">Response Protocol</div>
+        <p>Selecting a weather type shows the numbered response steps for that hazard — tornado, severe thunderstorm, hurricane, flash flood, winter storm, extreme heat, high wind, or power outage. This content is fixed reference material (not per-location) and reflects SPIG's standard inclement weather protocol.</p>
+
+        <div class="help-h3">One-Time Setup (Facilities Management Only)</div>
+        <p>Site Safety Info is stored in its own SharePoint list, separate from the Lease Manager list, so it doesn't clutter lease records. If this is the first time this feature is running, create a list named exactly <strong>Site Safety</strong> on the same SharePoint site (<code>PropertyManagement</code>) with these columns:</p>
+        <div class="help-field"><span class="help-field-name">Title</span><span class="help-field-desc">Default column — leave as-is, the app sets it automatically.</span></div>
+        <div class="help-field"><span class="help-field-name">LocNum</span><span class="help-field-desc">Single line of text</span></div>
+        <div class="help-field"><span class="help-field-name">Location</span><span class="help-field-desc">Single line of text</span></div>
+        <div class="help-field"><span class="help-field-name">ShelterArea</span><span class="help-field-desc">Single line of text</span></div>
+        <div class="help-field"><span class="help-field-name">HazardNotes</span><span class="help-field-desc">Multiple lines of text</span></div>
+        <div class="help-field"><span class="help-field-name">LocalManagerName</span><span class="help-field-desc">Single line of text</span></div>
+        <div class="help-field"><span class="help-field-name">LocalManagerPhone</span><span class="help-field-desc">Single line of text</span></div>
+        <div class="help-field"><span class="help-field-name">NearestHospital</span><span class="help-field-desc">Single line of text</span></div>
+        <div class="help-tip">💡 Until this list exists, the Site Safety Info panel will show "Not yet entered" for every field and Edit saves will fail with an error — Current Weather and Response Protocol work regardless, since they don't depend on this list.</div>
       </div>
     </div>
 
@@ -1983,6 +2104,7 @@ async function getToken() {
 
 function updateEditControls() {
   document.querySelectorAll(".row-actions, .btn.primary[onclick*=openAddModal]").forEach(el => el.style.display = _isOwner ? "" : "none");
+  document.querySelectorAll(".safety-edit-btn").forEach(el => el.style.display = _isOwner ? "" : "none");
 }
 
 function leaseToSP(l) {
@@ -2162,6 +2284,8 @@ async function loadData() {
     renderAll();
     // One-time cleanup: fix any records with literal "undefined" in staff fields
     cleanUndefinedStaffFields(token);
+    // Load Site Safety data (separate list) — non-fatal if list doesn't exist yet
+    loadSafetyData(token);
   } catch(err) {
     console.error("SP error:",err);
     if(sr) sr.innerHTML="<div style='grid-column:span 6;padding:24px;text-align:center;color:var(--danger)'>Sign-in failed: "+err.message+"</div>";
@@ -2194,6 +2318,333 @@ async function cleanUndefinedStaffFields(token) {
     } catch(e){ console.warn("Cleanup patch failed for",l.location,e); }
   }
   console.log("Cleaned undefined staff fields on",dirty.length,"record(s).");
+}
+
+// ── WEATHER SAFETY ──────────────────────────────────────────────────────────
+const SP_SAFETY_LIST = "Site Safety";
+const SP_SAFETY_API = SP_SITE + "/_api/web/lists/getbytitle('Site%20Safety')/items";
+let safetyData = []; // one row per location, keyed by LocNum
+let safetyListMissing = false;
+
+function safetyToSP(s){
+  return {
+    "__metadata":{"type":"SP.Data.Site_x0020_SafetyListItem"},
+    "Title": s.locNum||s.location||"",
+    "LocNum": s.locNum||"",
+    "Location": s.location||"",
+    "ShelterArea": s.shelterArea||"",
+    "HazardNotes": s.hazardNotes||"",
+    "LocalManagerName": s.localManagerName||"",
+    "LocalManagerPhone": s.localManagerPhone||"",
+    "NearestHospital": s.nearestHospital||""
+  };
+}
+function spToSafety(item){
+  return {
+    id:item.Id, _spId:item.Id,
+    locNum:item.LocNum||"", location:item.Location||item.Title||"",
+    shelterArea:item.ShelterArea||"", hazardNotes:item.HazardNotes||"",
+    localManagerName:item.LocalManagerName||"", localManagerPhone:item.LocalManagerPhone||"",
+    nearestHospital:item.NearestHospital||""
+  };
+}
+
+async function loadSafetyData(token){
+  try{
+    let url = SP_SAFETY_API + "?$select=*&$top=500";
+    let all = [];
+    while(url){
+      const res = await fetch(url, {headers:{"Accept":"application/json;odata=verbose","Authorization":"Bearer "+token}});
+      if(!res.ok){
+        if(res.status===404){ safetyListMissing=true; }
+        throw new Error("HTTP "+res.status);
+      }
+      const data = await res.json();
+      all = all.concat(data.d.results);
+      url = data.d.__next||null;
+    }
+    safetyData = all.map(spToSafety);
+  } catch(e){
+    console.warn("Site Safety list not loaded (may not exist yet):", e.message);
+    safetyData = [];
+  }
+}
+
+async function spSaveSafety(s){
+  const token = await getToken();
+  const body = safetyToSP(s);
+  const spId = s._spId ? parseInt(s._spId) : null;
+  if(spId && spId>0){
+    const res = await fetch(SP_SAFETY_API+"("+spId+")",{method:"POST",headers:{"Accept":"application/json;odata=verbose","Content-Type":"application/json;odata=verbose","Authorization":"Bearer "+token,"X-HTTP-Method":"MERGE","IF-MATCH":"*"},body:JSON.stringify(body)});
+    if(!res.ok){ const txt=await res.text(); throw new Error("MERGE failed ("+res.status+"): "+txt.substring(0,300)); }
+  } else {
+    const r=await fetch(SP_SAFETY_API,{method:"POST",headers:{"Accept":"application/json;odata=verbose","Content-Type":"application/json;odata=verbose","Authorization":"Bearer "+token},body:JSON.stringify(body)});
+    if(!r.ok){ const txt=await r.text(); throw new Error("POST failed ("+r.status+"): "+txt.substring(0,300)); }
+    const rd=await r.json(); s._spId=rd.d.Id; s.id=rd.d.Id;
+  }
+}
+
+function getUniqueWeatherLocations(){
+  const byLoc = {};
+  leases.forEach(l=>{
+    const key = l.locNum || l.location;
+    if(!key) return;
+    if(!byLoc[key] || (l.leaseStatus==='Active' && byLoc[key].leaseStatus!=='Active')) byLoc[key]=l;
+  });
+  return Object.values(byLoc).sort((a,b)=>(a.location||'').localeCompare(b.location||''));
+}
+
+function populateWeatherLocationDropdown(){
+  const sel = document.getElementById('weather-location-select');
+  if(!sel) return;
+  const current = sel.value;
+  const locs = getUniqueWeatherLocations();
+  sel.innerHTML = '<option value="">Select a location…</option>' +
+    locs.map(l=>`<option value="${(l.locNum||l.location).replace(/"/g,'&quot;')}">${l.location||l.locNum} — ${l.city||''}, ${l.state||''}</option>`).join('');
+  if(current) sel.value = current;
+}
+
+function renderWeatherView(){
+  populateWeatherLocationDropdown();
+  document.querySelectorAll('.safety-edit-btn').forEach(el=>el.style.display=_isOwner?'':'none');
+  const sel = document.getElementById('weather-location-select');
+  if(sel && sel.value) onWeatherLocationChange();
+}
+
+function findLeaseForWeatherKey(key){
+  return leases.find(l=>(l.locNum||l.location)===key);
+}
+function findSafetyForKey(key){
+  return safetyData.find(s=>s.locNum===key || s.location===key);
+}
+
+async function onWeatherLocationChange(){
+  const sel = document.getElementById('weather-location-select');
+  const key = sel ? sel.value : '';
+  const emptyMsg = document.getElementById('weather-empty-msg');
+  const content = document.getElementById('weather-content');
+  if(!key){ if(emptyMsg) emptyMsg.style.display=''; if(content) content.classList.add('hidden'); return; }
+  if(emptyMsg) emptyMsg.style.display='none';
+  if(content) content.classList.remove('hidden');
+
+  const l = findLeaseForWeatherKey(key);
+  document.getElementById('weather-loc-name').textContent = l ? l.location : key;
+
+  renderSafetyInfoPanel(l, key);
+
+  const currentBody = document.getElementById('weather-current-body');
+  const alertsPanel = document.getElementById('weather-active-alerts');
+  if(currentBody) currentBody.innerHTML = '<div style="color:var(--muted);font-size:12px;">Loading current conditions…</div>';
+  if(alertsPanel) alertsPanel.innerHTML = '';
+
+  if(!l || !(l.address||l.city)){
+    if(currentBody) currentBody.innerHTML = '<div style="color:var(--muted);font-size:12px;">No address on file for this location — cannot look up weather.</div>';
+    return;
+  }
+  const coords = await getCoordsForLease(l);
+  if(!coords){
+    if(currentBody) currentBody.innerHTML = '<div style="color:var(--muted);font-size:12px;">Could not determine coordinates for this address.</div>';
+    return;
+  }
+  fetchNWSWeather(coords.lat, coords.lng);
+}
+
+async function getCoordsForLease(l){
+  const key = addrKey(l);
+  let cache = {};
+  try{ cache = JSON.parse(localStorage.getItem(GEOCODE_CACHE_KEY)||'{}'); }catch(e){}
+  if(cache[key]) return cache[key];
+  if(MAP_SEED_CACHE[key]) return MAP_SEED_CACHE[key];
+  const coords = await geocodeAddress(l);
+  if(coords){
+    cache[key]=coords;
+    try{ localStorage.setItem(GEOCODE_CACHE_KEY, JSON.stringify(cache)); }catch(e){}
+  }
+  return coords;
+}
+
+async function fetchNWSWeather(lat, lng){
+  const currentBody = document.getElementById('weather-current-body');
+  const alertsPanel = document.getElementById('weather-active-alerts');
+  const refreshEl = document.getElementById('weather-refresh-time');
+  try{
+    const ptRes = await fetch(`https://api.weather.gov/points/${lat.toFixed(4)},${lng.toFixed(4)}`, {headers:{"Accept":"application/geo+json"}});
+    if(!ptRes.ok) throw new Error("points HTTP "+ptRes.status);
+    const ptData = await ptRes.json();
+    const forecastUrl = ptData.properties && ptData.properties.forecast;
+
+    let periodHtml = '<div style="color:var(--muted);font-size:12px;">Forecast unavailable.</div>';
+    if(forecastUrl){
+      const fRes = await fetch(forecastUrl, {headers:{"Accept":"application/geo+json"}});
+      if(fRes.ok){
+        const fData = await fRes.json();
+        const p = fData.properties && fData.properties.periods && fData.properties.periods[0];
+        if(p){
+          periodHtml = `<div class="wx-current-grid">
+            <div class="wx-current-stat"><div class="lbl">${p.name||'Now'}</div><div class="val">${p.temperature}°${p.temperatureUnit}</div></div>
+            <div class="wx-current-stat"><div class="lbl">Conditions</div><div class="val" style="font-size:12px;font-weight:500;">${p.shortForecast||'—'}</div></div>
+            <div class="wx-current-stat"><div class="lbl">Wind</div><div class="val" style="font-size:13px;">${(p.windSpeed||'—')} ${p.windDirection||''}</div></div>
+            <div class="wx-current-stat"><div class="lbl">Precip. Chance</div><div class="val">${p.probabilityOfPrecipitation&&p.probabilityOfPrecipitation.value!=null?p.probabilityOfPrecipitation.value+'%':'—'}</div></div>
+          </div>`;
+        }
+      }
+    }
+    if(currentBody) currentBody.innerHTML = periodHtml;
+    if(refreshEl) refreshEl.textContent = 'Updated '+new Date().toLocaleTimeString();
+
+    // Active alerts for this point
+    const alRes = await fetch(`https://api.weather.gov/alerts/active?point=${lat.toFixed(4)},${lng.toFixed(4)}`, {headers:{"Accept":"application/geo+json"}});
+    if(alRes.ok){
+      const alData = await alRes.json();
+      const feats = alData.features||[];
+      if(feats.length===0){
+        if(alertsPanel) alertsPanel.innerHTML = '<div style="background:var(--accent-light);color:var(--accent);border-radius:8px;padding:10px 14px;font-size:12px;">✅ No active NWS alerts for this location right now.</div>';
+      } else {
+        if(alertsPanel) alertsPanel.innerHTML = feats.map(f=>{
+          const p = f.properties||{};
+          const expires = p.expires ? new Date(p.expires).toLocaleString() : '—';
+          return `<div class="wx-alert-card">
+            <div class="ev">🚨 ${p.event||'Alert'}</div>
+            <div class="hd">${(p.headline||'').replace(/</g,'&lt;')}</div>
+            <div class="ex">Expires: ${expires}</div>
+          </div>`;
+        }).join('');
+      }
+    }
+  } catch(e){
+    if(currentBody) currentBody.innerHTML = '<div style="color:var(--danger);font-size:12px;">Weather lookup failed: '+e.message+'</div>';
+    console.warn('NWS fetch error', e);
+  }
+}
+
+function renderSafetyInfoPanel(l, key){
+  const body = document.getElementById('weather-safety-body');
+  if(!body) return;
+  const s = findSafetyForKey(key) || {};
+  const director = l ? [l.director,l.directorEmail].filter(Boolean).join(' — ') : '';
+  const rom = l ? [l.rom,l.romEmail].filter(Boolean).join(' — ') : '';
+  const landlord = l ? (l.landlordContact||l.landlord||'') : '';
+  body.innerHTML = `
+    <div class="wx-safety-field"><span class="k">Shelter Area</span><span>${s.shelterArea||'<em style="color:var(--muted)">Not yet entered</em>'}</span></div>
+    <div class="wx-safety-field"><span class="k">Hazard Notes</span><span>${s.hazardNotes||'<em style="color:var(--muted)">None on file</em>'}</span></div>
+    <div class="wx-safety-field"><span class="k">Local Manager</span><span>${[s.localManagerName,s.localManagerPhone].filter(Boolean).join(' — ')||'<em style="color:var(--muted)">Not yet entered</em>'}</span></div>
+    <div class="wx-safety-field"><span class="k">Director</span><span>${director||'<em style="color:var(--muted)">—</em>'}</span></div>
+    <div class="wx-safety-field"><span class="k">ROM</span><span>${rom||'<em style="color:var(--muted)">—</em>'}</span></div>
+    <div class="wx-safety-field"><span class="k">Landlord / PM Contact</span><span>${landlord||'<em style="color:var(--muted)">—</em>'}</span></div>
+    <div class="wx-safety-field"><span class="k">Nearest Hospital</span><span>${s.nearestHospital||'<em style="color:var(--muted)">Not yet entered</em>'}</span></div>
+  `;
+}
+
+function openSafetyEditModal(){
+  if(!_isOwner) return;
+  const sel = document.getElementById('weather-location-select');
+  const key = sel ? sel.value : '';
+  if(!key){ alert('Select a location first.'); return; }
+  const l = findLeaseForWeatherKey(key);
+  const s = findSafetyForKey(key) || {locNum:l?l.locNum:key, location:l?l.location:key};
+  document.getElementById('sf-shelter').value = s.shelterArea||'';
+  document.getElementById('sf-mgr-name').value = s.localManagerName||'';
+  document.getElementById('sf-mgr-phone').value = s.localManagerPhone||'';
+  document.getElementById('sf-hospital').value = s.nearestHospital||'';
+  document.getElementById('sf-hazards').value = s.hazardNotes||'';
+  document.getElementById('safety-modal').dataset.key = key;
+  document.getElementById('safety-modal').classList.add('open');
+}
+function closeSafetyModal(){
+  document.getElementById('safety-modal').classList.remove('open');
+}
+async function saveSafetyInfo(){
+  const key = document.getElementById('safety-modal').dataset.key;
+  const l = findLeaseForWeatherKey(key);
+  let s = findSafetyForKey(key);
+  if(!s){ s = {locNum:l?l.locNum:key, location:l?l.location:key}; safetyData.push(s); }
+  s.shelterArea = document.getElementById('sf-shelter').value.trim();
+  s.localManagerName = document.getElementById('sf-mgr-name').value.trim();
+  s.localManagerPhone = document.getElementById('sf-mgr-phone').value.trim();
+  s.nearestHospital = document.getElementById('sf-hospital').value.trim();
+  s.hazardNotes = document.getElementById('sf-hazards').value.trim();
+  try{
+    await spSaveSafety(s);
+    closeSafetyModal();
+    renderSafetyInfoPanel(l, key);
+  } catch(e){
+    alert('Save failed: '+e.message+(safetyListMissing?'\n\nThe "Site Safety" SharePoint list may not exist yet. See Help & Training for setup instructions.':''));
+  }
+}
+
+const HAZARD_PROTOCOLS = {
+  tornado: { title:'🌪 Tornado — Response Protocol', steps:[
+    'Move immediately to the designated shelter area for this site — do not wait to finish a task or move product first.',
+    'Go to the lowest floor, an interior room, away from exterior walls, windows, and glass doors.',
+    'In warehouse space, avoid large open-span areas — racking and roofing are not built to withstand tornado-force wind.',
+    'Crouch low and cover your head and neck.',
+    'Stay sheltered until the warning expires or local officials give the all-clear.'
+  ], tip:'If no shelter area is listed above for this site, treat any small interior room away from exterior walls as the default.' },
+  severe_thunderstorm: { title:'⛈ Severe Thunderstorm / Lightning — Response Protocol', steps:[
+    'Move indoors immediately — lightning is the primary hazard, and it can strike before rain arrives.',
+    'Stay away from windows and exterior doors.',
+    'If outdoors and caught without shelter, avoid open areas, tall isolated objects, and metal equipment (forklifts, racking, roll-up doors).',
+    'Unplug sensitive electronics if time allows.',
+    'Wait at least 30 minutes after the last thunder before resuming outdoor work.'
+  ], tip:'Roof leaks and power blips are common after severe thunderstorms — do a quick building walk-through once it clears.' },
+  hurricane: { title:'🌀 Hurricane / Tropical Storm — Response Protocol', steps:[
+    'At 72 hours out: confirm this site\'s prep checklist is underway with the local manager.',
+    'Secure or elevate product and equipment away from low areas and exterior walls.',
+    'Photograph the building and yard exterior before the storm for insurance documentation.',
+    'Confirm fuel levels on any site vehicles/forklifts and back up any critical local records.',
+    'Coordinate evacuation timing with the ROM if local/state evacuation orders are issued.',
+    'After the storm: confirm headcount, take damage photos, and contact the landlord/PM per the info below before any repair vendor is dispatched.'
+  ], tip:'Unlike tornadoes, hurricanes give days of lead time — use it. Don\'t wait until the storm is 24 hours out to start prep.' },
+  flash_flood: { title:'🌊 Flash Flooding — Response Protocol', steps:[
+    'Move product and equipment off the floor and away from low-lying areas of the building as soon as a flood watch/warning is issued.',
+    'Do not drive or walk through flooded roads or parking areas — 6 inches of moving water can knock over an adult, and a foot of water can move most vehicles.',
+    'If water begins entering the building, move to higher ground within the site immediately.',
+    'Cut power to affected areas only if it can be done safely and without standing in water.',
+    'Report entrapment risk situations to 911 first, then notify the ROM.'
+  ], tip:'Flash flood warnings can escalate fast — treat "warning" as an active, immediate threat, not a heads-up.' },
+  winter_storm: { title:'❄️ Winter Storm / Ice — Response Protocol', steps:[
+    'Confirm snow/ice removal vendor is on standby before the storm arrives, not after.',
+    'Salt/treat walkways, loading docks, and entrances proactively — most winter injuries are slip-and-falls, not the storm itself.',
+    'Check that heat is functioning and pipes are insulated in vulnerable areas to prevent freezing.',
+    'Delay opening or send staff home early if travel becomes unsafe — a facility isn\'t worth a driving injury.',
+    'After heavy snow, check the roof for excessive load, especially on flat or low-slope sections.'
+  ], tip:'Confirm the vendor relationship (and pricing) before the season starts, not during the first storm — availability disappears fast once snow starts falling.' },
+  extreme_heat: { title:'☀️ Extreme Heat — Response Protocol', steps:[
+    'Confirm A/C is functioning in office areas; for non-conditioned warehouse space, increase water breaks and monitor staff for heat illness symptoms.',
+    'Watch for heat exhaustion signs: heavy sweating, weakness, nausea, dizziness. Heat stroke (confusion, hot/dry skin, high body temp) is a medical emergency — call 911.',
+    'Adjust physical work to cooler parts of the day where possible.',
+    'Ensure fans/portable cooling are positioned in loading dock and warehouse work areas.',
+    'Never leave anyone in a closed vehicle, even briefly.'
+  ], tip:'Heat illness is preventable but escalates fast — don\'t wait for someone to look unwell before addressing conditions.' },
+  high_wind: { title:'💨 High Wind (Non-Tornado) — Response Protocol', steps:[
+    'Secure or move loose outdoor materials, signage, and equipment before wind arrives if advance notice is given.',
+    'Keep roll-up doors closed and latched during high-wind conditions.',
+    'Stay clear of exterior walls, windows, and anything that could become airborne debris.',
+    'After the wind event, inspect the roof, roll-up doors, and signage for damage before resuming normal operations.',
+    'Report any structural damage or downed lines to the landlord/PM and avoid the area until it\'s assessed.'
+  ], tip:'Roll-up doors are the most common high-wind failure point in flex/industrial space — check them first after any event.' },
+  power_outage: { title:'🔌 Power Outage — Response Protocol', steps:[
+    'Confirm whether the outage is site-specific (breaker/utility issue) or area-wide before troubleshooting.',
+    'If area-wide, check the utility provider\'s outage map for an estimated restoration time.',
+    'Secure the building if extended closure is needed — verify security systems have battery backup.',
+    'Report the outage and estimated impact to the ROM, and to Facilities if repair/vendor coordination is needed.',
+    'Once power is restored, check HVAC, refrigeration (if applicable), and any equipment that may need a manual restart.'
+  ], tip:'Outages tied to storm damage should be logged the same way as other storm damage — photos, landlord/PM contact, and a vendor call if it\'s building-side.' }
+};
+
+function onWeatherTypeChange(){
+  const sel = document.getElementById('weather-type-select');
+  const panel = document.getElementById('weather-protocol-panel');
+  const titleEl = document.getElementById('weather-protocol-title');
+  const bodyEl = document.getElementById('weather-protocol-body');
+  const key = sel ? sel.value : '';
+  if(!key){ panel.classList.add('hidden'); return; }
+  const proto = HAZARD_PROTOCOLS[key];
+  if(!proto){ panel.classList.add('hidden'); return; }
+  panel.classList.remove('hidden');
+  titleEl.textContent = proto.title;
+  bodyEl.innerHTML = proto.steps.map((s,i)=>`<div class="wx-protocol-step"><div class="wx-protocol-num">${i+1}</div><div>${s}</div></div>`).join('') +
+    (proto.tip ? `<div class="help-tip" style="background:var(--accent-light);color:var(--accent);border-radius:6px;padding:8px 12px;font-size:12px;margin-top:10px;">💡 ${proto.tip}</div>` : '');
 }
 
 async function spSaveLease(l) {
@@ -2948,7 +3399,7 @@ function renderStatusTable(status){
 }
 
 function showView(name, el){
-  ['dashboard','leases','active','inactive','alerts','expiring','map','snapshot','help','staff','company','rentreview'].forEach(v=>{
+  ['dashboard','leases','active','inactive','alerts','expiring','map','snapshot','help','staff','company','rentreview','weather'].forEach(v=>{
     const el2=document.getElementById('view-'+v);
     if(el2) el2.classList.toggle('hidden',v!==name);
   });
@@ -2961,6 +3412,7 @@ function showView(name, el){
   if(name==='inactive')renderStatusTable('inactive');
   if(name==='expiring')renderExpiryView();
   if(name==='rentreview')renderRentReview();
+  if(name==='weather')renderWeatherView();
   if(name==='map')initMapView();
   if(name==='snapshot'){
     const de=document.getElementById('snapshot-date');
@@ -5721,6 +6173,40 @@ function dismissGeocodeAlert(key){
   <div class="modal-footer">
     <button class="btn" onclick="closeStaffModal()">Cancel</button>
     <button class="btn primary" onclick="saveStaffMember()">Save</button>
+  </div>
+</div>
+</div>
+
+<!-- SITE SAFETY MODAL -->
+<div class="modal-backdrop" id="safety-modal" onclick="if(event.target===this)closeSafetyModal()">
+<div class="modal" style="width:540px">
+  <div class="modal-header">
+    <span class="modal-title" id="safety-modal-title">Edit Site Safety Info</span>
+    <button class="modal-close" onclick="closeSafetyModal()">×</button>
+  </div>
+  <div class="modal-body">
+    <div class="form-grid">
+      <div class="form-group full"><label class="form-label">Designated Shelter Area</label>
+        <input class="form-input" id="sf-shelter" placeholder="e.g. Interior restroom / back hallway, away from exterior walls">
+      </div>
+      <div class="form-group"><label class="form-label">Local Manager Name</label>
+        <input class="form-input" id="sf-mgr-name" placeholder="e.g. Jane Smith">
+      </div>
+      <div class="form-group"><label class="form-label">Local Manager Phone</label>
+        <input class="form-input" id="sf-mgr-phone" placeholder="555-555-5555">
+      </div>
+      <div class="form-group full"><label class="form-label">Nearest Hospital</label>
+        <input class="form-input" id="sf-hospital" placeholder="Name and approx. address/distance">
+      </div>
+      <div class="form-group full"><label class="form-label">Hazard Notes</label>
+        <textarea class="form-input" id="sf-hazards" rows="3" placeholder="Roll-up doors, skylights, low-lying area, large-span roof, etc."></textarea>
+      </div>
+    </div>
+    <div class="help-tip" style="background:var(--accent-light);color:var(--accent);border-radius:6px;padding:8px 12px;font-size:12px;">💡 Director, ROM, and Landlord/PM contact info pull automatically from the lease record for this location — no need to re-enter them here.</div>
+  </div>
+  <div class="modal-footer">
+    <button class="btn" onclick="closeSafetyModal()">Cancel</button>
+    <button class="btn primary" onclick="saveSafetyInfo()">Save</button>
   </div>
 </div>
 </div>

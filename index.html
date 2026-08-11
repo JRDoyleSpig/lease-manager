@@ -2386,10 +2386,10 @@ async function spSaveSafety(s){
 
 function getUniqueWeatherLocations(){
   const byLoc = {};
-  leases.forEach(l=>{
+  leases.filter(l=>l.leaseStatus==='Active').forEach(l=>{
     const key = l.locNum || l.location;
     if(!key) return;
-    if(!byLoc[key] || (l.leaseStatus==='Active' && byLoc[key].leaseStatus!=='Active')) byLoc[key]=l;
+    byLoc[key]=l;
   });
   return Object.values(byLoc).sort((a,b)=>(a.location||'').localeCompare(b.location||''));
 }

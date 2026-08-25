@@ -273,7 +273,11 @@ body{font-family:var(--sans);background:var(--bg);color:var(--text);font-size:14
 .forklift-disposition-row{border:1px solid var(--border);border-radius:8px;padding:12px;background:var(--surface)}
 .forklift-disposition-grid{display:grid;grid-template-columns:90px 1fr 180px 1fr;gap:10px;align-items:center}
 .forklift-disposition-footer{padding:14px 22px;border-top:1px solid var(--border);display:flex;justify-content:flex-end;gap:8px;position:sticky;bottom:0;background:var(--surface)}
-@media(max-width:700px){.forklift-disposition-grid{grid-template-columns:1fr}.forklift-disposition-grid .form-label{margin-top:4px}}
+@media(max-width:700px){
+  .forklift-disposition-grid{grid-template-columns:1fr}
+  .forklift-disposition-grid .form-label{margin-top:4px}
+  #new-active-forklift-options{grid-template-columns:1fr!important}
+}
 
 </style>
 <script src="https://cdn.jsdelivr.net/npm/@azure/msal-browser@2.38.3/lib/msal-browser.min.js" crossorigin="anonymous"></script>
@@ -1594,6 +1598,45 @@ body{font-family:var(--sans);background:var(--bg);color:var(--text);font-size:14
 </div><!-- /content -->
 </div><!-- /main-body -->
 </div><!-- /app -->
+
+<!-- NEW ACTIVE LOCATION / FORKLIFT ACTION MODAL -->
+<div class="forklift-disposition-backdrop" id="new-active-forklift-modal">
+  <div class="forklift-disposition-modal">
+    <div class="forklift-disposition-header">
+      <div class="forklift-disposition-title">New Active Location</div>
+      <div class="forklift-disposition-sub" id="new-active-forklift-sub">
+        What should we do with the forklift for this location?
+      </div>
+    </div>
+
+    <div class="forklift-disposition-body">
+      <div style="display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px" id="new-active-forklift-options">
+        <button type="button" class="btn primary" id="new-active-add-forklift" style="padding:14px 10px">
+          + Add New Forklift
+        </button>
+        <button type="button" class="btn" id="new-active-transfer-forklift" style="padding:14px 10px">
+          Transfer Existing Forklift
+        </button>
+        <button type="button" class="btn" id="new-active-no-forklift" style="padding:14px 10px">
+          No Forklift
+        </button>
+      </div>
+
+      <div id="new-active-transfer-panel" style="display:none;border-top:1px solid var(--border);padding-top:14px">
+        <div style="font-size:12px;font-weight:600;margin-bottom:8px">Select Existing Forklift</div>
+        <select class="form-input" id="new-active-transfer-select">
+          <option value="">— Loading Forklifts —</option>
+        </select>
+        <div id="new-active-transfer-note" style="font-size:11px;color:var(--muted);margin-top:8px;line-height:1.5"></div>
+      </div>
+    </div>
+
+    <div class="forklift-disposition-footer">
+      <button type="button" class="btn" id="new-active-close">Close</button>
+      <button type="button" class="btn primary" id="new-active-confirm-transfer" style="display:none">Confirm Transfer</button>
+    </div>
+  </div>
+</div>
 
 <!-- FORKLIFT DISPOSITION MODAL -->
 <div class="forklift-disposition-backdrop" id="forklift-disposition-modal">
@@ -3646,6 +3689,185 @@ async function applyForkliftDispositions(decisions,fields,token){
 }
 
 
+
+async function getTransferableForklifts(token){
+  const fields=await forkliftFieldInfo(token);
+  if(!fields.workroom||!fields.status)throw new Error('Forklift Fleet must contain "Current Workroom" and "Status".');
+
+  const select=['Id','Title',fields.workroom.InternalName,fields.status.InternalName];
+  if(fields.manufacturer)select.push(fields.manufacturer.InternalName);
+  if(fields.model)select.push(fields.model.InternalName);
+
+  let url=FORKLIFT_API+"?$select="+select.join(',')+"&$top=500";
+  let all=[];
+  while(url){
+    const r=await fetch(url,{
+      headers:{"Accept":"application/json;odata=verbose","Authorization":"Bearer "+token}
+    });
+    if(!r.ok)throw new Error("Could not read Forklift Fleet (HTTP "+r.status+").");
+    const d=await r.json();
+    all=all.concat(d.d.results||[]);
+    url=d.d.__next||null;
+  }
+
+  const items=all.filter(i=>{
+    const status=String(i[fields.status.InternalName]||'').trim().toLowerCase();
+    return !['retired','scrapped','sold'].includes(status);
+  });
+
+  items.sort((a,b)=>{
+    const aId=String(a.Title||'');
+    const bId=String(b.Title||'');
+    return aId.localeCompare(bId,undefined,{numeric:true,sensitivity:'base'});
+  });
+
+  return {fields,items};
+}
+
+async function transferExistingForkliftToLocation(itemId,newLocation,token,fields){
+  const itemType=await getForkliftListItemType(token);
+  const body={
+    "__metadata":{"type":itemType}
+  };
+  body[fields.workroom.InternalName]=newLocation;
+
+  const r=await fetch(FORKLIFT_API+"("+itemId+")",{
+    method:'POST',
+    headers:{
+      "Accept":"application/json;odata=verbose",
+      "Content-Type":"application/json;odata=verbose",
+      "Authorization":"Bearer "+token,
+      "X-HTTP-Method":"MERGE",
+      "IF-MATCH":"*"
+    },
+    body:JSON.stringify(body)
+  });
+
+  if(!r.ok){
+    const detail=await r.text();
+    throw new Error("Could not transfer forklift (HTTP "+r.status+"). "+detail);
+  }
+}
+
+async function showNewActiveLocationPrompt(location){
+  const backdrop=document.getElementById('new-active-forklift-modal');
+  const sub=document.getElementById('new-active-forklift-sub');
+  const panel=document.getElementById('new-active-transfer-panel');
+  const select=document.getElementById('new-active-transfer-select');
+  const note=document.getElementById('new-active-transfer-note');
+  const confirmTransfer=document.getElementById('new-active-confirm-transfer');
+  const addBtn=document.getElementById('new-active-add-forklift');
+  const transferBtn=document.getElementById('new-active-transfer-forklift');
+  const noBtn=document.getElementById('new-active-no-forklift');
+  const closeBtn=document.getElementById('new-active-close');
+
+  if(!backdrop)return;
+
+  let transferState=null;
+  panel.style.display='none';
+  confirmTransfer.style.display='none';
+  select.innerHTML='<option value="">— Loading Forklifts —</option>';
+  note.textContent='';
+  sub.textContent=`${location} is now Active. What should we do with the forklift for this location?`;
+
+  const close=()=>{
+    backdrop.classList.remove('open');
+    addBtn.onclick=null;
+    transferBtn.onclick=null;
+    noBtn.onclick=null;
+    closeBtn.onclick=null;
+    confirmTransfer.onclick=null;
+  };
+
+  addBtn.onclick=()=>{
+    close();
+    window.open('https://jrdoylespig.github.io/forklift-manager/Register.html','_blank');
+  };
+
+  noBtn.onclick=()=>close();
+  closeBtn.onclick=()=>close();
+
+  transferBtn.onclick=async()=>{
+    panel.style.display='';
+    confirmTransfer.style.display='';
+    select.innerHTML='<option value="">— Loading Forklifts —</option>';
+    note.textContent='Loading the current Forklift Fleet…';
+
+    try{
+      const token=await getToken();
+      transferState=await getTransferableForklifts(token);
+
+      select.innerHTML='<option value="">— Select Existing Forklift —</option>'+
+        transferState.items.map(i=>{
+          const room=String(i[transferState.fields.workroom.InternalName]||'').trim();
+          const make=transferState.fields.manufacturer?String(i[transferState.fields.manufacturer.InternalName]||'').trim():'';
+          const model=transferState.fields.model?String(i[transferState.fields.model.InternalName]||'').trim():'';
+          const desc=[make,model].filter(Boolean).join(' ');
+          return `<option value="${i.Id}">${forkliftHtmlEsc(i.Title||'')} — ${forkliftHtmlEsc(room||'No workroom')}${desc?' — '+forkliftHtmlEsc(desc):''}</option>`;
+        }).join('');
+
+      const sameName=transferState.items.filter(i=>
+        String(i[transferState.fields.workroom.InternalName]||'').trim().toLowerCase()===
+        String(location||'').trim().toLowerCase()
+      );
+
+      if(sameName.length){
+        note.innerHTML=`This appears to be a relocation using the same workroom name. ${sameName.length} forklift${sameName.length===1?' is':'s are'} already assigned to <strong>${forkliftHtmlEsc(location)}</strong>. Select the forklift that is moving with the location. Its Current Workroom will remain the same.`;
+      }else{
+        note.innerHTML=`Select the forklift being moved to <strong>${forkliftHtmlEsc(location)}</strong>. Its Current Workroom will be changed to the new Active location.`;
+      }
+    }catch(err){
+      console.error('Could not load transferable forklifts:',err);
+      select.innerHTML='<option value="">— Could not load forklifts —</option>';
+      note.textContent=err.message;
+    }
+  };
+
+  confirmTransfer.onclick=async()=>{
+    if(!transferState)return;
+    const itemId=parseInt(select.value,10);
+    if(!itemId){
+      alert('Select the forklift you are transferring.');
+      return;
+    }
+
+    const item=transferState.items.find(i=>i.Id===itemId);
+    if(!item){
+      alert('Could not find the selected forklift.');
+      return;
+    }
+
+    const oldRoom=String(item[transferState.fields.workroom.InternalName]||'').trim();
+    const sameRoom=oldRoom.toLowerCase()===String(location||'').trim().toLowerCase();
+
+    const ok=confirm(
+      sameRoom
+        ? `${item.Title} is already assigned to ${location}. Confirm that this forklift is moving with the relocated workroom?`
+        : `Transfer ${item.Title} from ${oldRoom||'its current location'} to ${location}?`
+    );
+    if(!ok)return;
+
+    try{
+      if(!sameRoom){
+        const token=await getToken();
+        await transferExistingForkliftToLocation(itemId,location,token,transferState.fields);
+      }
+      alert(
+        sameRoom
+          ? `${item.Title} confirmed as moving with ${location}. No Current Workroom change was needed.`
+          : `${item.Title} was transferred to ${location}.`
+      );
+      close();
+    }catch(err){
+      console.error('Forklift transfer failed:',err);
+      alert('Forklift transfer failed.\n\n'+err.message);
+    }
+  };
+
+  backdrop.classList.add('open');
+}
+
+
 async function saveLease(){
   const g=id=>document.getElementById(id)?.value||'';
   const isMTM = document.getElementById('f-mtm')?.checked||false;
@@ -3657,6 +3879,10 @@ async function saveLease(){
   const activeToInactive = !!existingLease &&
     oldLeaseStatus.toLowerCase()==='active' &&
     newLeaseStatus.toLowerCase()==='inactive';
+  const newActiveLocation = !existingLease && newLeaseStatus.toLowerCase()==='active';
+  const inactiveToActive = !!existingLease &&
+    oldLeaseStatus.toLowerCase()==='inactive' &&
+    newLeaseStatus.toLowerCase()==='active';
 
   if(activeToInactive){
     try{
@@ -3738,6 +3964,10 @@ async function saveLease(){
     initMapView();
   }
   await spSaveLease(saved);
+
+  if(newActiveLocation || inactiveToActive){
+    await showNewActiveLocationPrompt(saved.location);
+  }
 }
 
 async function deleteLease(id){

@@ -2831,19 +2831,18 @@ function onWeatherTypeChange(){
 }
 
 async function spSaveLease(l) {
-  try {
-    const token = await getToken();
-    const body = leaseToSP(l);
-    const spId = l._spId ? parseInt(l._spId) : null; // normalize to number regardless of how it came in
-    if(spId && spId > 0) {
-      const res = await fetch(SP_API+"("+spId+")",{method:"POST",headers:{"Accept":"application/json;odata=verbose","Content-Type":"application/json;odata=verbose","Authorization":"Bearer "+token,"X-HTTP-Method":"MERGE","IF-MATCH":"*"},body:JSON.stringify(body)});
-      if(!res.ok) { const txt=await res.text(); throw new Error("MERGE failed ("+res.status+"): "+txt.substring(0,300)); }
-    } else {
-      const r=await fetch(SP_API,{method:"POST",headers:{"Accept":"application/json;odata=verbose","Content-Type":"application/json;odata=verbose","Authorization":"Bearer "+token},body:JSON.stringify(body)});
-      if(!r.ok) { const txt=await r.text(); throw new Error("POST failed ("+r.status+"): "+txt.substring(0,300)); }
-      const rd=await r.json(); l._spId=rd.d.Id; l.id=rd.d.Id;
-    }
-  } catch(e) { alert("Save error: "+e.message); }
+  const token = await getToken();
+  const body = leaseToSP(l);
+  const spId = l._spId ? parseInt(l._spId) : null; // normalize to number regardless of how it came in
+  if(spId && spId > 0) {
+    const res = await fetch(SP_API+"("+spId+")",{method:"POST",headers:{"Accept":"application/json;odata=verbose","Content-Type":"application/json;odata=verbose","Authorization":"Bearer "+token,"X-HTTP-Method":"MERGE","IF-MATCH":"*"},body:JSON.stringify(body)});
+    if(!res.ok) { const txt=await res.text(); throw new Error("MERGE failed ("+res.status+"): "+txt.substring(0,300)); }
+  } else {
+    const r=await fetch(SP_API,{method:"POST",headers:{"Accept":"application/json;odata=verbose","Content-Type":"application/json;odata=verbose","Authorization":"Bearer "+token},body:JSON.stringify(body)});
+    if(!r.ok) { const txt=await r.text(); throw new Error("POST failed ("+r.status+"): "+txt.substring(0,300)); }
+    const rd=await r.json(); l._spId=rd.d.Id; l.id=rd.d.Id;
+  }
+  return l;
 }
 
 async function spDeleteLease(l) {
@@ -3515,7 +3514,7 @@ async function getForkliftsRequiringDisposition(location,token){
   const f=await forkliftFieldInfo(token);
   if(!f.workroom||!f.status||!f.dispositionDate)throw new Error('Forklift Fleet must contain "Current Workroom", "Status", and "Disposition Date".');
 
-  const select=['Id','Title',f.workroom.InternalName,f.status.InternalName];
+  const select=['Id','Title',f.workroom.InternalName,f.status.InternalName,f.dispositionDate.InternalName];
   if(f.manufacturer)select.push(f.manufacturer.InternalName);
   if(f.model)select.push(f.model.InternalName);
 
@@ -3648,46 +3647,76 @@ function chooseForkliftDispositions(location,items,fields){
   });
 }
 
-async function applyForkliftDispositions(decisions,fields,token){
-  if(!decisions||!decisions.length)return;
-
-  const itemType=await getForkliftListItemType(token);
-
-  for(const d of decisions){
-    const body={"__metadata":{"type":itemType}};
-
-    if(d.action==='transfer'){
-      body[fields.workroom.InternalName]=d.destination;
-    }else if(d.action==='retire'){
-      body[fields.status.InternalName]='Retired';
-      body[fields.dispositionDate.InternalName]=d.dispositionDate;
-    }else if(d.action==='scrap'){
-      body[fields.status.InternalName]='Scrapped';
-      body[fields.dispositionDate.InternalName]=d.dispositionDate;
-    }else if(d.action==='sold'){
-      body[fields.status.InternalName]='Sold';
-      body[fields.dispositionDate.InternalName]=d.dispositionDate;
-    }
-
-    const r=await fetch(FORKLIFT_API+"("+d.item.Id+")",{
-      method:'POST',
-      headers:{
-        "Accept":"application/json;odata=verbose",
-        "Content-Type":"application/json;odata=verbose",
-        "Authorization":"Bearer "+token,
-        "X-HTTP-Method":"MERGE",
-        "IF-MATCH":"*"
-      },
-      body:JSON.stringify(body)
-    });
-
-    if(!r.ok){
-      const detail=await r.text();
-      throw new Error(`Could not update ${d.item.Title} (HTTP ${r.status}). ${detail}`);
-    }
+async function writeForkliftState(itemId,body,token,itemType){
+  const payload={"__metadata":{"type":itemType},...body};
+  const r=await fetch(FORKLIFT_API+"("+itemId+")",{
+    method:'POST',
+    headers:{
+      "Accept":"application/json;odata=verbose",
+      "Content-Type":"application/json;odata=verbose",
+      "Authorization":"Bearer "+token,
+      "X-HTTP-Method":"MERGE",
+      "IF-MATCH":"*"
+    },
+    body:JSON.stringify(payload)
+  });
+  if(!r.ok){
+    const detail=await r.text();
+    throw new Error(`Could not update forklift item ${itemId} (HTTP ${r.status}). ${detail}`);
   }
 }
 
+async function applyForkliftDispositions(decisions,fields,token){
+  if(!decisions||!decisions.length)return [];
+
+  const itemType=await getForkliftListItemType(token);
+  const applied=[];
+
+  try{
+    for(const d of decisions){
+      const original={
+        workroom:d.item[fields.workroom.InternalName]??'',
+        status:d.item[fields.status.InternalName]??'',
+        dispositionDate:d.item[fields.dispositionDate.InternalName]??null
+      };
+
+      const body={};
+      if(d.action==='transfer'){
+        body[fields.workroom.InternalName]=d.destination;
+      }else if(d.action==='retire'){
+        body[fields.status.InternalName]='Retired';
+        body[fields.dispositionDate.InternalName]=d.dispositionDate;
+      }else if(d.action==='scrap'){
+        body[fields.status.InternalName]='Scrapped';
+        body[fields.dispositionDate.InternalName]=d.dispositionDate;
+      }else if(d.action==='sold'){
+        body[fields.status.InternalName]='Sold';
+        body[fields.dispositionDate.InternalName]=d.dispositionDate;
+      }
+
+      await writeForkliftState(d.item.Id,body,token,itemType);
+      applied.push({item:d.item,original});
+    }
+    return applied;
+  }catch(err){
+    const rollbackErrors=[];
+    for(const a of [...applied].reverse()){
+      try{
+        const body={};
+        body[fields.workroom.InternalName]=a.original.workroom;
+        body[fields.status.InternalName]=a.original.status;
+        body[fields.dispositionDate.InternalName]=a.original.dispositionDate;
+        await writeForkliftState(a.item.Id,body,token,itemType);
+      }catch(rbErr){
+        rollbackErrors.push(`${a.item.Title||a.item.Id}: ${rbErr.message}`);
+      }
+    }
+    if(rollbackErrors.length){
+      throw new Error(err.message+" Forklift rollback also had errors: "+rollbackErrors.join(" | "));
+    }
+    throw err;
+  }
+}
 
 
 async function getTransferableForklifts(token){
@@ -3884,6 +3913,9 @@ async function saveLease(){
     oldLeaseStatus.toLowerCase()==='inactive' &&
     newLeaseStatus.toLowerCase()==='active';
 
+  let dispositionPlan=null;
+
+  // First gather and confirm forklift decisions, but do not write anything yet.
   if(activeToInactive){
     try{
       const token=await getToken();
@@ -3894,15 +3926,15 @@ async function saveLease(){
         if(!decisions)return;
 
         const ok=confirm(
-          `This will update ${decisions.length} forklift${decisions.length===1?'':'s'} in Forklift Fleet and then make ${existingLease.location} Inactive.\n\nContinue?`
+          `This will make ${existingLease.location} Inactive and update ${decisions.length} forklift${decisions.length===1?'':'s'} in Forklift Fleet.\n\nIf either SharePoint update fails, the workflow will attempt to roll the other change back.\n\nContinue?`
         );
         if(!ok)return;
 
-        await applyForkliftDispositions(decisions,result.fields,token);
+        dispositionPlan={decisions,fields:result.fields,token};
       }
     }catch(err){
-      console.error('Forklift disposition failed:',err);
-      alert('The location was NOT made inactive.\n\n'+err.message);
+      console.error('Could not prepare forklift disposition:',err);
+      alert('Nothing was changed.\n\n'+err.message);
       return;
     }
   }
@@ -3947,26 +3979,85 @@ async function saveLease(){
   };
   // Calculate CAM total from breakdown
   obj.cam = (obj.propTax||0) + (obj.propInsurance||0) + (obj.camDetail||0) + (obj.utilities||0) + (obj.opExOther||0);
-  if(editingId){
-    const i=leases.findIndex(x=>x.id===editingId);
-    if(i>=0){ const existing=leases[i]; leases[i]={...existing,...obj}; if(existing.dateAdded) leases[i].dateAdded=existing.dateAdded; }
-  } else {
-    obj.id=Date.now();
-    obj.dateAdded=new Date().toISOString().split('T')[0];
-    leases.push(obj);
-  }
-  const saved = editingId ? leases.find(x=>x.id===editingId) : leases[leases.length-1];
-  saveData();
-  closeModal();
-  renderAll();
-  updateEditControls();
-  if(document.getElementById('view-map') && !document.getElementById('view-map').classList.contains('hidden')){
-    initMapView();
-  }
-  await spSaveLease(saved);
 
-  if(newActiveLocation || inactiveToActive){
-    await showNewActiveLocationPrompt(saved.location);
+  // Build a candidate record without touching the local lease array yet.
+  let saved;
+  if(editingId){
+    if(!existingLease){
+      alert('Could not find the lease being edited.');
+      return;
+    }
+    saved={...existingLease,...obj};
+    if(existingLease.dateAdded)saved.dateAdded=existingLease.dateAdded;
+  }else{
+    saved={...obj};
+    saved.id=Date.now();
+    saved.dateAdded=new Date().toISOString().split('T')[0];
+  }
+
+  try{
+    // Save the Lease Manager record first. If this fails, no forklift records are touched.
+    await spSaveLease(saved);
+
+    // Then apply forklift changes. This function rolls back any partial forklift changes itself.
+    if(dispositionPlan){
+      try{
+        await applyForkliftDispositions(
+          dispositionPlan.decisions,
+          dispositionPlan.fields,
+          dispositionPlan.token
+        );
+      }catch(forkErr){
+        console.error('Forklift disposition failed after lease save:',forkErr);
+
+        // Restore the lease to its exact pre-save state.
+        let leaseRollbackError=null;
+        try{
+          await spSaveLease({...existingLease});
+        }catch(rbErr){
+          leaseRollbackError=rbErr;
+          console.error('Lease rollback failed:',rbErr);
+        }
+
+        if(leaseRollbackError){
+          alert(
+            'CRITICAL: The forklift update failed and the Lease Manager rollback also failed.\n\n'+
+            'Please review both SharePoint lists before making any further changes.\n\n'+
+            'Forklift error: '+forkErr.message+'\n\nLease rollback error: '+leaseRollbackError.message
+          );
+        }else{
+          alert(
+            'The forklift update failed, so the lease change was rolled back.\n\n'+
+            'The location remains Active and the workflow did not complete.\n\n'+forkErr.message
+          );
+        }
+        return;
+      }
+    }
+
+    // Only now update local cache/UI because all required remote writes succeeded.
+    if(editingId){
+      const i=leases.findIndex(x=>x.id===editingId);
+      if(i>=0)leases[i]=saved;
+    }else{
+      leases.push(saved);
+    }
+
+    saveData();
+    closeModal();
+    renderAll();
+    updateEditControls();
+
+    if(document.getElementById('view-map') && !document.getElementById('view-map').classList.contains('hidden')){
+      initMapView();
+    }
+
+    if(newActiveLocation || inactiveToActive){
+      await showNewActiveLocationPrompt(saved.location);
+    }
+  }catch(err){
+    console.error('Lease save failed:',err);
+    alert('Nothing was changed in Forklift Fleet because the lease could not be saved.\n\nSave error: '+err.message);
   }
 }
 

@@ -1607,6 +1607,12 @@ body{font-family:var(--sans);background:var(--bg);color:var(--text);font-size:14
       <div class="form-group"><label class="form-label">Zip</label><input class="form-input" id="f-zip"></div>
       <div class="form-group"><label class="form-label">Square Footage</label><input class="form-input" type="number" id="f-sqft"></div>
     </div>
+
+    <div id="lease-forklift-section" style="display:none">
+      <div class="form-section">Forklifts at This Location</div>
+      <div id="lease-forklift-content" style="font-size:12px;color:var(--muted);padding:4px 0 2px"></div>
+    </div>
+
     <div class="form-section">Financial</div>
     <div class="form-grid">
       <div class="form-group"><label class="form-label">Base Rent (monthly $)</label><input class="form-input" type="number" id="f-base-rent" step="0.01"></div>
@@ -2092,6 +2098,8 @@ window.addEventListener('load', function() {
 const SP_SITE = "https://serviceprosgroup.sharepoint.com/sites/PropertyManagement";
 const SP_LIST = "Lease Manager";
 const SP_API = SP_SITE + "/_api/web/lists/getbytitle('Lease%20Manager')/items";
+const FORKLIFT_LIST_API = SP_SITE + "/_api/web/lists/getbytitle('Forklift%20Fleet')";
+const FORKLIFT_API = FORKLIFT_LIST_API + "/items";
 const OWNER = "john.doyle@serviceprosig.com".toLowerCase();
 const SP_SCOPES = ["https://serviceprosgroup.sharepoint.com/AllSites.Write"];
 let _token = null, _isOwner = false;
@@ -3221,8 +3229,124 @@ function exportCSV(){
   a.click();
 }
 
+
+function forkliftHtmlEsc(v){
+  return String(v===null||v===undefined?'':v)
+    .replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')
+    .replace(/"/g,'&quot;').replace(/'/g,'&#39;');
+}
+
+function forkliftLocationAliases(location){
+  const loc=String(location||'').trim();
+  const aliases={
+    'Fort Walton':['Fort Walton','Fort Walton Beach'],
+    'Meridian - New':['Meridian - New','Meridian'],
+    'Waynesboro':['Waynesboro','Waynesboro Warehouse']
+  };
+  return aliases[loc]||[loc];
+}
+
+async function renderForkliftsForLease(location){
+  const section=document.getElementById('lease-forklift-section');
+  const content=document.getElementById('lease-forklift-content');
+  if(!section||!content)return;
+
+  const loc=String(location||'').trim();
+  if(!loc){
+    section.style.display='none';
+    content.innerHTML='';
+    return;
+  }
+
+  section.style.display='';
+  content.innerHTML='Loading forklifts from Forklift Fleet…';
+
+  try{
+    const token=await getToken();
+
+    const fr=await fetch(FORKLIFT_LIST_API+"/fields?$select=Title,InternalName&$top=300",{
+      headers:{"Accept":"application/json;odata=verbose","Authorization":"Bearer "+token}
+    });
+    if(!fr.ok)throw new Error("Could not read Forklift Fleet fields (HTTP "+fr.status+").");
+    const fields=(await fr.json()).d.results||[];
+
+    const field=(title)=>{
+      const wanted=String(title).trim().toLowerCase();
+      return fields.find(f=>String(f.Title||'').trim().toLowerCase()===wanted);
+    };
+
+    const workroom=field('Current Workroom');
+    const status=field('Status');
+    const manufacturer=field('Manufacturer');
+    const model=field('Model');
+
+    if(!workroom)throw new Error('Forklift Fleet is missing "Current Workroom".');
+
+    const select=['Id','Title',workroom.InternalName];
+    if(status)select.push(status.InternalName);
+    if(manufacturer)select.push(manufacturer.InternalName);
+    if(model)select.push(model.InternalName);
+
+    let url=FORKLIFT_API+"?$select="+select.join(',')+"&$top=500";
+    let all=[];
+    while(url){
+      const r=await fetch(url,{
+        headers:{"Accept":"application/json;odata=verbose","Authorization":"Bearer "+token}
+      });
+      if(!r.ok)throw new Error("Could not read Forklift Fleet (HTTP "+r.status+").");
+      const d=await r.json();
+      all=all.concat(d.d.results||[]);
+      url=d.d.__next||null;
+    }
+
+    const aliases=new Set(forkliftLocationAliases(loc).map(x=>String(x).trim().toLowerCase()));
+    const matches=all.filter(i=>aliases.has(String(i[workroom.InternalName]||'').trim().toLowerCase()));
+
+    matches.sort((a,b)=>{
+      const anum=parseInt(String(a.Title||'').replace(/\D/g,''),10);
+      const bnum=parseInt(String(b.Title||'').replace(/\D/g,''),10);
+      if(Number.isFinite(anum)&&Number.isFinite(bnum)&&anum!==bnum)return anum-bnum;
+      return String(a.Title||'').localeCompare(String(b.Title||''),undefined,{numeric:true});
+    });
+
+    if(!matches.length){
+      content.innerHTML='<div style="padding:8px 10px;background:var(--surface2);border-radius:6px;color:var(--muted)">No forklifts are currently assigned to this location.</div>';
+      return;
+    }
+
+    const rows=matches.map(i=>{
+      const make=manufacturer?String(i[manufacturer.InternalName]||'').trim():'';
+      const mdl=model?String(i[model.InternalName]||'').trim():'';
+      const stat=status?String(i[status.InternalName]||'').trim():'';
+      const desc=[make,mdl].filter(Boolean).join(' ');
+      const inactive=/retired|scrap/i.test(stat);
+      return `<div style="display:grid;grid-template-columns:70px minmax(140px,1fr) 110px;gap:10px;align-items:center;padding:7px 10px;border-bottom:1px solid var(--border)">
+        <strong style="font-family:var(--mono)">${forkliftHtmlEsc(i.Title||'')}</strong>
+        <span>${forkliftHtmlEsc(desc||'—')}</span>
+        <span style="color:${inactive?'var(--muted)':'var(--text)'}">${forkliftHtmlEsc(stat||'—')}</span>
+      </div>`;
+    }).join('');
+
+    content.innerHTML=
+      `<div style="border:1px solid var(--border);border-radius:7px;overflow:hidden">
+        <div style="display:grid;grid-template-columns:70px minmax(140px,1fr) 110px;gap:10px;padding:6px 10px;background:var(--surface2);font-size:10px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.04em">
+          <span>Forklift</span><span>Make / Model</span><span>Status</span>
+        </div>
+        ${rows}
+      </div>
+      <div style="margin-top:6px;color:var(--muted)">${matches.length} forklift${matches.length===1?'':'s'} assigned live from Forklift Fleet.</div>`;
+  }catch(err){
+    console.error('Forklift lookup error:',err);
+    content.innerHTML='<div style="padding:8px 10px;background:var(--warn-light);border-radius:6px;color:var(--warn)">Could not load forklifts: '+forkliftHtmlEsc(err.message)+'</div>';
+  }
+}
+
 function openAddModal(){
   editingId=null;
+  const forkliftSection=document.getElementById('lease-forklift-section');
+  const forkliftContent=document.getElementById('lease-forklift-content');
+  if(forkliftSection)forkliftSection.style.display='none';
+  if(forkliftContent)forkliftContent.innerHTML='';
   document.getElementById('modal-title').textContent='Add New Lease';
   currentDocs = [];
   renderDocsList();
@@ -3246,6 +3370,7 @@ function openEditModal(id){
   editingId=id;
   const l=leases.find(x=>x.id===id); if(!l)return;
   document.getElementById('modal-title').textContent='Edit — '+l.location;
+  renderForkliftsForLease(l.location);
   const map={'f-locnum':'locNum','f-prop-tax':'propTax','f-prop-insurance':'propInsurance','f-cam-detail':'camDetail','f-utilities':'utilities','f-opex-other':'opExOther','f-location':'location','f-address':'address','f-city':'city','f-state':'state','f-zip':'zip','f-sqft':'sqft','f-base-rent':'baseRent','f-security-deposit':'securityDeposit','f-cam':'cam','f-rent-inc':'rentIncDate','f-rent-inc-amt':'rentIncAmount','f-opex-inc':'opexIncDate','f-opex-inc-amt':'opexIncAmount','f-future-prop-tax':'futurePropTax','f-future-prop-insurance':'futurePropInsurance','f-future-cam':'futureCAM','f-future-utilities':'futureUtilities','f-future-opex-other':'futureOpExOther','f-expiry':'expiryDate','f-notify':'notifyDate','f-renewal':'renewal','f-renewal-notify':'renewalNotifyDate','f-landlord':'landlord','f-broker-info':'brokerInfo','f-landlord-contact':'landlordContact','f-director':'director','f-director-email':'directorEmail','f-rom':'rom','f-rom-email':'romEmail','f-aim':'aim','f-aim-email':'aimEmail','f-notes':'notes','f-rr-notes':'rentReviewNotes','f-lease-start':'leaseStartDate','f-current-lease-start':'currentLeaseStartDate'};
   const chkEl = document.getElementById('f-check-lease'); if(chkEl) chkEl.checked = !!l.checkLease;
   Object.entries(map).forEach(([fid,k])=>{

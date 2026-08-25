@@ -263,6 +263,18 @@ body{font-family:var(--sans);background:var(--bg);color:var(--text);font-size:14
 .nb-exp{width:100%;border:1px solid var(--border);border-radius:6px;padding:8px 10px;font-size:12px;font-family:var(--sans);color:var(--text);background:var(--surface);resize:vertical;min-height:56px;box-sizing:border-box;line-height:1.5}
 .nb-exp:focus{outline:none;border-color:var(--accent-mid)}
 .nb-exp-label{font-size:10px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.04em;margin-bottom:4px}
+.forklift-disposition-backdrop{display:none;position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:500;align-items:flex-start;justify-content:center;padding:40px 16px;overflow-y:auto}
+.forklift-disposition-backdrop.open{display:flex}
+.forklift-disposition-modal{background:var(--surface);border:1px solid var(--border);border-radius:12px;width:min(760px,100%);max-height:88vh;overflow-y:auto;box-shadow:0 12px 36px rgba(0,0,0,.2)}
+.forklift-disposition-header{padding:18px 22px;border-bottom:1px solid var(--border);position:sticky;top:0;background:var(--surface);z-index:2}
+.forklift-disposition-title{font-size:16px;font-weight:600}
+.forklift-disposition-sub{font-size:12px;color:var(--muted);margin-top:4px;line-height:1.5}
+.forklift-disposition-body{padding:16px 22px;display:flex;flex-direction:column;gap:12px}
+.forklift-disposition-row{border:1px solid var(--border);border-radius:8px;padding:12px;background:var(--surface)}
+.forklift-disposition-grid{display:grid;grid-template-columns:90px 1fr 180px 1fr;gap:10px;align-items:center}
+.forklift-disposition-footer{padding:14px 22px;border-top:1px solid var(--border);display:flex;justify-content:flex-end;gap:8px;position:sticky;bottom:0;background:var(--surface)}
+@media(max-width:700px){.forklift-disposition-grid{grid-template-columns:1fr}.forklift-disposition-grid .form-label{margin-top:4px}}
+
 </style>
 <script src="https://cdn.jsdelivr.net/npm/@azure/msal-browser@2.38.3/lib/msal-browser.min.js" crossorigin="anonymous"></script>
 </head>
@@ -1582,6 +1594,23 @@ body{font-family:var(--sans);background:var(--bg);color:var(--text);font-size:14
 </div><!-- /content -->
 </div><!-- /main-body -->
 </div><!-- /app -->
+
+<!-- FORKLIFT DISPOSITION MODAL -->
+<div class="forklift-disposition-backdrop" id="forklift-disposition-modal">
+  <div class="forklift-disposition-modal">
+    <div class="forklift-disposition-header">
+      <div class="forklift-disposition-title">Forklift Disposition Required</div>
+      <div class="forklift-disposition-sub" id="forklift-disposition-sub">
+        This location has forklifts assigned to it. Each forklift must be transferred, retired, or scrapped before the location can be made inactive.
+      </div>
+    </div>
+    <div class="forklift-disposition-body" id="forklift-disposition-body"></div>
+    <div class="forklift-disposition-footer">
+      <button type="button" class="btn" id="forklift-disposition-cancel">Cancel</button>
+      <button type="button" class="btn primary" id="forklift-disposition-confirm">Apply &amp; Continue</button>
+    </div>
+  </div>
+</div>
 
 <!-- ADD/EDIT MODAL -->
 <div class="modal-backdrop" id="modal" onclick="if(event.target===this)closeModal()">
@@ -3398,11 +3427,243 @@ function openEditModal(id){
 
 function closeModal(){ document.getElementById('modal').classList.remove('open'); }
 
-function saveLease(){
+
+function leaseLocationAliases(location){
+  const loc=String(location||'').trim();
+  const aliases={
+    'Fort Walton':['Fort Walton','Fort Walton Beach'],
+    'Meridian - New':['Meridian - New','Meridian'],
+    'Waynesboro':['Waynesboro','Waynesboro Warehouse']
+  };
+  return aliases[loc]||[loc];
+}
+
+function activeLeaseDestinations(excludeLocation=''){
+  const exclude=String(excludeLocation||'').trim().toLowerCase();
+  return [...new Set(
+    leases
+      .filter(l=>String(l.leaseStatus||'Active').trim().toLowerCase()==='active')
+      .map(l=>String(l.location||'').trim())
+      .filter(Boolean)
+      .filter(name=>name.toLowerCase()!==exclude)
+  )].sort((a,b)=>a.localeCompare(b,undefined,{numeric:true,sensitivity:'base'}));
+}
+
+async function forkliftFieldInfo(token){
+  const r=await fetch(FORKLIFT_LIST_API+"/fields?$select=Title,InternalName,TypeAsString&$top=300",{
+    headers:{"Accept":"application/json;odata=verbose","Authorization":"Bearer "+token}
+  });
+  if(!r.ok)throw new Error("Could not read Forklift Fleet fields (HTTP "+r.status+").");
+  const fields=(await r.json()).d.results||[];
+  const get=(title)=>{
+    const wanted=String(title).trim().toLowerCase();
+    return fields.find(f=>String(f.Title||'').trim().toLowerCase()===wanted);
+  };
+  return {
+    workroom:get('Current Workroom'),
+    status:get('Status'),
+    manufacturer:get('Manufacturer'),
+    model:get('Model')
+  };
+}
+
+async function getForkliftsRequiringDisposition(location,token){
+  const f=await forkliftFieldInfo(token);
+  if(!f.workroom||!f.status)throw new Error('Forklift Fleet must contain "Current Workroom" and "Status".');
+
+  const select=['Id','Title',f.workroom.InternalName,f.status.InternalName];
+  if(f.manufacturer)select.push(f.manufacturer.InternalName);
+  if(f.model)select.push(f.model.InternalName);
+
+  let url=FORKLIFT_API+"?$select="+select.join(',')+"&$top=500";
+  let all=[];
+  while(url){
+    const r=await fetch(url,{
+      headers:{"Accept":"application/json;odata=verbose","Authorization":"Bearer "+token}
+    });
+    if(!r.ok)throw new Error("Could not read Forklift Fleet (HTTP "+r.status+").");
+    const d=await r.json();
+    all=all.concat(d.d.results||[]);
+    url=d.d.__next||null;
+  }
+
+  const aliases=new Set(leaseLocationAliases(location).map(x=>String(x).trim().toLowerCase()));
+  return {
+    fields:f,
+    items:all.filter(i=>{
+      const room=String(i[f.workroom.InternalName]||'').trim().toLowerCase();
+      const status=String(i[f.status.InternalName]||'').trim().toLowerCase();
+      const alreadyDisposed=status==='retired'||status==='scrapped';
+      return aliases.has(room)&&!alreadyDisposed;
+    })
+  };
+}
+
+function getForkliftListItemType(token){
+  return fetch(FORKLIFT_LIST_API+"?$select=ListItemEntityTypeFullName",{
+    headers:{"Accept":"application/json;odata=verbose","Authorization":"Bearer "+token}
+  }).then(async r=>{
+    if(!r.ok)throw new Error("Could not read Forklift Fleet list type (HTTP "+r.status+").");
+    return (await r.json()).d.ListItemEntityTypeFullName;
+  });
+}
+
+function chooseForkliftDispositions(location,items,fields){
+  return new Promise(resolve=>{
+    const backdrop=document.getElementById('forklift-disposition-modal');
+    const body=document.getElementById('forklift-disposition-body');
+    const sub=document.getElementById('forklift-disposition-sub');
+    const confirmBtn=document.getElementById('forklift-disposition-confirm');
+    const cancelBtn=document.getElementById('forklift-disposition-cancel');
+
+    const destinations=activeLeaseDestinations(location);
+    sub.textContent=`${location} is being changed from Active to Inactive. Resolve ${items.length} forklift${items.length===1?'':'s'} before continuing.`;
+
+    const destinationOptions=destinations.map(d=>`<option value="${forkliftHtmlEsc(d)}">${forkliftHtmlEsc(d)}</option>`).join('');
+
+    body.innerHTML=items.map((i,idx)=>{
+      const make=fields.manufacturer?String(i[fields.manufacturer.InternalName]||'').trim():'';
+      const model=fields.model?String(i[fields.model.InternalName]||'').trim():'';
+      const stat=String(i[fields.status.InternalName]||'').trim();
+      return `<div class="forklift-disposition-row" data-index="${idx}">
+        <div style="font-weight:600;margin-bottom:8px">${forkliftHtmlEsc(i.Title||'')} — ${forkliftHtmlEsc([make,model].filter(Boolean).join(' ')||'Forklift')}</div>
+        <div style="font-size:11px;color:var(--muted);margin-bottom:10px">Current status: ${forkliftHtmlEsc(stat||'—')}</div>
+        <div class="forklift-disposition-grid">
+          <label class="form-label">Action</label>
+          <select class="form-input forklift-action" data-index="${idx}">
+            <option value="">— Select —</option>
+            <option value="transfer">Transfer</option>
+            <option value="retire">Retire</option>
+            <option value="scrap">Scrap</option>
+          </select>
+          <label class="form-label forklift-destination-label" data-index="${idx}" style="display:none">Transfer To</label>
+          <select class="form-input forklift-destination" data-index="${idx}" style="display:none">
+            <option value="">— Select Active Location —</option>
+            ${destinationOptions}
+          </select>
+        </div>
+      </div>`;
+    }).join('');
+
+    body.querySelectorAll('.forklift-action').forEach(sel=>{
+      sel.addEventListener('change',()=>{
+        const idx=sel.dataset.index;
+        const show=sel.value==='transfer';
+        const dest=body.querySelector(`.forklift-destination[data-index="${idx}"]`);
+        const lbl=body.querySelector(`.forklift-destination-label[data-index="${idx}"]`);
+        if(dest)dest.style.display=show?'':'none';
+        if(lbl)lbl.style.display=show?'':'none';
+        if(!show&&dest)dest.value='';
+      });
+    });
+
+    const cleanup=()=>{
+      backdrop.classList.remove('open');
+      confirmBtn.onclick=null;
+      cancelBtn.onclick=null;
+    };
+
+    cancelBtn.onclick=()=>{
+      cleanup();
+      resolve(null);
+    };
+
+    confirmBtn.onclick=()=>{
+      const decisions=[];
+      let valid=true;
+
+      items.forEach((item,idx)=>{
+        const action=body.querySelector(`.forklift-action[data-index="${idx}"]`)?.value||'';
+        const destination=body.querySelector(`.forklift-destination[data-index="${idx}"]`)?.value||'';
+        if(!action){valid=false;return;}
+        if(action==='transfer'&&!destination){valid=false;return;}
+        decisions.push({item,action,destination});
+      });
+
+      if(!valid){
+        alert('Choose Transfer, Retire, or Scrap for every forklift. A Transfer also requires an Active destination.');
+        return;
+      }
+
+      cleanup();
+      resolve(decisions);
+    };
+
+    backdrop.classList.add('open');
+  });
+}
+
+async function applyForkliftDispositions(decisions,fields,token){
+  if(!decisions||!decisions.length)return;
+
+  const itemType=await getForkliftListItemType(token);
+
+  for(const d of decisions){
+    const body={"__metadata":{"type":itemType}};
+
+    if(d.action==='transfer'){
+      body[fields.workroom.InternalName]=d.destination;
+    }else if(d.action==='retire'){
+      body[fields.status.InternalName]='Retired';
+    }else if(d.action==='scrap'){
+      body[fields.status.InternalName]='Scrapped';
+    }
+
+    const r=await fetch(FORKLIFT_API+"("+d.item.Id+")",{
+      method:'POST',
+      headers:{
+        "Accept":"application/json;odata=verbose",
+        "Content-Type":"application/json;odata=verbose",
+        "Authorization":"Bearer "+token,
+        "X-HTTP-Method":"MERGE",
+        "IF-MATCH":"*"
+      },
+      body:JSON.stringify(body)
+    });
+
+    if(!r.ok){
+      const detail=await r.text();
+      throw new Error(`Could not update ${d.item.Title} (HTTP ${r.status}). ${detail}`);
+    }
+  }
+}
+
+
+async function saveLease(){
   const g=id=>document.getElementById(id)?.value||'';
   const isMTM = document.getElementById('f-mtm')?.checked||false;
   const expiryVal = isMTM ? 'Month to Month' : (g('f-expiry')||null);
   const notifyVal = isMTM ? null : (g('f-notify')||null);
+  const existingLease = editingId ? leases.find(x=>x.id===editingId) : null;
+  const oldLeaseStatus = String(existingLease?.leaseStatus||'Active').trim();
+  const newLeaseStatus = String(g('f-status')||'Active').trim();
+  const activeToInactive = !!existingLease &&
+    oldLeaseStatus.toLowerCase()==='active' &&
+    newLeaseStatus.toLowerCase()==='inactive';
+
+  if(activeToInactive){
+    try{
+      const token=await getToken();
+      const result=await getForkliftsRequiringDisposition(existingLease.location,token);
+
+      if(result.items.length){
+        const decisions=await chooseForkliftDispositions(existingLease.location,result.items,result.fields);
+        if(!decisions)return;
+
+        const ok=confirm(
+          `This will update ${decisions.length} forklift${decisions.length===1?'':'s'} in Forklift Fleet and then make ${existingLease.location} Inactive.\n\nContinue?`
+        );
+        if(!ok)return;
+
+        await applyForkliftDispositions(decisions,result.fields,token);
+      }
+    }catch(err){
+      console.error('Forklift disposition failed:',err);
+      alert('The location was NOT made inactive.\n\n'+err.message);
+      return;
+    }
+  }
+
   const obj={
     locNum:g('f-locnum'),
     location:g('f-location'),address:g('f-address'),city:g('f-city'),state:g('f-state'),zip:g('f-zip'),
@@ -3459,7 +3720,7 @@ function saveLease(){
   if(document.getElementById('view-map') && !document.getElementById('view-map').classList.contains('hidden')){
     initMapView();
   }
-  spSaveLease(saved);
+  await spSaveLease(saved);
 }
 
 async function deleteLease(id){

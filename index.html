@@ -1601,7 +1601,7 @@ body{font-family:var(--sans);background:var(--bg);color:var(--text);font-size:14
     <div class="forklift-disposition-header">
       <div class="forklift-disposition-title">Forklift Disposition Required</div>
       <div class="forklift-disposition-sub" id="forklift-disposition-sub">
-        This location has forklifts assigned to it. Each forklift must be transferred, retired, or scrapped before the location can be made inactive.
+        This location has forklifts assigned to it. Each forklift must be transferred, retired, scrapped, or sold before the location can be made inactive.
       </div>
     </div>
     <div class="forklift-disposition-body" id="forklift-disposition-body"></div>
@@ -3348,7 +3348,7 @@ async function renderForkliftsForLease(location){
       const mdl=model?String(i[model.InternalName]||'').trim():'';
       const stat=status?String(i[status.InternalName]||'').trim():'';
       const desc=[make,mdl].filter(Boolean).join(' ');
-      const inactive=/retired|scrap/i.test(stat);
+      const inactive=/retired|scrap|sold/i.test(stat);
       return `<div style="display:grid;grid-template-columns:70px minmax(140px,1fr) 110px;gap:10px;align-items:center;padding:7px 10px;border-bottom:1px solid var(--border)">
         <strong style="font-family:var(--mono)">${forkliftHtmlEsc(i.Title||'')}</strong>
         <span>${forkliftHtmlEsc(desc||'—')}</span>
@@ -3463,13 +3463,14 @@ async function forkliftFieldInfo(token){
     workroom:get('Current Workroom'),
     status:get('Status'),
     manufacturer:get('Manufacturer'),
-    model:get('Model')
+    model:get('Model'),
+    dispositionDate:get('Disposition Date')
   };
 }
 
 async function getForkliftsRequiringDisposition(location,token){
   const f=await forkliftFieldInfo(token);
-  if(!f.workroom||!f.status)throw new Error('Forklift Fleet must contain "Current Workroom" and "Status".');
+  if(!f.workroom||!f.status||!f.dispositionDate)throw new Error('Forklift Fleet must contain "Current Workroom", "Status", and "Disposition Date".');
 
   const select=['Id','Title',f.workroom.InternalName,f.status.InternalName];
   if(f.manufacturer)select.push(f.manufacturer.InternalName);
@@ -3493,7 +3494,7 @@ async function getForkliftsRequiringDisposition(location,token){
     items:all.filter(i=>{
       const room=String(i[f.workroom.InternalName]||'').trim().toLowerCase();
       const status=String(i[f.status.InternalName]||'').trim().toLowerCase();
-      const alreadyDisposed=status==='retired'||status==='scrapped';
+      const alreadyDisposed=status==='retired'||status==='scrapped'||status==='sold';
       return aliases.has(room)&&!alreadyDisposed;
     })
   };
@@ -3535,12 +3536,15 @@ function chooseForkliftDispositions(location,items,fields){
             <option value="transfer">Transfer</option>
             <option value="retire">Retire</option>
             <option value="scrap">Scrap</option>
+            <option value="sold">Sold</option>
           </select>
           <label class="form-label forklift-destination-label" data-index="${idx}" style="display:none">Transfer To</label>
           <select class="form-input forklift-destination" data-index="${idx}" style="display:none">
             <option value="">— Select Active Location —</option>
             ${destinationOptions}
           </select>
+          <label class="form-label forklift-date-label" data-index="${idx}" style="display:none">Disposition Date</label>
+          <input class="form-input forklift-date" data-index="${idx}" type="date" style="display:none">
         </div>
       </div>`;
     }).join('');
@@ -3548,12 +3552,18 @@ function chooseForkliftDispositions(location,items,fields){
     body.querySelectorAll('.forklift-action').forEach(sel=>{
       sel.addEventListener('change',()=>{
         const idx=sel.dataset.index;
-        const show=sel.value==='transfer';
+        const showDest=sel.value==='transfer';
+        const showDate=['retire','scrap','sold'].includes(sel.value);
         const dest=body.querySelector(`.forklift-destination[data-index="${idx}"]`);
-        const lbl=body.querySelector(`.forklift-destination-label[data-index="${idx}"]`);
-        if(dest)dest.style.display=show?'':'none';
-        if(lbl)lbl.style.display=show?'':'none';
-        if(!show&&dest)dest.value='';
+        const destLbl=body.querySelector(`.forklift-destination-label[data-index="${idx}"]`);
+        const date=body.querySelector(`.forklift-date[data-index="${idx}"]`);
+        const dateLbl=body.querySelector(`.forklift-date-label[data-index="${idx}"]`);
+        if(dest)dest.style.display=showDest?'':'none';
+        if(destLbl)destLbl.style.display=showDest?'':'none';
+        if(date)date.style.display=showDate?'':'none';
+        if(dateLbl)dateLbl.style.display=showDate?'':'none';
+        if(!showDest&&dest)dest.value='';
+        if(!showDate&&date)date.value='';
       });
     });
 
@@ -3575,13 +3585,15 @@ function chooseForkliftDispositions(location,items,fields){
       items.forEach((item,idx)=>{
         const action=body.querySelector(`.forklift-action[data-index="${idx}"]`)?.value||'';
         const destination=body.querySelector(`.forklift-destination[data-index="${idx}"]`)?.value||'';
+        const dispositionDate=body.querySelector(`.forklift-date[data-index="${idx}"]`)?.value||'';
         if(!action){valid=false;return;}
         if(action==='transfer'&&!destination){valid=false;return;}
-        decisions.push({item,action,destination});
+        if(['retire','scrap','sold'].includes(action)&&!dispositionDate){valid=false;return;}
+        decisions.push({item,action,destination,dispositionDate});
       });
 
       if(!valid){
-        alert('Choose Transfer, Retire, or Scrap for every forklift. A Transfer also requires an Active destination.');
+        alert('Choose Transfer, Retire, Scrap, or Sold for every forklift. Transfer requires an Active destination. Retire, Scrap, and Sold require a manually entered Disposition Date.');
         return;
       }
 
@@ -3605,8 +3617,13 @@ async function applyForkliftDispositions(decisions,fields,token){
       body[fields.workroom.InternalName]=d.destination;
     }else if(d.action==='retire'){
       body[fields.status.InternalName]='Retired';
+      body[fields.dispositionDate.InternalName]=d.dispositionDate;
     }else if(d.action==='scrap'){
       body[fields.status.InternalName]='Scrapped';
+      body[fields.dispositionDate.InternalName]=d.dispositionDate;
+    }else if(d.action==='sold'){
+      body[fields.status.InternalName]='Sold';
+      body[fields.dispositionDate.InternalName]=d.dispositionDate;
     }
 
     const r=await fetch(FORKLIFT_API+"("+d.item.Id+")",{

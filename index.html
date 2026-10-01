@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Lease Manager — 75 Locations</title>
-<!-- v6.0 - Added Current Lease Term Start Date and Current Lease Term Length; renamed Original Lease Start Date -->
+<!-- v6.1 - Forklifts at This Location now separates Current vs Past / Historical -->
 <style>
 @import url('https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=DM+Sans:wght@300;400;500;600&display=swap');
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
@@ -3309,12 +3309,39 @@ function forkliftHtmlEsc(v){
 
 function forkliftLocationAliases(location){
   const loc=String(location||'').trim();
+  // Keep aliases intentionally narrow. These are the same workroom, just naming variants.
   const aliases={
-    'Fort Walton':['Fort Walton','Fort Walton Beach'],
-    'Meridian - New':['Meridian - New','Meridian'],
-    'Waynesboro':['Waynesboro','Waynesboro Warehouse']
+    'Fort Walton':['Fort Walton','Fort Walton Beach']
   };
   return aliases[loc]||[loc];
+}
+
+function forkliftHistoryKey(v){
+  return String(v||'')
+    .trim()
+    .toLowerCase()
+    .replace(/&/g,' and ')
+    .replace(/[.,]/g,' ')
+    .replace(/\s*-\s*/g,' ')
+    .replace(/\s+/g,' ')
+    .trim();
+}
+
+function forkliftIsCurrentStatus(v){
+  const s=String(v||'').trim().toLowerCase();
+  return s==='active'||s==='down for repair'||s==='parked';
+}
+
+function forkliftDateOnly(v){
+  if(!v)return '';
+  return String(v).slice(0,10);
+}
+
+function forkliftPrettyDate(v){
+  const s=forkliftDateOnly(v);
+  if(!s)return '—';
+  const d=new Date(s+'T12:00:00');
+  return Number.isNaN(d.getTime())?s:d.toLocaleDateString('en-US',{month:'2-digit',day:'2-digit',year:'numeric'});
 }
 
 async function renderForkliftsForLease(location){
@@ -3330,85 +3357,219 @@ async function renderForkliftsForLease(location){
   }
 
   section.style.display='';
-  content.innerHTML='Loading forklifts from Forklift Fleet…';
+  content.innerHTML='Loading current and historical forklifts…';
 
   try{
     const token=await getToken();
 
+    // ── Current Fleet ──────────────────────────────────────────────
     const fr=await fetch(FORKLIFT_LIST_API+"/fields?$select=Title,InternalName&$top=300",{
       headers:{"Accept":"application/json;odata=verbose","Authorization":"Bearer "+token}
     });
     if(!fr.ok)throw new Error("Could not read Forklift Fleet fields (HTTP "+fr.status+").");
-    const fields=(await fr.json()).d.results||[];
+    const fleetFields=(await fr.json()).d.results||[];
 
-    const field=(title)=>{
+    const fleetField=(title)=>{
       const wanted=String(title).trim().toLowerCase();
-      return fields.find(f=>String(f.Title||'').trim().toLowerCase()===wanted);
+      return fleetFields.find(f=>String(f.Title||'').trim().toLowerCase()===wanted);
     };
 
-    const workroom=field('Current Workroom');
-    const status=field('Status');
-    const manufacturer=field('Manufacturer');
-    const model=field('Model');
+    const workroom=fleetField('Current Workroom');
+    const status=fleetField('Status');
+    const manufacturer=fleetField('Manufacturer');
+    const model=fleetField('Model');
+    const dispositionDate=fleetField('Disposition Date');
 
     if(!workroom)throw new Error('Forklift Fleet is missing "Current Workroom".');
 
-    const select=['Id','Title',workroom.InternalName];
-    if(status)select.push(status.InternalName);
-    if(manufacturer)select.push(manufacturer.InternalName);
-    if(model)select.push(model.InternalName);
+    const fleetSelect=['Id','Title',workroom.InternalName];
+    if(status)fleetSelect.push(status.InternalName);
+    if(manufacturer)fleetSelect.push(manufacturer.InternalName);
+    if(model)fleetSelect.push(model.InternalName);
+    if(dispositionDate)fleetSelect.push(dispositionDate.InternalName);
 
-    let url=FORKLIFT_API+"?$select="+select.join(',')+"&$top=500";
-    let all=[];
-    while(url){
-      const r=await fetch(url,{
+    let fleetUrl=FORKLIFT_API+"?$select="+fleetSelect.join(',')+"&$top=500";
+    let fleetItems=[];
+    while(fleetUrl){
+      const r=await fetch(fleetUrl,{
         headers:{"Accept":"application/json;odata=verbose","Authorization":"Bearer "+token}
       });
       if(!r.ok)throw new Error("Could not read Forklift Fleet (HTTP "+r.status+").");
       const d=await r.json();
-      all=all.concat(d.d.results||[]);
-      url=d.d.__next||null;
+      fleetItems=fleetItems.concat(d.d.results||[]);
+      fleetUrl=d.d.__next||null;
     }
 
-    const aliases=new Set(forkliftLocationAliases(loc).map(x=>String(x).trim().toLowerCase()));
-    const matches=all.filter(i=>aliases.has(String(i[workroom.InternalName]||'').trim().toLowerCase()));
+    const aliasKeys=new Set(forkliftLocationAliases(loc).map(forkliftHistoryKey));
 
-    matches.sort((a,b)=>{
-      const anum=parseInt(String(a.Title||'').replace(/\D/g,''),10);
-      const bnum=parseInt(String(b.Title||'').replace(/\D/g,''),10);
-      if(Number.isFinite(anum)&&Number.isFinite(bnum)&&anum!==bnum)return anum-bnum;
-      return String(a.Title||'').localeCompare(String(b.Title||''),undefined,{numeric:true});
+    const current=fleetItems.filter(i=>{
+      const roomKey=forkliftHistoryKey(i[workroom.InternalName]);
+      const stat=status?i[status.InternalName]:'Active';
+      return aliasKeys.has(roomKey)&&forkliftIsCurrentStatus(stat);
     });
 
-    if(!matches.length){
-      content.innerHTML='<div style="padding:8px 10px;background:var(--surface2);border-radius:6px;color:var(--muted)">No forklifts are currently assigned to this location.</div>';
-      return;
+    // ── Lifecycle History ──────────────────────────────────────────
+    const SERVICE_LIST_API = SP_SITE + "/_api/web/lists/getbytitle('Forklift%20Service%20Events')";
+    const SERVICE_ITEMS_API = SERVICE_LIST_API + "/items";
+
+    let lifeItems=[];
+    let lifeFieldMap={};
+
+    try{
+      const sfr=await fetch(SERVICE_LIST_API+"/fields?$select=Title,InternalName&$top=300",{
+        headers:{"Accept":"application/json;odata=verbose","Authorization":"Bearer "+token}
+      });
+      if(sfr.ok){
+        const sf=(await sfr.json()).d.results||[];
+        const get=(title)=>{
+          const wanted=String(title).trim().toLowerCase();
+          return sf.find(f=>String(f.Title||'').trim().toLowerCase()===wanted);
+        };
+        [
+          'Forklift ID','Record Category','Lifecycle Event Type','Effective Date',
+          'From Workroom','To Workroom','Void Status','Workroom','Service Date'
+        ].forEach(t=>{const f=get(t);if(f)lifeFieldMap[t]=f.InternalName;});
+
+        let lifeUrl=SERVICE_ITEMS_API+"?$select=*&$top=500&$orderby=Id";
+        while(lifeUrl){
+          const r=await fetch(lifeUrl,{
+            headers:{"Accept":"application/json;odata=verbose","Authorization":"Bearer "+token}
+          });
+          if(!r.ok)throw new Error("HTTP "+r.status);
+          const d=await r.json();
+          lifeItems=lifeItems.concat(d.d.results||[]);
+          lifeUrl=d.d.__next||null;
+        }
+      }
+    }catch(e){
+      console.warn('Historical forklift lookup could not load lifecycle events:',e);
+      lifeItems=[];
     }
 
-    const rows=matches.map(i=>{
+    const iv=(item,title)=>{
+      const k=lifeFieldMap[title];
+      return k?item[k]:null;
+    };
+    const bool=(v)=>v===true||['true','yes','1'].includes(String(v||'').trim().toLowerCase());
+
+    const lifecycleRows=lifeItems.filter(e=>{
+      if(bool(iv(e,'Void Status')))return false;
+      const category=String(iv(e,'Record Category')||'').trim().toLowerCase();
+      const type=String(iv(e,'Lifecycle Event Type')||'').trim();
+      return category==='lifecycle'||!!type;
+    });
+
+    const fleetById=new Map(fleetItems.map(i=>[String(i.Title||'').trim(),i]));
+    const currentIds=new Set(current.map(i=>String(i.Title||'').trim()));
+    const pastById=new Map();
+
+    // A transfer FROM this location proves the forklift was historically here.
+    for(const e of lifecycleRows){
+      const type=String(iv(e,'Lifecycle Event Type')||'').trim();
+      if(type!=='Transfer')continue;
+      const from=String(iv(e,'From Workroom')||'').trim();
+      if(!aliasKeys.has(forkliftHistoryKey(from)))continue;
+
+      const fid=String(iv(e,'Forklift ID')||'').trim();
+      if(!fid||currentIds.has(fid))continue;
+
+      const date=forkliftDateOnly(iv(e,'Effective Date')||iv(e,'Service Date'));
+      const to=String(iv(e,'To Workroom')||'').trim();
+
+      const prev=pastById.get(fid);
+      if(!prev||date>prev.date){
+        pastById.set(fid,{
+          id:fid,
+          reason:to?`Transferred to ${to}`:'Transferred out',
+          date,
+          eventType:'Transfer'
+        });
+      }
+    }
+
+    // Retired / Sold / Scrapped assets can legitimately retain the last workroom
+    // in Fleet. Show them as Past rather than Current.
+    for(const i of fleetItems){
+      const fid=String(i.Title||'').trim();
+      if(!fid||currentIds.has(fid))continue;
+
+      const room=String(i[workroom.InternalName]||'').trim();
+      const stat=status?String(i[status.InternalName]||'').trim():'';
+      if(!aliasKeys.has(forkliftHistoryKey(room)))continue;
+      if(!['retired','sold','scrapped'].includes(stat.toLowerCase()))continue;
+
+      const dd=dispositionDate?forkliftDateOnly(i[dispositionDate.InternalName]):'';
+      const prev=pastById.get(fid);
+      if(!prev||(!prev.date&&dd)){
+        pastById.set(fid,{
+          id:fid,
+          reason:stat,
+          date:dd,
+          eventType:stat
+        });
+      }
+    }
+
+    const past=[...pastById.values()].map(p=>{
+      const f=fleetById.get(p.id);
+      return {...p,fleet:f||null};
+    });
+
+    const sortIds=(a,b)=>{
+      const aid=String(a.Title||a.id||'');
+      const bid=String(b.Title||b.id||'');
+      return aid.localeCompare(bid,undefined,{numeric:true,sensitivity:'base'});
+    };
+    current.sort(sortIds);
+    past.sort(sortIds);
+
+    const makeModel=(i)=>{
+      if(!i)return '—';
       const make=manufacturer?String(i[manufacturer.InternalName]||'').trim():'';
       const mdl=model?String(i[model.InternalName]||'').trim():'';
-      const stat=status?String(i[status.InternalName]||'').trim():'';
-      const desc=[make,mdl].filter(Boolean).join(' ');
-      const inactive=/retired|scrap|sold/i.test(stat);
-      return `<div style="display:grid;grid-template-columns:70px minmax(140px,1fr) 110px;gap:10px;align-items:center;padding:7px 10px;border-bottom:1px solid var(--border)">
-        <strong style="font-family:var(--mono)">${forkliftHtmlEsc(i.Title||'')}</strong>
-        <span>${forkliftHtmlEsc(desc||'—')}</span>
-        <span style="color:${inactive?'var(--muted)':'var(--text)'}">${forkliftHtmlEsc(stat||'—')}</span>
-      </div>`;
-    }).join('');
+      return [make,mdl].filter(Boolean).join(' ')||'—';
+    };
 
-    content.innerHTML=
-      `<div style="border:1px solid var(--border);border-radius:7px;overflow:hidden">
-        <div style="display:grid;grid-template-columns:70px minmax(140px,1fr) 110px;gap:10px;padding:6px 10px;background:var(--surface2);font-size:10px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.04em">
-          <span>Forklift</span><span>Make / Model</span><span>Status</span>
-        </div>
-        ${rows}
-      </div>
-      <div style="margin-top:6px;color:var(--muted)">${matches.length} forklift${matches.length===1?'':'s'} assigned live from Forklift Fleet.</div>`;
+    const currentHtml=current.length
+      ? `<div style="margin-top:6px;margin-bottom:6px;font-size:11px;font-weight:600;color:var(--accent);text-transform:uppercase;letter-spacing:.05em">Current Forklifts (${current.length})</div>
+         <div style="border:1px solid var(--border);border-radius:7px;overflow:hidden;margin-bottom:12px">
+           <div style="display:grid;grid-template-columns:80px minmax(150px,1fr) 130px;gap:10px;padding:6px 10px;background:var(--surface2);font-size:10px;font-weight:600;color:var(--muted);text-transform:uppercase">
+             <span>Forklift</span><span>Make / Model</span><span>Status</span>
+           </div>
+           ${current.map(i=>{
+             const stat=status?String(i[status.InternalName]||'').trim():'—';
+             return `<div style="display:grid;grid-template-columns:80px minmax(150px,1fr) 130px;gap:10px;padding:7px 10px;border-top:1px solid var(--border)">
+               <strong style="font-family:var(--mono)">${forkliftHtmlEsc(i.Title||'')}</strong>
+               <span>${forkliftHtmlEsc(makeModel(i))}</span>
+               <span>${forkliftHtmlEsc(stat||'—')}</span>
+             </div>`;
+           }).join('')}
+         </div>`
+      : `<div style="margin-top:6px;margin-bottom:12px;padding:8px 10px;background:var(--surface2);border-radius:6px;color:var(--muted)">No current forklifts are assigned to this location.</div>`;
+
+    const pastHtml=past.length
+      ? `<div style="margin-top:8px;margin-bottom:6px;font-size:11px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.05em">Past / Historical Forklifts (${past.length})</div>
+         <div style="border:1px solid var(--border);border-radius:7px;overflow:hidden">
+           <div style="display:grid;grid-template-columns:80px minmax(140px,1fr) minmax(160px,1fr) 100px;gap:10px;padding:6px 10px;background:var(--surface2);font-size:10px;font-weight:600;color:var(--muted);text-transform:uppercase">
+             <span>Forklift</span><span>Make / Model</span><span>What Happened</span><span>Date</span>
+           </div>
+           ${past.map(p=>`<div style="display:grid;grid-template-columns:80px minmax(140px,1fr) minmax(160px,1fr) 100px;gap:10px;padding:7px 10px;border-top:1px solid var(--border);color:var(--muted)">
+             <strong style="font-family:var(--mono);color:var(--text)">${forkliftHtmlEsc(p.id)}</strong>
+             <span>${forkliftHtmlEsc(makeModel(p.fleet))}</span>
+             <span>${forkliftHtmlEsc(p.reason||'Historical assignment')}</span>
+             <span style="font-family:var(--mono);font-size:11px">${forkliftHtmlEsc(forkliftPrettyDate(p.date))}</span>
+           </div>`).join('')}
+         </div>`
+      : `<div style="margin-top:8px;color:var(--muted);font-size:11px">No historical forklift assignments are recorded for this location.</div>`;
+
+    content.innerHTML=currentHtml+pastHtml+
+      `<div style="margin-top:7px;color:var(--muted);font-size:10px;line-height:1.5">
+        Current assignments come from Forklift Fleet. Past assignments come from Forklift Lifecycle History and disposed Fleet records.
+      </div>`;
+
   }catch(err){
     console.error('Forklift lookup error:',err);
-    content.innerHTML='<div style="padding:8px 10px;background:var(--warn-light);border-radius:6px;color:var(--warn)">Could not load forklifts: '+forkliftHtmlEsc(err.message)+'</div>';
+    content.innerHTML='<div style="padding:8px 10px;background:var(--warn-light);border-radius:6px;color:var(--warn)">Could not load forklift information: '+forkliftHtmlEsc(err.message)+'</div>';
   }
 }
 
